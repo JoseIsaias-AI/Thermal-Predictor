@@ -1,4 +1,9 @@
+# ATENÇÃO! Não altere a lista abaixo, para que nenhuma fonte de dados seja incorporada ao seu repositório. 
+# Isso é um compromisso firmado entre o Inteli e seus parceiros de projetos acerca da proteção de dados.
+# 
 *.csv
 *.xls
 *.xlsx
 *.tsv
+*.db
+*.sql
