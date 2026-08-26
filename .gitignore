@@ -7,3 +7,6 @@
 *.tsv
 *.db
 *.sql
+
+# Ambiente Python local (não versionar).
+.venv/
