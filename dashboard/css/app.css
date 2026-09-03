@@ -1,0 +1,256 @@
+/* Layout da tela de consulta. Cores e tipografia vêm de tokens.css. */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-family: var(--font-body);
+  font-size: var(--size-body);
+  font-weight: var(--weight-regular);
+  line-height: var(--leading-body);
+}
+
+/* ----- Cabeçalho ----- */
+
+.masthead {
+  border-bottom: var(--border-width) solid var(--color-border);
+  padding: var(--space-5) var(--space-6);
+}
+
+.masthead__inner {
+  max-width: var(--content-max);
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+/* O guia proíbe distorcer o logotipo. `width: auto` preserva a proporção e
+   `flex: none` impede que o flexbox o comprima em telas estreitas. */
+.masthead__logo {
+  height: 40px;
+  width: auto;
+  flex: none;
+  margin-right: var(--space-2);
+}
+
+@media (max-width: 30rem) {
+  .masthead__inner {
+    flex-wrap: wrap;
+  }
+}
+
+/* Linha vertical de 1pt separando logotipo e nome do sistema, como o guia exige. */
+.masthead__identity {
+  padding-left: var(--space-4);
+  border-left: 1px solid var(--color-border-strong);
+}
+
+/* 1.4375rem ≈ altura do "W" do logotipo a 40px, conforme o guia. */
+.masthead__system-name {
+  font-family: var(--font-display);
+  font-weight: var(--weight-light);
+  font-size: 1.4375rem;
+  line-height: 1;
+  margin: 0;
+}
+
+.masthead__kicker {
+  font-family: var(--font-display);
+  font-weight: var(--weight-bold);
+  font-size: var(--size-kicker);
+  letter-spacing: var(--tracking-kicker);
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+  margin: 0 0 var(--space-1);
+}
+
+/* ----- Estrutura ----- */
+
+.page {
+  max-width: var(--content-max);
+  margin: 0 auto;
+  padding: var(--space-6);
+}
+
+.panel {
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius);
+  padding: var(--space-5);
+  margin-bottom: var(--space-5);
+}
+
+.panel__title {
+  font-family: var(--font-body);
+  font-weight: var(--weight-semibold);
+  font-size: var(--size-subhead);
+  letter-spacing: var(--tracking-subhead);
+  text-transform: uppercase;
+  color: var(--color-accent);
+  margin: 0 0 var(--space-4);
+}
+
+/* ----- Aviso de valores sintéticos ----- */
+
+.stub-banner {
+  background: var(--color-surface-accent);
+  border-left: 3px solid var(--color-accent);
+  padding: var(--space-3) var(--space-4);
+  margin: 0 0 var(--space-5);
+  font-size: var(--size-small);
+}
+
+.stub-banner strong {
+  font-family: var(--font-display);
+  font-weight: var(--weight-bold);
+}
+
+/* ----- Formulário ----- */
+
+.field-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+  gap: var(--space-4);
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.field__label {
+  font-weight: var(--weight-semibold);
+  font-size: var(--size-small);
+}
+
+.field__help {
+  font-size: var(--size-small);
+  color: var(--color-text-muted);
+}
+
+/* Campo cuja condição de aplicação não está satisfeita. O <select> também fica
+   desabilitado, o que o navegador sinaliza por cursor e por leitor de tela. */
+.field--inactive {
+  opacity: 0.5;
+}
+
+.field select,
+.field input {
+  font-family: inherit;
+  font-size: var(--size-body);
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: var(--border-width) solid var(--color-border-strong);
+  border-radius: var(--radius);
+  padding: var(--space-2);
+}
+
+.field select:focus-visible,
+.field input:focus-visible,
+.button:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 1px;
+}
+
+.fieldset {
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius);
+  padding: var(--space-4);
+  margin: var(--space-4) 0 0;
+}
+
+.fieldset > legend {
+  font-weight: var(--weight-semibold);
+  font-size: var(--size-small);
+  padding: 0 var(--space-2);
+}
+
+/* ----- Botão ----- */
+
+.button {
+  font-family: var(--font-display);
+  font-weight: var(--weight-bold);
+  font-size: var(--size-small);
+  letter-spacing: var(--tracking-kicker);
+  text-transform: uppercase;
+  color: var(--color-text-inverse);
+  background: var(--color-accent);
+  border: var(--border-width) solid var(--color-accent);
+  border-radius: var(--radius);
+  padding: var(--space-3) var(--space-5);
+  cursor: pointer;
+}
+
+.button:hover {
+  background: var(--color-accent-hover);
+  border-color: var(--color-accent-hover);
+}
+
+.form-actions {
+  margin-top: var(--space-5);
+}
+
+/* ----- Resultado ----- */
+
+.result[hidden],
+.error[hidden] {
+  display: none;
+}
+
+.result__value {
+  font-family: var(--font-display);
+  font-weight: var(--weight-light);
+  font-size: 2.5rem;
+  line-height: 1;
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.result__unit {
+  font-size: var(--size-subhead);
+  color: var(--color-text-muted);
+  margin-left: var(--space-1);
+}
+
+.meta-list {
+  margin: var(--space-4) 0 0;
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: var(--space-1) var(--space-4);
+  font-size: var(--size-small);
+}
+
+.meta-list dt {
+  color: var(--color-text-muted);
+}
+
+.meta-list dd {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ----- Erro ----- */
+
+.error {
+  background: var(--color-surface-sunken);
+  border-left: 3px solid var(--wp-near-black);
+  padding: var(--space-3) var(--space-4);
+  font-size: var(--size-small);
+}
+
+.error__label {
+  font-family: var(--font-display);
+  font-weight: var(--weight-bold);
+  font-size: var(--size-kicker);
+  letter-spacing: var(--tracking-kicker);
+  text-transform: uppercase;
+  display: block;
+  margin-bottom: var(--space-1);
+}

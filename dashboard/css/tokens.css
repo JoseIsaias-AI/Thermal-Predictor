@@ -1,0 +1,79 @@
+/* Tokens de design, extraídos do style guide da Whirlpool Corporation.
+ *
+ * Cor core: Accomplished Blue, designada pelo guia às comunicações de
+ * technology. O guia proíbe misturar paletas, e proíbe amarelo, laranja e
+ * verde em texto de destaque — por isso nenhum deles aparece aqui.
+ *
+ * Branco é a base e ocupa a maior parte da tela; cor é acento.
+ */
+
+:root {
+  /* Neutros — escolha primária para texto */
+  --wp-gray-extra-light: #f5f6f7;
+  --wp-gray-light:       #dee0e3;
+  --wp-gray:             #d1d3d4;
+  --wp-gray-medium:      #9fa0a1;
+  --wp-gray-dark:        #767777;
+  --wp-near-black:       #484949;
+  --wp-black:            #484948;
+  --wp-charcoal:         #505863;
+  --wp-white:            #ffffff;
+
+  /* Core e acentos */
+  --wp-blue-core:   #0d436b;
+  --wp-blue-accent: #00a0dd;
+  --wp-blue-light:  #edf4fc;
+
+  /* Papéis semânticos: é o que o app.css referencia. Trocar a cor core é
+     editar só este bloco. */
+  --color-surface:        var(--wp-white);
+  --color-surface-sunken: var(--wp-gray-extra-light);
+  --color-surface-accent: var(--wp-blue-light);
+  --color-border:         var(--wp-gray-light);
+  --color-border-strong:  var(--wp-gray);
+  --color-text:           var(--wp-near-black);
+  --color-text-muted:     var(--wp-gray-dark);
+  --color-text-inverse:   var(--wp-white);
+  --color-accent:         var(--wp-blue-core);
+  --color-accent-hover:   #0a3554;
+  --color-focus-ring:     var(--wp-blue-accent);
+
+  /* Tipografia. É Nunito Sans, não Nunito — são fontes diferentes.
+     Divergência conhecida: carregadas do Google Fonts, o que exige internet.
+     Migrar para @font-face local é trocar estas duas linhas e o <link>. */
+  --font-display: "Nunito Sans", "Segoe UI", Arial, sans-serif;
+  --font-body:    "Open Sans", "Segoe UI", Arial, sans-serif;
+  --font-mono:    ui-monospace, "Cascadia Mono", Consolas, monospace;
+
+  --weight-light:    300;
+  --weight-regular:  400;
+  --weight-semibold: 600;
+  --weight-bold:     700;
+
+  --size-kicker:  0.75rem;
+  --size-small:   0.8125rem;
+  --size-body:    0.9375rem;
+  --size-subhead: 1rem;
+  --size-title:   1.5rem;
+
+  --tracking-kicker:  0.05em;
+  --tracking-subhead: 0.03em;
+
+  --leading-tight: 1.25;
+  --leading-body:  1.55;
+
+  /* Escala de 4px */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.5rem;
+  --space-6: 2rem;
+  --space-7: 3rem;
+
+  /* Cantos levemente arredondados no máximo; sem sombra e sem gradiente. */
+  --radius: 2px;
+  --border-width: 1px;
+
+  --content-max: 68rem;
+}
