@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Thermal Predictor</title>
+
+  <!-- Fontes via Google Fonts: exige internet e expõe o IP de quem abre a
+       página. Migrar para @font-face local antes da entrega. -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@300;700&family=Open+Sans:wght@400;600&display=swap">
+
+  <link rel="stylesheet" href="css/tokens.css">
+  <link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+
+<header class="masthead">
+  <div class="masthead__inner">
+    <!-- O amarelo do anel é da marca e não se recolore. A proibição de
+         misturar paletas vale para a interface, não para o logotipo. -->
+    <img class="masthead__logo" src="img/logo-whirlpool.png"
+         alt="Whirlpool Corporation" width="1259" height="419">
+
+    <div class="masthead__identity">
+      <p class="masthead__kicker">Triagem térmica</p>
+      <h1 class="masthead__system-name">Thermal Predictor</h1>
+    </div>
+  </div>
+</header>
+
+<main class="page">
+
+  <!-- Sai quando houver modelo treinado. Até lá, é o que impede que um
+       número sintético seja lido como previsão. -->
+  <p class="stub-banner" id="stub-banner">
+    <strong>Nenhum modelo treinado está carregado.</strong>
+    Os números exibidos são sintéticos e não são previsões de temperatura.
+    Modelo: <span id="model-version">—</span>.
+  </p>
+
+  <section class="panel">
+    <h2 class="panel__title">Configuração consultada</h2>
+
+    <form id="prediction-form" novalidate>
+      <!-- Campos construídos pelo app.js a partir de js/schema.js. -->
+      <div class="field-grid" id="factor-fields"></div>
+
+      <div class="form-actions">
+        <button class="button" type="submit">Consultar</button>
+      </div>
+    </form>
+  </section>
+
+  <section class="panel result" id="result" hidden>
+    <h2 class="panel__title">Resultado</h2>
+    <p class="result__value">
+      <span id="result-temperature">—</span><span class="result__unit" id="result-unit"></span>
+    </p>
+    <dl class="meta-list">
+      <dt>Ponto de medição</dt>
+      <dd id="result-point">—</dd>
+      <dt>Versão do modelo</dt>
+      <dd id="result-model-version">—</dd>
+      <dt>Versão do contrato</dt>
+      <dd id="result-schema-version">—</dd>
+    </dl>
+  </section>
+
+  <section class="error" id="error" hidden>
+    <span class="error__label">Consulta recusada</span>
+    <span id="error-message"></span>
+  </section>
+
+</main>
+
+<script src="js/schema.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
