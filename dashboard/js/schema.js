@@ -9,6 +9,128 @@ var SCHEMA = {
   schema_version: "1.0",
   measurement_point_key: "measurement_point",
 
+  /* Os 77 pontos com leitura registrada em notebooks/dataset_preprocessado.csv
+   * (measurement_id, TC_Name e Key_Area), agrupados por subsistema. O 78º
+   * ponto do catálogo, IPC Cooling P05, nunca foi medido em nenhuma
+   * rodada (Seção 4.2.1c e 4.2.3c da documentação) e por isso não aparece
+   * aqui. Fecha a entrada em vocabulário conhecido, no mesmo padrão dos
+   * demais fatores (RN-04).
+   */
+  measurement_point_groups: [
+    {
+      area: "CT Knobs",
+      points: [
+        { value: "Knobs P05 | CT Knobs", label: "Knobs P05" },
+        { value: "Knobs P06 | CT Knobs", label: "Knobs P06" },
+        { value: "Knobs P02 | CT Knobs", label: "Knobs P02" },
+        { value: "Knobs P01 | CT Knobs", label: "Knobs P01" },
+        { value: "Knobs P03 | CT Knobs", label: "Knobs P03" },
+        { value: "Knobs P04 | CT Knobs", label: "Knobs P04" }
+      ]
+    },
+    {
+      area: "Coil Temps",
+      points: [
+        { value: "Suporte FL | Coil Temps", label: "Suporte FL" },
+        { value: "Suporte FR | Coil Temps", label: "Suporte FR" },
+        { value: "Suporte RL | Coil Temps", label: "Suporte RL" },
+        { value: "Suporte RR | Coil Temps", label: "Suporte RR" },
+        { value: "Bobina FL | Coil Temps", label: "Bobina FL" },
+        { value: "Bobina FR | Coil Temps", label: "Bobina FR" },
+        { value: "Bobina RL | Coil Temps", label: "Bobina RL" },
+        { value: "Bobina RR | Coil Temps", label: "Bobina RR" }
+      ]
+    },
+    {
+      area: "IPC Comp",
+      points: [
+        { value: "IPC P01 | IPC Comp", label: "IPC P01" },
+        { value: "IPC P02 | IPC Comp", label: "IPC P02" },
+        { value: "IPC P03 | IPC Comp", label: "IPC P03" },
+        { value: "IPC P04 | IPC Comp", label: "IPC P04" },
+        { value: "IPC P05 | IPC Comp", label: "IPC P05" },
+        { value: "IPC P06 | IPC Comp", label: "IPC P06" },
+        { value: "IPC P07 | IPC Comp", label: "IPC P07" },
+        { value: "IPC P08 | IPC Comp", label: "IPC P08" },
+        { value: "IPC P09 | IPC Comp", label: "IPC P09" },
+        { value: "IPC P10 | IPC Comp", label: "IPC P10" },
+        { value: "IPC P11 | IPC Comp", label: "IPC P11" },
+        { value: "IPC P20 | IPC Comp", label: "IPC P20" },
+        { value: "IPC P21 | IPC Comp", label: "IPC P21" },
+        { value: "IPC P22 | IPC Comp", label: "IPC P22" },
+        { value: "IPC P23 | IPC Comp", label: "IPC P23" },
+        { value: "IPC P24 | IPC Comp", label: "IPC P24" },
+        { value: "IPC P25 | IPC Comp", label: "IPC P25" },
+        { value: "IPC P26 | IPC Comp", label: "IPC P26" },
+        { value: "IPC P12 | IPC Comp", label: "IPC P12" },
+        { value: "IPC P13 | IPC Comp", label: "IPC P13" },
+        { value: "IPC P14 | IPC Comp", label: "IPC P14" },
+        { value: "IPC P15 | IPC Comp", label: "IPC P15" },
+        { value: "IPC P16 | IPC Comp", label: "IPC P16" },
+        { value: "IPC P17 | IPC Comp", label: "IPC P17" },
+        { value: "IPC P18 | IPC Comp", label: "IPC P18" },
+        { value: "IPC P19 | IPC Comp", label: "IPC P19" },
+        { value: "IPC P27 | IPC Comp", label: "IPC P27" },
+        { value: "IPC P28 | IPC Comp", label: "IPC P28" },
+        { value: "IPC P29 | IPC Comp", label: "IPC P29" },
+        { value: "IPC P30 | IPC Comp", label: "IPC P30" },
+        { value: "IPC P31 | IPC Comp", label: "IPC P31" },
+        { value: "IPC P32 | IPC Comp", label: "IPC P32" },
+        { value: "IPC P33 | IPC Comp", label: "IPC P33" },
+        { value: "IPC P34 | IPC Comp", label: "IPC P34" },
+        { value: "IPC P35 | IPC Comp", label: "IPC P35" },
+        { value: "IPC P36 | IPC Comp", label: "IPC P36" },
+        { value: "IPC P37 | IPC Comp", label: "IPC P37" }
+      ]
+    },
+    {
+      area: "IPC Cooling",
+      points: [
+        { value: "IPC Cooling P02 | IPC Cooling", label: "IPC Cooling P02" },
+        { value: "IPC Cooling P03 | IPC Cooling", label: "IPC Cooling P03" },
+        { value: "IPC Cooling P01 | IPC Cooling", label: "IPC Cooling P01" },
+        { value: "IPC Cooling P04 | IPC Cooling", label: "IPC Cooling P04" }
+      ]
+    },
+    {
+      area: "Main Vent Sys",
+      points: [
+        { value: "Soprador P01 | Main Vent Sys", label: "Soprador P01" },
+        { value: "Soprador P02 | Main Vent Sys", label: "Soprador P02" },
+        { value: "Entrada do soprador P01 | Main Vent Sys", label: "Entrada do soprador P01" },
+        { value: "Entrada do soprador P02 | Main Vent Sys", label: "Entrada do soprador P02" },
+        { value: "Soprador P03 | Main Vent Sys", label: "Soprador P03" },
+        { value: "Duto P01 | Main Vent Sys", label: "Duto P01" },
+        { value: "Duto P02 | Main Vent Sys", label: "Duto P02" }
+      ]
+    },
+    {
+      area: "Mainback",
+      points: [
+        { value: "Mainback P01 | Mainback", label: "Mainback P01" },
+        { value: "Mainback P02 | Mainback", label: "Mainback P02" },
+        { value: "Mainback P03 | Mainback", label: "Mainback P03" },
+        { value: "Mainback P04 | Mainback", label: "Mainback P04" },
+        { value: "Mainback P05 | Mainback", label: "Mainback P05" },
+        { value: "Mainback P06 | Mainback", label: "Mainback P06" },
+        { value: "Mainback P07 | Mainback", label: "Mainback P07" },
+        { value: "Mainback P08 | Mainback", label: "Mainback P08" },
+        { value: "Mainback P09 | Mainback", label: "Mainback P09" },
+        { value: "Mainback P10 | Mainback", label: "Mainback P10" },
+        { value: "Mainback P11 | Mainback", label: "Mainback P11" }
+      ]
+    },
+    {
+      area: "Oven HMI",
+      points: [
+        { value: "HMI P01 | Oven HMI", label: "HMI P01" },
+        { value: "HMI P02 | Oven HMI", label: "HMI P02" },
+        { value: "HMI P03 | Oven HMI", label: "HMI P03" },
+        { value: "HMI P04 | Oven HMI", label: "HMI P04" }
+      ]
+    }
+  ],
+
   factors: [
     {
       key: "blower_direction",

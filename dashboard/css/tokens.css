@@ -7,6 +7,49 @@
  * Branco é a base e ocupa a maior parte da tela; cor é acento.
  */
 
+/* Nunito Sans e Open Sans, hospedadas localmente em vez de carregadas do
+ * Google Fonts (RNF-02 e RNF-04, Tabela 48 da documentação): o painel roda
+ * sem depender de conexão externa, e nenhum identificador de quem o executa
+ * chega a um servidor de terceiro. Cada arquivo é uma fonte variável e
+ * cobre os dois pesos usados por sua família; só o subconjunto latino foi
+ * baixado, suficiente para português.
+ */
+@font-face {
+  font-family: "Nunito Sans";
+  font-style: normal;
+  font-weight: 300;
+  font-display: swap;
+  src: url("../fonts/nunito-sans.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+20AC, U+2122;
+}
+
+@font-face {
+  font-family: "Nunito Sans";
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("../fonts/nunito-sans.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+20AC, U+2122;
+}
+
+@font-face {
+  font-family: "Open Sans";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("../fonts/open-sans.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+20AC, U+2122;
+}
+
+@font-face {
+  font-family: "Open Sans";
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("../fonts/open-sans.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+20AC, U+2122;
+}
+
 :root {
   /* Neutros — escolha primária para texto */
   --wp-gray-extra-light: #f5f6f7;
@@ -39,8 +82,7 @@
   --color-focus-ring:     var(--wp-blue-accent);
 
   /* Tipografia. É Nunito Sans, não Nunito — são fontes diferentes.
-     Divergência conhecida: carregadas do Google Fonts, o que exige internet.
-     Migrar para @font-face local é trocar estas duas linhas e o <link>. */
+     Hospedadas localmente pelas declarações @font-face acima. */
   --font-display: "Nunito Sans", "Segoe UI", Arial, sans-serif;
   --font-body:    "Open Sans", "Segoe UI", Arial, sans-serif;
   --font-mono:    ui-monospace, "Cascadia Mono", Consolas, monospace;

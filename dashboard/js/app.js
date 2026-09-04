@@ -104,7 +104,10 @@
     });
   }
 
-  function buildMeasurementPointField(key) {
+  // Lista fechada, e não texto livre: só os 77 pontos com leitura registrada
+  // em dataset_preprocessado.csv são consultáveis (RN-04), agrupados por
+  // subsistema (Key_Area) para facilitar achar o ponto certo entre 77 opções.
+  function buildMeasurementPointField(key, groups) {
     var wrapper = document.createElement("label");
     wrapper.className = "field";
 
@@ -113,15 +116,30 @@
     label.textContent = "Ponto de medição";
     wrapper.appendChild(label);
 
-    var input = document.createElement("input");
-    input.type = "text";
-    input.name = key;
-    input.placeholder = "Ex.: IPC Diode IPC P02";
-    wrapper.appendChild(input);
+    var select = document.createElement("select");
+    select.name = key;
+
+    var blank = document.createElement("option");
+    blank.value = "";
+    blank.textContent = "(selecione um ponto)";
+    select.appendChild(blank);
+
+    groups.forEach(function (group) {
+      var optgroup = document.createElement("optgroup");
+      optgroup.label = group.area;
+      group.points.forEach(function (point) {
+        var option = document.createElement("option");
+        option.value = point.value;
+        option.textContent = point.label;
+        optgroup.appendChild(option);
+      });
+      select.appendChild(optgroup);
+    });
+    wrapper.appendChild(select);
 
     var help = document.createElement("span");
     help.className = "field__help";
-    help.textContent = "Termopar consultado.";
+    help.textContent = "Termopar consultado, entre os 77 pontos com leitura registrada na base.";
     wrapper.appendChild(help);
 
     return wrapper;
@@ -135,7 +153,9 @@
         fieldsContainer.appendChild(buildSelect(factor.key, factor));
       }
     });
-    fieldsContainer.appendChild(buildMeasurementPointField(SCHEMA.measurement_point_key));
+    fieldsContainer.appendChild(
+      buildMeasurementPointField(SCHEMA.measurement_point_key, SCHEMA.measurement_point_groups)
+    );
   }
 
   function collectInput() {
@@ -175,6 +195,18 @@
     return VALUE_RANGE[0] + fraction * (VALUE_RANGE[1] - VALUE_RANGE[0]);
   }
 
+  // O valor do campo é o measurement_id técnico ("Nome | Área"); o resultado
+  // mostra o nome amigável correspondente, não o identificador cru.
+  function measurementPointLabel(value) {
+    var found = null;
+    SCHEMA.measurement_point_groups.forEach(function (group) {
+      group.points.forEach(function (point) {
+        if (point.value === value) found = point.label;
+      });
+    });
+    return found || value;
+  }
+
   function showError(message) {
     resultSection.hidden = true;
     document.getElementById("error-message").textContent = message;
@@ -185,7 +217,8 @@
     errorSection.hidden = true;
     document.getElementById("result-temperature").textContent = temperatura.toFixed(2);
     document.getElementById("result-unit").textContent = " °C";
-    document.getElementById("result-point").textContent = input[SCHEMA.measurement_point_key];
+    document.getElementById("result-point").textContent =
+      measurementPointLabel(input[SCHEMA.measurement_point_key]);
     document.getElementById("result-model-version").textContent = MODEL_VERSION;
     document.getElementById("result-schema-version").textContent = SCHEMA.schema_version;
     resultSection.hidden = false;
