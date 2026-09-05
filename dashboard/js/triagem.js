@@ -155,22 +155,15 @@
   /* ----- Mapa de calor ----- */
 
   var svgCalor = document.getElementById("heat-svg");
-  var mapa = { explode: true, escala: "a", isolar: "todos", faixa: null, sel: null };
+  var mapa = { explode: true, escala: "a", isolar: "todos", faixa: null, sel: null,
+               vista: "pontos", nome: "", estados: {} };
   var desenho = null;
   var linhaPorId = {};
+  var orbita = null;
+
 
   function todosOsPontos() {
     return DADOS_TRIAGEM.pontos.concat(DADOS_TRIAGEM.monitoramento);
-  }
-
-  // Um marcador de 9px com 78 deles se sobrepondo torna o clique frustrante:
-  // captura o mais próximo dentro de um raio, em coordenadas do viewBox.
-  function coordenadaNoDesenho(evento) {
-    var pt = svgCalor.createSVGPoint();
-    pt.x = evento.clientX;
-    pt.y = evento.clientY;
-    var ctm = svgCalor.getScreenCTM();
-    return ctm ? pt.matrixTransform(ctm.inverse()) : null;
   }
 
   function svgEl(tag, attrs) {
@@ -231,13 +224,12 @@
       b.addEventListener("click", function () {
         mapa.faixa = mapa.faixa === i ? null : i;
         montarRampa();
-        redesenharCalor();
+        aplicarFiltros();
       });
       caixa.appendChild(b);
     });
 
     document.getElementById("mono-count").textContent = DADOS_TRIAGEM.total_monitoramento;
-    document.getElementById("scale-name").textContent = mapa.escala === "b" ? "Escala B" : "Escala A";
   }
 
   function montarSubsistemas() {
@@ -285,6 +277,24 @@
       caixa.appendChild(b);
     });
   }
+
+  /* Traduz a configuração consultada nos parâmetros que mexem na geometria.
+     Dois dos sete fatores movem termopares de lugar: `Board_Position` desloca
+     a PCB, e com ela os 37 pontos do IPC Comp; `Housing` levanta a tampa, e
+     com ela os 5 do IPC Cooling. Ignorar isso fazia o mapa desenhar sempre a
+     mesma máquina, qualquer que fosse a configuração avaliada. */
+  function geometriaDaConfig(config) {
+    config = config || {};
+    return {
+      placa: config.board_position === "Right" ? "right" : "center",
+      alojamento: config.housing && config.housing !== "Closed" ? "open" : "closed",
+      material: config.material_coil_support === "Plastic" ? "plastic"
+        : config.material_coil_support === "Aluminium Plate" ? "plate" : "aluminium",
+      soprador: config.blower_direction === "To Back" ? "back" : "front"
+    };
+  }
+
+  var geometria = geometriaDaConfig(null);
 
   function corDoPonto(p) {
     if (p.is_monitor_only) return "#ffffff";
@@ -347,34 +357,189 @@
     Object.keys(linhaPorId).forEach(function (id) {
       linhaPorId[id].classList.toggle("row--selected", id === mapa.sel);
     });
-    if (p && linhaPorId[mapa.sel]) {
-      linhaPorId[mapa.sel].scrollIntoView({ block: "nearest" });
+    /* A linha fica destacada, mas a página não se move: quem clicou no modelo
+       quer ler o painel ao lado, e só desce até a tabela se quiser detalhe. */
+  }
+
+  var ESTADOS = [
+    ["acima_do_limite", "Acima do limite"],
+    ["banda_de_incerteza", "Banda de incerteza"],
+    ["dentro_do_limite", "Dentro do limite"],
+    ["monitoramento", "Monitoramento"]
+  ];
+
+  function montarChips() {
+    var caixa = document.getElementById("filter-state");
+    caixa.innerHTML = "";
+    ESTADOS.forEach(function (e) {
+      var b = document.createElement("button");
+      b.type = "button";
+      b.textContent = e[1];
+      b.setAttribute("aria-pressed", String(!!mapa.estados[e[0]]));
+      b.addEventListener("click", function () {
+        if (mapa.estados[e[0]]) delete mapa.estados[e[0]]; else mapa.estados[e[0]] = true;
+        montarChips();
+        aplicarFiltros();
+      });
+      caixa.appendChild(b);
+    });
+  }
+
+  // Um ponto passa quando atende a todos os filtros ativos ao mesmo tempo.
+  function passaNoFiltro(p) {
+    var estados = Object.keys(mapa.estados);
+    if (estados.length && estados.indexOf(p.estado) < 0) return false;
+    if (mapa.nome && p.TC_Name.toLowerCase().indexOf(mapa.nome) < 0) return false;
+    if (mapa.faixa !== null) {
+      if (p.is_monitor_only) return false;
+      if (FOGAO.faixaDaRampa(p.margem_percentual) !== mapa.faixa) return false;
     }
+    return true;
+  }
+
+  function aplicarFiltros() {
+    var n = 0;
+    todosOsPontos().forEach(function (p) {
+      var ok = passaNoFiltro(p);
+      if (ok) n++;
+      var tr = linhaPorId[p.measurement_id];
+      if (tr) tr.hidden = !ok;
+    });
+
+    var texto = document.getElementById("filter-count");
+    var ativo = mapa.nome || mapa.faixa !== null || Object.keys(mapa.estados).length;
+    texto.textContent = ativo
+      ? n + " de " + DADOS_TRIAGEM.total_pontos + " pontos passam nos filtros"
+      : "Sem filtro: todos os " + DADOS_TRIAGEM.total_pontos + " pontos.";
+
+    redesenharCalor();
+  }
+
+  function montarLegendaDoCampo(info) {
+    var bloco = document.getElementById("field-legend");
+    bloco.hidden = mapa.vista !== "campo";
+    if (mapa.vista !== "campo" || !info) return;
+
+    var paradas = FOGAO.RAMPA_CAMPO.map(function (c, i) {
+      return c + " " + (i / (FOGAO.RAMPA_CAMPO.length - 1) * 100).toFixed(0) + "%";
+    });
+    document.getElementById("field-bar").style.background =
+      "linear-gradient(to right," + paradas.join(",") + ")";
+
+    /* A rampa e equalizada por quantil, entao as paradas nao sao igualmente
+       espacadas em graus: rotular cada uma e o que mantem a cor rastreavel. */
+    var eixo = document.getElementById("field-ticks");
+    eixo.innerHTML = "";
+    (info.paradas || [info.min, info.max]).forEach(function (v) {
+      var b = document.createElement("b");
+      b.textContent = v.toFixed(0);
+      eixo.appendChild(b);
+    });
+  }
+
+  /* Aproximar numa peça é uma transição contínua, não outra tela: `foco` diz
+     em qual peça, e `t` é o quanto a câmera já girou e aproximou. Sem isso o
+     salto lê como um desenho diferente, não como zoom. */
+  var foco = { area: null, t: 0, anim: null, fim: null };
+
+  function assentarFoco(ate) {
+    if (foco.anim) { cancelAnimationFrame(foco.anim); foco.anim = null; }
+    foco.t = ate;
+    if (ate === 0) foco.area = null;
+    redesenharProduto();
+  }
+
+  function animarFoco(area, ate) {
+    if (foco.anim) cancelAnimationFrame(foco.anim);
+    if (foco.fim) clearTimeout(foco.fim);
+    var de = foco.t, t0 = null;
+    if (area) foco.area = area;
+
+    function passo(tempo) {
+      if (t0 === null) t0 = tempo;
+      var k = Math.min(1, (tempo - t0) / 520);
+      k = k < 0.5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2;
+      foco.t = de + (ate - de) * k;
+      redesenharProduto();
+      if (k < 1) { foco.anim = requestAnimationFrame(passo); return; }
+      foco.anim = null;
+      assentarFoco(ate);
+    }
+
+    foco.anim = requestAnimationFrame(passo);
+    // Rede de segurança: se o quadro a quadro não rodar — aba em segundo
+    // plano, movimento reduzido — o estado final vale do mesmo jeito.
+    foco.fim = setTimeout(function () { assentarFoco(ate); }, 640);
+    redesenharProduto();
   }
 
   function redesenharCalor() {
-    var pontos = todosOsPontos().filter(function (p) {
-      if (mapa.faixa === null) return true;
-      if (p.is_monitor_only) return false;
-      return FOGAO.faixaDaRampa(p.margem_percentual) === mapa.faixa;
-    });
+    // O campo cobre o produto inteiro; não há peça para aproximar.
+    var alvo = mapa.vista === "campo" ? null
+      : (mapa.isolar !== "todos" && FOGAO.PECA_DA_AREA[mapa.isolar] ? mapa.isolar : null);
+
+    if (alvo !== foco.area || (alvo === null && foco.t > 0)) {
+      animarFoco(alvo, alvo ? 1 : 0);
+      return;
+    }
+    redesenharProduto();
+  }
+
+  function redesenharProduto() {
+    /* No campo térmico o desenho usa sempre os 78 pontos: a interpolação é
+       do produto inteiro, e filtrar amostras deformaria o campo. Os filtros
+       continuam valendo para os marcadores e para a tabela. */
+    var pontos = mapa.vista === "campo"
+      ? todosOsPontos()
+      : todosOsPontos().filter(passaNoFiltro);
 
     desenho = FOGAO.desenhar(svgCalor, {
       nivel: 4,
       modo: "calor",
-      explode: mapa.explode,
-      placa: "right",
-      alojamento: "open",
-      material: "plate",
+      vista: mapa.vista,
+      yaw: orbita ? orbita.valor() : 0,
+      foco: foco.area,
+      t: foco.t,
+      semAnimacao: foco.anim !== null,
+      explode: mapa.vista === "campo" ? false : mapa.explode,
+      placa: geometria.placa,
+      alojamento: geometria.alojamento,
+      material: geometria.material,
       escala: mapa.escala,
       isolar: mapa.isolar,
       sel: mapa.sel,
       pontos: pontos
     });
 
-    document.getElementById("occlusion-hint").textContent = mapa.explode
-      ? "Explodido · todos os pontos visíveis"
-      : "Assentado oculta pontos sob o cooktop e na traseira";
+    montarLegendaDoCampo(desenho.info);
+
+    var meta = foco.area && FOGAO.PECA_DA_AREA[foco.area];
+    document.getElementById("heat-wide").hidden = !meta;
+    svgCalor.parentNode.classList.toggle("viewport__stage--comp", !!meta);
+
+    /* No campo a vista é sempre de planta, e com uma peça em foco a câmera
+       está travada de frente para ela: a alternância não se aplica. */
+    var travado = mapa.vista === 'campo' || !!meta;
+    Array.prototype.forEach.call(
+      document.querySelectorAll('#heat-explode button'),
+      function (b) { b.disabled = travado; }
+    );
+
+    var campoAtivo = mapa.vista === "campo";
+    document.getElementById("occlusion-hint").textContent =
+      meta ? meta.nome
+      : campoAtivo ? "Campo no volume · arraste para girar"
+      : mapa.explode ? "Explodido · arraste para girar"
+      : "Assentado oculta pontos · arraste para girar";
+
+    document.getElementById("heat-view-name").textContent =
+      meta ? "VISTA DE COMPONENTE"
+      : campoAtivo ? "CAMPO TÉRMICO ESQUEMÁTICO"
+      : mapa.explode ? "VISTA EXPLODIDA ESQUEMÁTICA" : "VISTA ESQUEMÁTICA";
+    document.getElementById("heat-view-note").textContent =
+      meta ? "Sem CAD · termopares deste subsistema"
+      : campoAtivo ? "Sem CAD · interpolado entre termopares, não é resultado de simulação"
+      : "Sem CAD · a posição indica o subsistema, não a coordenada real";
   }
 
   function ligarAlternancia(id, chave, valores) {
@@ -395,14 +560,90 @@
     montarSubsistemas();
     redesenharCalor();
 
+    montarChips();
+    aplicarFiltros();
+
     ligarAlternancia("heat-explode", "explode", function (b) { return b.dataset.explode === "1"; });
     ligarAlternancia("heat-scale", "escala", function (b) { return b.dataset.scale; });
+    ligarAlternancia("heat-view", "vista", function (b) { return b.dataset.view; });
+
+    document.getElementById("filter-name").addEventListener("input", function () {
+      mapa.nome = this.value.trim().toLowerCase();
+      aplicarFiltros();
+    });
+
+    orbita = FOGAO.orbita(svgCalor, function () {
+      document.getElementById("heat-reset").hidden = !orbita.girado();
+      redesenharCalor();
+    });
+    document.getElementById("heat-reset").addEventListener("click", function () {
+      orbita.zerar();
+      this.hidden = true;
+    });
+    document.getElementById("heat-wide").addEventListener("click", function () {
+      mapa.isolar = "todos";
+      montarSubsistemas();
+      redesenharCalor();
+    });
 
     svgCalor.addEventListener("click", function (evento) {
-      var c = coordenadaNoDesenho(evento);
+      // Nao seleciona no fim de um arrasto, nem no campo, que nao tem marcador.
+      if (orbita.arrastou() || mapa.vista === "campo") return;
+      var c = FOGAO.noDesenho(svgCalor, evento);
       if (!c || !desenho) return;
-      selecionar(FOGAO.maisProximo(desenho, c.x, c.y, 14));
+      var achado = FOGAO.maisProximo(desenho, c.x, c.y, 14);
+      selecionar(achado ? achado.ponto : null);
     });
+
+    var balao = document.getElementById("heat-tip");
+
+    /* Regra de tres sobre o tamanho do elemento errava: com preserveAspectRatio
+       o viewBox fica encaixotado dentro do SVG, e cada componente agora tem
+       proporcao propria. A matriz da tela da a posicao exata em qualquer caso.
+
+       Depois disso o balao e preso dentro do quadro, e vira para baixo quando
+       nao cabe acima — para nunca sair da area nem cobrir o ponto. */
+    function posicionarBalao(el, cx, cy) {
+      var ctm = svgCalor.getScreenCTM();
+      if (!ctm) { el.dataset.on = "0"; return; }
+
+      var q = svgCalor.createSVGPoint();
+      q.x = cx; q.y = cy;
+      var tela = q.matrixTransform(ctm);
+      var quadro = svgCalor.parentNode.parentNode.getBoundingClientRect();
+      var x = tela.x - quadro.left, y = tela.y - quadro.top;
+
+      /* O deslocamento vertical é feito por transform, e não por medida de
+         altura: medir logo depois de trocar o conteúdo devolvia a altura do
+         balão anterior, e ele acabava em cima do ponto. O transform não
+         precisa saber a altura. */
+      el.dataset.on = "1";
+      var acima = y > quadro.height * 0.34;
+      el.classList.toggle("tip--acima", acima);
+      el.classList.toggle("tip--abaixo", !acima);
+
+      el.style.top = y + "px";
+      // A largura só desloca de lado; errar nela não cobre o ponto.
+      var w = el.getBoundingClientRect().width;
+      el.style.left = Math.max(w / 2 + 6, Math.min(quadro.width - w / 2 - 6, x)) + "px";
+    }
+    svgCalor.addEventListener("pointermove", function (evento) {
+      if (mapa.vista === "campo" || !desenho) { balao.dataset.on = "0"; return; }
+      var c = FOGAO.noDesenho(svgCalor, evento);
+      var achado = c && FOGAO.maisProximo(desenho, c.x, c.y, 12);
+      if (!achado) { balao.dataset.on = "0"; return; }
+
+      var p = achado.ponto;
+      balao.innerHTML = "<b class=\"tip__name\">" + p.TC_Name + "</b>" +
+        "<span class=\"tip__num\">" + p.temperatura_prevista_c.toFixed(1) + " °C</span>" +
+        (p.is_monitor_only
+          ? " · <span class=\"tip__state\">sem limite</span>"
+          : " · <span class=\"tip__num\">folga " + p.margem_c.toFixed(1) + " °C</span>" +
+            "<span class=\"tip__state\"> · " + p.estado_rotulo + "</span>");
+
+      posicionarBalao(balao, achado.cx, achado.cy);
+    });
+    svgCalor.addEventListener("pointerleave", function () { balao.dataset.on = "0"; });
 
     document.getElementById("heat").hidden = false;
   }
@@ -497,7 +738,9 @@
   }
 
   var configDaUrl = lerConfiguracaoDaUrl();
-  renderConfiguracao(configDaUrl || DADOS_TRIAGEM.configuracao, configDaUrl !== null);
+  var configAtiva = configDaUrl || DADOS_TRIAGEM.configuracao;
+  geometria = geometriaDaConfig(configAtiva);
+  renderConfiguracao(configAtiva, configDaUrl !== null);
 
   render(DADOS_TRIAGEM);
 })();

@@ -74,6 +74,10 @@
   <section class="panel" id="config-panel" hidden>
     <h2 class="panel__title">Configuração avaliada</h2>
     <dl class="meta-list" id="config-list"></dl>
+    <p class="panel__note">
+      A posição da placa e o estado do alojamento deslocam termopares no
+      modelo. Os outros cinco fatores não movem geometria.
+    </p>
     <p class="panel__note" id="config-default-note" hidden>
       Nenhuma configuração foi informada. Estes são os fatores de referência
       do conjunto de dados de exemplo.
@@ -94,7 +98,13 @@
 
     <div class="heat__side">
       <div class="heat__block">
-        <h3 class="heat__label">Folga prevista <span id="scale-name">Escala A</span></h3>
+        <h3 class="heat__label">Folga prevista</h3>
+        <!-- A escala mora com a legenda que ela colore, não na barra do
+             viewport, que já estava estourando de controles. -->
+        <span class="toggle toggle--mini" id="heat-scale">
+          <button type="button" data-scale="a" aria-pressed="true">Escala A</button>
+          <button type="button" data-scale="b" aria-pressed="false">Escala B</button>
+        </span>
         <div class="ramp" id="ramp"></div>
         <div class="mono-key">
           <svg width="14" height="14" aria-hidden="true"><rect x="2" y="2" width="10" height="10" fill="#fff" stroke="#767777" stroke-width="1.2" stroke-dasharray="2.5 2"></rect></svg>
@@ -106,6 +116,33 @@
           faixa para filtrar. <em>Dentro do limite</em> não é aprovação — é
           ausência de problema neste ponto.
         </p>
+      </div>
+
+      <!-- Visível só no campo térmico: aí a cor é temperatura, não risco. -->
+      <div class="heat__block" id="field-legend" hidden>
+        <h3 class="heat__label">Temperatura prevista <span>°C</span></h3>
+        <div class="field-scale"><span class="field-scale__bar" id="field-bar"></span>
+          <span class="field-scale__ends" id="field-ticks"></span>
+        </div>
+        <p class="legend-note">
+          Campo interpolado no volume a partir dos 78 termopares e amostrado
+          nas faces do produto. Frio azul, quente vermelho. A escala é
+          equalizada por quantil — os rótulos acima marcam os quartis em °C,
+          e por isso não são igualmente espaçados.
+          Aqui a cor representa temperatura, e não estado de risco: nenhuma
+          faixa significa aprovação. Os 10 pontos sem limite entram no campo —
+          não têm folga, mas têm temperatura.
+        </p>
+      </div>
+
+      <div class="heat__block">
+        <h3 class="heat__label">Filtrar</h3>
+        <label class="filter">
+          <span class="filter__label">Componente</span>
+          <input type="search" id="filter-name" placeholder="Buscar componente…" autocomplete="off">
+        </label>
+        <div class="chips" id="filter-state"></div>
+        <p class="legend-note" id="filter-count"></p>
       </div>
 
       <div class="heat__block">
@@ -125,19 +162,25 @@
           <button type="button" data-explode="1" aria-pressed="true">Explodido</button>
         </span>
         <span class="hint" id="occlusion-hint">Assentado oculta 48 dos 78 pontos</span>
-        <span class="push"></span>
-        <span class="toggle" id="heat-scale">
-          <button type="button" data-scale="a" aria-pressed="true">Escala A</button>
-          <button type="button" data-scale="b" aria-pressed="false">Escala B</button>
+        <button type="button" class="vbtn" id="heat-wide" hidden>Ver tudo</button>
+        <button type="button" class="vbtn" id="heat-reset" hidden>Reenquadrar</button>
+        <span class="toggle" id="heat-view">
+          <button type="button" data-view="pontos" aria-pressed="true">Pontos</button>
+          <button type="button" data-view="campo" aria-pressed="false">Campo térmico</button>
         </span>
       </div>
 
-      <div class="viewport__stage">
-        <svg class="viewport__svg" id="heat-svg" role="img"
-             aria-label="Mapa de calor esquemático dos 78 pontos de medição sobre o fogão"></svg>
+      <!-- O palco recorta o desenho; o balão e o rodapé ficam fora do recorte
+           para não serem cortados quando o modelo está aproximado. -->
+      <div class="viewport__frame">
+        <div class="viewport__stage">
+          <svg class="viewport__svg" id="heat-svg" role="img"
+               aria-label="Mapa de calor esquemático dos 78 pontos de medição sobre o fogão"></svg>
+        </div>
+        <div class="tip" id="heat-tip" role="status" aria-live="polite"></div>
         <p class="viewport__disclaimer">
-          <strong>VISTA EXPLODIDA ESQUEMÁTICA</strong>
-          Sem CAD · a posição indica o subsistema, não a coordenada real
+          <strong id="heat-view-name">VISTA EXPLODIDA ESQUEMÁTICA</strong>
+          <span id="heat-view-note">Sem CAD · a posição indica o subsistema, não a coordenada real</span>
         </p>
       </div>
     </div>

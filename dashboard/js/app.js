@@ -205,6 +205,7 @@
   var explodido = false;
   var destaque = null;
   var timerBadge = null;
+  var orbita = null;
 
   function rotuloDoNivel(fator, valor) {
     var achado = null;
@@ -278,6 +279,7 @@
     FOGAO.desenhar(svg, {
       nivel: nivel,
       modo: "montagem",
+      yaw: orbita ? orbita.valor() : 0,
       explode: explodido,
       placa: input.board_position === "Right" ? "right" : "center",
       soprador: input.blower_direction === "To Back" ? "back" : input.blower_direction ? "front" : null,
@@ -327,6 +329,17 @@
   });
 
   buildForm();
+
+  // Arrastar o modelo gira; o botao so aparece quando ha o que reenquadrar.
+  orbita = FOGAO.orbita(svg, function () {
+    document.getElementById("reset-view").hidden = !orbita.girado();
+    redesenhar();
+  });
+  document.getElementById("reset-view").addEventListener("click", function () {
+    orbita.zerar();
+    this.hidden = true;
+  });
+
   redesenhar();
   document.getElementById("model-version").textContent = MODEL_VERSION;
 })();

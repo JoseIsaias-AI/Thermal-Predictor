@@ -24,6 +24,8 @@
   flex-direction: column;
 }
 
+/* Sem wrap: o texto do hint muda de tamanho entre modos, e com quebra de
+   linha os botoes pulavam de lugar a cada clique. O hint e quem encolhe. */
 .viewport__bar {
   background: var(--color-surface);
   border-bottom: var(--border-width) solid var(--color-border);
@@ -31,15 +33,23 @@
   display: flex;
   align-items: center;
   gap: var(--space-3);
-  flex-wrap: wrap;
   font-size: var(--size-kicker);
+  min-height: 2.25rem;
 }
+
+.viewport__bar > .toggle,
+.viewport__bar > .vbtn { flex: none; }
 
 .viewport__stage { position: relative; padding: var(--space-3); display: flex; justify-content: center; }
 
 /* O viewBox é 520x620; limitar a largura evita que o desenho estique e
    empurre a página. */
-.viewport__svg { width: 100%; max-width: 30rem; height: auto; display: block; overflow: visible; }
+.viewport__svg { width: 100%; max-width: 30rem; height: auto; display: block; }
+
+/* O palco recorta o desenho, que com viewBox aproximado vazava por cima da
+   pagina. O balao fica fora desse recorte, senao some ao subir. */
+.viewport__stage { overflow: hidden; }
+.viewport__frame { position: relative; }
 
 /* O desenho é esquemático e a tela precisa dizer isso. */
 .viewport__disclaimer {
@@ -138,7 +148,15 @@
 
 .toggle button:focus-visible { outline: 2px solid var(--color-focus-ring); outline-offset: -2px; }
 
-.hint { color: var(--wp-gray-medium); font-size: var(--size-kicker); }
+.hint {
+  color: var(--wp-gray-medium);
+  font-size: var(--size-kicker);
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 .push { flex: 1; }
 
 /* ----- Mapa de calor: três colunas ----- */
@@ -295,3 +313,194 @@
 
 /* Linha da tabela vinculada ao ponto selecionado no modelo. */
 .row--selected { background: var(--color-surface-accent) !important; box-shadow: inset 2px 0 0 var(--color-accent); }
+
+/* ----- Campo térmico ----- */
+
+.field-scale { display: block; }
+
+.field-scale__bar {
+  display: block;
+  height: 14px;
+  border: var(--border-width) solid var(--color-border-strong);
+}
+
+.field-scale__ends {
+  display: flex;
+  justify-content: space-between;
+  padding: 0 1px;
+  font-size: var(--size-kicker);
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-muted);
+  margin-top: 2px;
+}
+
+/* ----- Filtros ----- */
+
+.filter { display: flex; flex-direction: column; gap: var(--space-1); }
+
+.filter__label {
+  font-size: var(--size-kicker);
+  font-weight: var(--weight-semibold);
+  color: var(--color-text-muted);
+}
+
+.filter input {
+  font-family: inherit;
+  font-size: var(--size-small);
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: var(--border-width) solid var(--color-border-strong);
+  border-radius: var(--radius);
+  padding: var(--space-2);
+  width: 100%;
+}
+
+.filter input:focus-visible { outline: 2px solid var(--color-focus-ring); outline-offset: 1px; }
+
+.chips { display: flex; flex-wrap: wrap; gap: var(--space-1); margin-top: var(--space-3); }
+
+.chips button {
+  font-family: var(--font-body);
+  font-size: var(--size-kicker);
+  color: var(--color-text-muted);
+  background: var(--color-surface);
+  border: var(--border-width) solid var(--color-border-strong);
+  border-radius: var(--radius);
+  padding: 3px var(--space-2);
+  cursor: pointer;
+}
+
+.chips button[aria-pressed="true"] {
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+  color: var(--color-text-inverse);
+  font-weight: var(--weight-semibold);
+}
+
+.chips button:focus-visible { outline: 2px solid var(--color-focus-ring); outline-offset: 1px; }
+
+/* Linha que o filtro escondeu. */
+tr[hidden] { display: none; }
+
+.toggle button[disabled] { opacity: 0.4; cursor: not-allowed; }
+
+/* ----- Botao de barra ----- */
+
+.vbtn {
+  font-family: var(--font-body);
+  font-size: var(--size-kicker);
+  color: var(--color-text-muted);
+  background: var(--color-surface);
+  border: var(--border-width) solid var(--color-border-strong);
+  border-radius: var(--radius);
+  padding: var(--space-1) var(--space-3);
+  cursor: pointer;
+}
+
+.vbtn:hover { color: var(--color-accent); border-color: var(--color-accent); }
+.vbtn:focus-visible { outline: 2px solid var(--color-focus-ring); outline-offset: 1px; }
+.vbtn[hidden] { display: none; }
+
+/* ----- Movimento -----
+ *
+ * Curto e sem quique: o painel e instrumento de trabalho. Tudo respeita
+ * prefers-reduced-motion.
+ */
+
+@keyframes fogao-peca {
+  from { opacity: 0; transform: translateY(-14px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fogao-ponto {
+  from { opacity: 0; transform: scale(0.4); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+@keyframes fogao-fluxo { to { stroke-dashoffset: -36; } }
+
+@keyframes fogao-anel {
+  from { opacity: 0; transform: scale(1.5); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+.peca-nova { animation: fogao-peca 260ms ease-out both; }
+
+.ponto {
+  animation: fogao-ponto 220ms ease-out both;
+  transform-box: fill-box;
+  transform-origin: center;
+  transition: filter 120ms ease-out;
+}
+
+.ponto:hover { filter: brightness(1.15); }
+
+/* Fluxo de ar em movimento: e a unica coisa animada em regime permanente, e
+   representa algo que de fato escoa. */
+.fluxo { animation: fogao-fluxo 1.6s linear infinite; }
+
+.anel {
+  animation: fogao-anel 240ms ease-out both;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.anel--eco { animation-delay: 60ms; }
+
+/* Girar: o cursor diz que da para arrastar. */
+.viewport__svg { cursor: grab; touch-action: none; }
+.viewport__svg.girando { cursor: grabbing; }
+
+@media (prefers-reduced-motion: reduce) {
+  .peca-nova, .ponto, .fluxo, .anel { animation: none; }
+}
+
+/* ----- Balao do ponto ----- */
+
+.tip {
+  position: absolute;
+  z-index: 3;
+  pointer-events: none;
+  background: var(--wp-near-black);
+  color: var(--color-text-inverse);
+  border-radius: var(--radius);
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--size-kicker);
+  line-height: 1.45;
+  white-space: nowrap;
+  opacity: 0;
+  transition: opacity 100ms ease-out;
+  max-width: calc(100% - 12px);
+}
+
+.tip[data-on="1"] { opacity: 1; }
+
+.tip__name { display: block; font-weight: var(--weight-bold); }
+.tip__num { font-variant-numeric: tabular-nums; }
+.tip__state { color: var(--wp-gray); }
+
+/* Subsistema aproximado ganha uma marca, para o estado ficar claro sem
+   depender de lembrar o que foi clicado. */
+.subsys button[aria-pressed="true"] .subsys__name::after {
+  content: " ·  aproximado";
+  font-weight: var(--weight-regular);
+  font-size: var(--size-kicker);
+  color: var(--wp-blue-accent);
+}
+
+.subsys button[aria-pressed="true"]:first-child .subsys__name::after { content: ""; }
+
+/* Vista de componente: altura fixa, para o painel nao pular de tamanho quando
+   se troca uma peca larga por uma alta. */
+/* Com uma peça em foco o desenho ocupa mais largura; a altura do palco não
+   muda, para o painel não pular durante a transição. */
+.viewport__stage--comp .viewport__svg { max-width: 34rem; }
+
+/* Escala dentro da legenda: menor, para caber na coluna. */
+.toggle--mini { margin: -2px 0 var(--space-3); }
+.toggle--mini button { font-size: 9.5px; padding: 2px var(--space-2); }
+
+/* O balao se ancora no ponto e se desloca por transform, sem depender de
+   medir a propria altura. */
+.tip--acima  { transform: translate(-50%, -100%) translateY(-14px); }
+.tip--abaixo { transform: translate(-50%, 0) translateY(14px); }
