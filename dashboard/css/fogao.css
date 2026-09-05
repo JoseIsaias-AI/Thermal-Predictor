@@ -1,0 +1,297 @@
+/* Viewport axonométrico e mapa de calor. Complementa app.css e triagem.css. */
+
+.split {
+  display: flex;
+  gap: var(--space-5);
+  align-items: flex-start;
+}
+
+.split__form { flex: 0 0 22rem; min-width: 0; }
+.split__view { flex: 1; min-width: 0; position: sticky; top: var(--space-4); }
+
+@media (max-width: 62rem) {
+  .split { display: block; }
+  .split__view { position: static; margin-top: var(--space-5); }
+}
+
+/* ----- Viewport ----- */
+
+.viewport {
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface-sunken);
+  display: flex;
+  flex-direction: column;
+}
+
+.viewport__bar {
+  background: var(--color-surface);
+  border-bottom: var(--border-width) solid var(--color-border);
+  padding: var(--space-2) var(--space-3);
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  font-size: var(--size-kicker);
+}
+
+.viewport__stage { position: relative; padding: var(--space-3); display: flex; justify-content: center; }
+
+/* O viewBox é 520x620; limitar a largura evita que o desenho estique e
+   empurre a página. */
+.viewport__svg { width: 100%; max-width: 30rem; height: auto; display: block; overflow: visible; }
+
+/* O desenho é esquemático e a tela precisa dizer isso. */
+.viewport__disclaimer {
+  position: absolute;
+  right: var(--space-4);
+  bottom: var(--space-3);
+  text-align: right;
+  font-size: var(--size-kicker);
+  color: var(--color-text-muted);
+  line-height: 1.4;
+  pointer-events: none;
+}
+
+.viewport__disclaimer strong {
+  display: block;
+  color: var(--wp-charcoal);
+  letter-spacing: var(--tracking-kicker);
+}
+
+/* Etiqueta da peça recém-adicionada; some sozinha. */
+.viewport__badge {
+  position: absolute;
+  left: var(--space-4);
+  top: var(--space-4);
+  background: var(--wp-blue-accent);
+  color: var(--color-text-inverse);
+  padding: 3px var(--space-2);
+  font-family: var(--font-body);
+  font-weight: var(--weight-bold);
+  font-size: 9.5px;
+  letter-spacing: 0.09em;
+  border-radius: var(--radius);
+  white-space: nowrap;
+}
+
+.viewport__badge[hidden] { display: none; }
+
+/* Faixa de estado: o que os fatores sem efeito geométrico alteram. */
+.viewport__state {
+  background: var(--color-surface);
+  border-top: var(--border-width) solid var(--color-border);
+  display: flex;
+  flex-wrap: wrap;
+}
+
+.state-item {
+  padding: var(--space-2) var(--space-4);
+  border-right: var(--border-width) solid var(--color-border);
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.state-item dt {
+  font-size: 9.5px;
+  font-weight: var(--weight-semibold);
+  letter-spacing: 0.1em;
+  color: var(--wp-gray-medium);
+  text-transform: uppercase;
+}
+
+.state-item dd {
+  margin: 0;
+  font-size: var(--size-small);
+  font-weight: var(--weight-semibold);
+  color: var(--color-text);
+}
+
+.state-item dd.is-flow { color: var(--wp-blue-accent); }
+.state-item dd.is-none { color: var(--color-text-muted); font-weight: var(--weight-regular); }
+
+/* ----- Alternâncias ----- */
+
+.toggle {
+  display: inline-flex;
+  border: var(--border-width) solid var(--color-border-strong);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.toggle button {
+  font-family: var(--font-body);
+  font-size: var(--size-kicker);
+  color: var(--color-text-muted);
+  background: var(--color-surface);
+  border: 0;
+  padding: var(--space-1) var(--space-3);
+  cursor: pointer;
+}
+
+.toggle button[aria-pressed="true"] {
+  background: var(--wp-charcoal);
+  color: var(--color-text-inverse);
+  font-weight: var(--weight-semibold);
+}
+
+.toggle button:focus-visible { outline: 2px solid var(--color-focus-ring); outline-offset: -2px; }
+
+.hint { color: var(--wp-gray-medium); font-size: var(--size-kicker); }
+.push { flex: 1; }
+
+/* ----- Mapa de calor: três colunas ----- */
+
+/* Sai da largura de leitura da pagina: 78 pontos num viewport estreito nao
+   se distinguem. */
+.heat {
+  display: grid;
+  grid-template-columns: 15rem 1fr 18rem;
+  width: calc(100% + 12rem);
+  margin-left: -6rem;
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius);
+  margin-bottom: var(--space-5);
+}
+
+.heat__side { border-right: var(--border-width) solid var(--color-border); min-width: 0; }
+.heat__side--right { border-right: 0; border-left: var(--border-width) solid var(--color-border); }
+.heat__main { background: var(--color-surface-sunken); min-width: 0; display: flex; flex-direction: column; }
+
+@media (max-width: 88rem) {
+  .heat { width: 100%; margin-left: 0; }
+}
+
+@media (max-width: 66rem) {
+  .heat { grid-template-columns: 1fr; }
+  .heat__side, .heat__side--right { border: 0; border-bottom: var(--border-width) solid var(--color-border); }
+}
+
+.heat__block { padding: var(--space-4); border-bottom: var(--border-width) solid var(--color-border); }
+.heat__block:last-child { border-bottom: 0; }
+
+.heat__label {
+  font-family: var(--font-body);
+  font-weight: var(--weight-bold);
+  font-size: var(--size-kicker);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color-text);
+  margin: 0 0 var(--space-3);
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--space-2);
+}
+
+.heat__label span { font-weight: var(--weight-regular); color: var(--wp-gray-medium); letter-spacing: 0; }
+
+/* ----- Legenda da rampa ----- */
+
+.ramp { border: var(--border-width) solid var(--color-border); }
+
+.ramp__row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 4px var(--space-2);
+  width: 100%;
+  background: var(--color-surface);
+  border: 0;
+  border-bottom: 1px solid var(--color-surface-sunken);
+  font-family: var(--font-body);
+  font-size: var(--size-kicker);
+  color: var(--color-text);
+  cursor: pointer;
+  text-align: left;
+}
+
+.ramp__row:last-child { border-bottom: 0; }
+.ramp__row:hover { background: var(--color-surface-sunken); }
+.ramp__row[aria-pressed="true"] { background: var(--color-surface-accent); box-shadow: inset 2px 0 0 var(--color-accent); }
+.ramp__row:focus-visible { outline: 2px solid var(--color-focus-ring); outline-offset: -2px; }
+
+/* A fronteira do limite é marcada na própria legenda. */
+.ramp__row--boundary { border-top: 1px solid var(--color-border); border-bottom: 1px solid var(--color-border); background: var(--color-surface-sunken); }
+
+.ramp__chip { width: 16px; height: 16px; flex: none; }
+.ramp__range { flex: 1; font-variant-numeric: tabular-nums; }
+.ramp__count { font-variant-numeric: tabular-nums; font-weight: var(--weight-semibold); color: var(--color-text-muted); min-width: 1.4rem; text-align: right; }
+
+.legend-note { font-size: var(--size-kicker); color: var(--color-text-muted); line-height: 1.5; margin: var(--space-3) 0 0; }
+
+.mono-key {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  border: var(--border-width) solid var(--color-border);
+  padding: var(--space-2);
+  margin-top: var(--space-3);
+  font-size: var(--size-kicker);
+}
+
+.mono-key span { flex: 1; }
+.mono-key b { display: block; font-weight: var(--weight-regular); color: var(--color-text-muted); }
+
+/* ----- Isolar subsistema ----- */
+
+.subsys { display: flex; flex-direction: column; }
+
+.subsys button {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2);
+  background: none;
+  border: var(--border-width) solid transparent;
+  border-radius: var(--radius);
+  font-family: var(--font-body);
+  font-size: var(--size-small);
+  color: var(--color-text);
+  cursor: pointer;
+  text-align: left;
+}
+
+.subsys button:hover { background: var(--color-surface-sunken); }
+.subsys button[aria-pressed="true"] { background: var(--color-surface-accent); border-color: var(--wp-blue-accent); color: var(--color-accent); font-weight: var(--weight-semibold); }
+.subsys button:focus-visible { outline: 2px solid var(--color-focus-ring); outline-offset: -2px; }
+
+.subsys__name { flex: 1; }
+.subsys__over { font-variant-numeric: tabular-nums; font-weight: var(--weight-semibold); min-width: 1.2rem; text-align: right; }
+.subsys__total { font-variant-numeric: tabular-nums; color: var(--color-text-muted); min-width: 1.6rem; text-align: right; }
+
+/* ----- Painel do ponto ----- */
+
+.detail__name { font-family: var(--font-display); font-weight: var(--weight-bold); font-size: 1rem; line-height: 1.3; color: var(--color-accent); margin: 0; }
+.detail__area { font-size: var(--size-kicker); color: var(--color-text-muted); }
+
+.detail__state {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  border: var(--border-width) solid var(--color-border-strong);
+  padding: var(--space-2) var(--space-3);
+  margin: var(--space-3) 0;
+  font-weight: var(--weight-bold);
+  font-size: var(--size-small);
+  letter-spacing: 0.02em;
+}
+
+.detail__swatch { width: 10px; height: 10px; flex: none; }
+
+.detail__rows { display: grid; grid-template-columns: 1fr max-content; gap: 0; margin: 0; font-size: var(--size-small); }
+.detail__rows dt { color: var(--color-text-muted); padding: var(--space-2) 0; border-bottom: 1px solid var(--color-border); }
+.detail__rows dd { margin: 0; padding: var(--space-2) 0; border-bottom: 1px solid var(--color-border); text-align: right; font-variant-numeric: tabular-nums; font-weight: var(--weight-semibold); }
+.detail__rows .is-empty { color: var(--wp-gray-medium); font-weight: var(--weight-regular); }
+
+.detail__empty { color: var(--color-text-muted); font-size: var(--size-small); margin: 0; }
+
+/* Barra que situa a previsão contra o limite. */
+.gauge { height: 22px; position: relative; background: var(--color-surface-sunken); border: var(--border-width) solid var(--color-border); margin-top: var(--space-3); }
+.gauge__fill { position: absolute; left: 0; top: 0; bottom: 0; }
+.gauge__mark { position: absolute; top: -3px; bottom: -3px; width: 1.5px; background: var(--color-accent); }
+.gauge__tag { position: absolute; top: 4px; font-size: 9.5px; font-weight: var(--weight-semibold); color: var(--color-accent); }
+
+/* Linha da tabela vinculada ao ponto selecionado no modelo. */
+.row--selected { background: var(--color-surface-accent) !important; box-shadow: inset 2px 0 0 var(--color-accent); }

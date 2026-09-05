@@ -9,6 +9,8 @@
        dependência de rede (RNF-02 e RNF-04, Tabela 48 da documentação). -->
   <link rel="stylesheet" href="css/tokens.css">
   <link rel="stylesheet" href="css/app.css">
+  <link rel="stylesheet" href="css/triagem.css">
+  <link rel="stylesheet" href="css/fogao.css">
 </head>
 <body>
 
@@ -26,43 +28,79 @@
   </div>
 </header>
 
+<nav class="nav" aria-label="Telas do painel">
+  <div class="nav__inner">
+    <a class="nav__link" href="index.html" aria-current="page">Consulta</a>
+    <a class="nav__link" href="triagem.html">Triagem</a>
+  </div>
+</nav>
+
 <main class="page">
 
   <!-- Sai quando houver modelo treinado. Até lá, é o que impede que um
        número sintético seja lido como previsão. -->
   <p class="stub-banner" id="stub-banner">
     <strong>Nenhum modelo treinado está carregado.</strong>
-    Os números exibidos são sintéticos e não são previsões de temperatura.
-    Modelo: <span id="model-version">—</span>.
+    Os números da triagem são sintéticos e não variam com a configuração
+    montada aqui. Modelo: <span id="model-version">—</span>.
   </p>
 
-  <section class="panel">
-    <h2 class="panel__title">Configuração consultada</h2>
+  <div class="split">
 
-    <form id="prediction-form" novalidate>
-      <!-- Campos construídos pelo app.js a partir de js/schema.js. -->
-      <div class="field-grid" id="factor-fields"></div>
+    <div class="split__form">
+      <section class="panel">
+        <h2 class="panel__title">Configuração a avaliar</h2>
 
-      <div class="form-actions">
-        <button class="button" type="submit">Consultar</button>
+        <p class="panel__note">
+          Escolha os sete fatores de projeto. O fogão ao lado se monta a cada
+          escolha. O resultado é a triagem térmica: os 78 pontos de medição,
+          ordenados do mais crítico para o menos crítico.
+        </p>
+
+        <form id="prediction-form" novalidate>
+          <!-- Campos construídos pelo app.js a partir de js/schema.js. -->
+          <div class="field-grid" id="factor-fields"></div>
+
+          <div class="form-actions">
+            <button class="button" type="submit">Ver triagem térmica</button>
+          </div>
+        </form>
+      </section>
+    </div>
+
+    <div class="split__view">
+      <div class="viewport">
+        <div class="viewport__bar">
+          <span class="hint">Vista</span>
+          <span class="toggle" id="view-toggle">
+            <button type="button" data-explode="0" aria-pressed="true">Assentado</button>
+            <button type="button" data-explode="1" aria-pressed="false">Explodido</button>
+          </span>
+          <span class="push"></span>
+          <span class="hint"><span id="build-count">0</span> de 7 fatores</span>
+        </div>
+
+        <div class="viewport__stage">
+          <svg class="viewport__svg" id="fogao-svg" role="img"
+               aria-label="Representação esquemática do fogão sendo montada conforme os fatores escolhidos"></svg>
+          <p class="viewport__badge" id="fogao-badge" hidden></p>
+          <p class="viewport__disclaimer">
+            <strong>REPRESENTAÇÃO ESQUEMÁTICA</strong>
+            Sem CAD · proporções aproximadas · não dimensional
+          </p>
+        </div>
+
+        <!-- Caso de operação e perdas não têm manifestação geométrica: em vez
+             de inventar movimento, aparecem aqui. -->
+        <dl class="viewport__state">
+          <div class="state-item"><dt>Regime</dt><dd id="st-regime" class="is-none">—</dd></div>
+          <div class="state-item"><dt>Arranjo de bobinas</dt><dd id="st-losses" class="is-none">—</dd></div>
+          <div class="state-item"><dt>Fluxo</dt><dd id="st-flow" class="is-none">—</dd></div>
+        </dl>
       </div>
-    </form>
-  </section>
+    </div>
 
-  <section class="panel result" id="result" hidden>
-    <h2 class="panel__title">Resultado</h2>
-    <p class="result__value">
-      <span id="result-temperature">—</span><span class="result__unit" id="result-unit"></span>
-    </p>
-    <dl class="meta-list">
-      <dt>Ponto de medição</dt>
-      <dd id="result-point">—</dd>
-      <dt>Versão do modelo</dt>
-      <dd id="result-model-version">—</dd>
-      <dt>Versão do contrato</dt>
-      <dd id="result-schema-version">—</dd>
-    </dl>
-  </section>
+  </div>
 
   <section class="error" id="error" hidden>
     <span class="error__label">Consulta recusada</span>
@@ -72,6 +110,7 @@
 </main>
 
 <script src="js/schema.js"></script>
+<script src="js/fogao.js"></script>
 <script src="js/app.js"></script>
 </body>
 </html>

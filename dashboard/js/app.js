@@ -1,19 +1,18 @@
-/* Tela de consulta do Thermal Predictor.
+/* Tela de entrada do Thermal Predictor. Monta o formulário dos sete fatores
+ * a partir de js/schema.js e, ao submeter, leva para a triagem.
  *
- * Os valores exibidos são sintéticos. Nenhum modelo treinado participa desta
- * tela; o número vem de um hash da configuração, só para exercitar a
- * interface. O aviso no topo da página diz isso e sai quando houver modelo.
+ * Não pede ponto de medição de propósito: escolher um termopar pressupõe já
+ * saber qual componente é o problema, e é isso que a triagem responde.
  */
 
 (function () {
   "use strict";
 
   var MODEL_VERSION = "stub";
-  var VALUE_RANGE = [27.69, 273.6]; // amplitude observada na base
+  var TELA_RESULTADO = "triagem.html";
 
   var form = document.getElementById("prediction-form");
   var fieldsContainer = document.getElementById("factor-fields");
-  var resultSection = document.getElementById("result");
   var errorSection = document.getElementById("error");
 
   function buildSelect(name, factor) {
@@ -28,12 +27,10 @@
     var select = document.createElement("select");
     select.name = name;
 
-    if (factor.optional) {
-      var blank = document.createElement("option");
-      blank.value = "";
-      blank.textContent = "(não se aplica)";
-      select.appendChild(blank);
-    }
+    var blank = document.createElement("option");
+    blank.value = "";
+    blank.textContent = factor.optional ? "(não se aplica)" : "(escolher)";
+    select.appendChild(blank);
 
     factor.levels.forEach(function (level) {
       var option = document.createElement("option");
@@ -104,47 +101,6 @@
     });
   }
 
-  // Lista fechada, e não texto livre: só os 77 pontos com leitura registrada
-  // em dataset_preprocessado.csv são consultáveis (RN-04), agrupados por
-  // subsistema (Key_Area) para facilitar achar o ponto certo entre 77 opções.
-  function buildMeasurementPointField(key, groups) {
-    var wrapper = document.createElement("label");
-    wrapper.className = "field";
-
-    var label = document.createElement("span");
-    label.className = "field__label";
-    label.textContent = "Ponto de medição";
-    wrapper.appendChild(label);
-
-    var select = document.createElement("select");
-    select.name = key;
-
-    var blank = document.createElement("option");
-    blank.value = "";
-    blank.textContent = "(selecione um ponto)";
-    select.appendChild(blank);
-
-    groups.forEach(function (group) {
-      var optgroup = document.createElement("optgroup");
-      optgroup.label = group.area;
-      group.points.forEach(function (point) {
-        var option = document.createElement("option");
-        option.value = point.value;
-        option.textContent = point.label;
-        optgroup.appendChild(option);
-      });
-      select.appendChild(optgroup);
-    });
-    wrapper.appendChild(select);
-
-    var help = document.createElement("span");
-    help.className = "field__help";
-    help.textContent = "Termopar consultado, entre os 77 pontos com leitura registrada na base.";
-    wrapper.appendChild(help);
-
-    return wrapper;
-  }
-
   function buildForm() {
     SCHEMA.factors.forEach(function (factor) {
       if (factor.subfields && factor.subfields.length > 0) {
@@ -153,9 +109,6 @@
         fieldsContainer.appendChild(buildSelect(factor.key, factor));
       }
     });
-    fieldsContainer.appendChild(
-      buildMeasurementPointField(SCHEMA.measurement_point_key, SCHEMA.measurement_point_groups)
-    );
   }
 
   function collectInput() {
@@ -179,65 +132,201 @@
     return input;
   }
 
-  // FNV-1a de 32 bits: a mesma configuração devolve sempre o mesmo número, para
-  // que a tela não pareça instável a cada consulta.
-  function hash(texto) {
-    var h = 0x811c9dc5;
-    for (var i = 0; i < texto.length; i++) {
-      h ^= texto.charCodeAt(i);
-      h = (h + ((h << 1) + (h << 4) + (h << 7) + (h << 8) + (h << 24))) >>> 0;
-    }
-    return h;
-  }
-
-  function fakeTemperature(input) {
-    var fraction = hash(JSON.stringify(input)) / 4294967296;
-    return VALUE_RANGE[0] + fraction * (VALUE_RANGE[1] - VALUE_RANGE[0]);
-  }
-
-  // O valor do campo é o measurement_id técnico ("Nome | Área"); o resultado
-  // mostra o nome amigável correspondente, não o identificador cru.
-  function measurementPointLabel(value) {
-    var found = null;
-    SCHEMA.measurement_point_groups.forEach(function (group) {
-      group.points.forEach(function (point) {
-        if (point.value === value) found = point.label;
-      });
-    });
-    return found || value;
-  }
-
   function showError(message) {
-    resultSection.hidden = true;
     document.getElementById("error-message").textContent = message;
     errorSection.hidden = false;
   }
 
-  function showResult(input, temperatura) {
-    errorSection.hidden = true;
-    document.getElementById("result-temperature").textContent = temperatura.toFixed(2);
-    document.getElementById("result-unit").textContent = " °C";
-    document.getElementById("result-point").textContent =
-      measurementPointLabel(input[SCHEMA.measurement_point_key]);
-    document.getElementById("result-model-version").textContent = MODEL_VERSION;
-    document.getElementById("result-schema-version").textContent = SCHEMA.schema_version;
-    resultSection.hidden = false;
+  // Campo ausente de `input` foi desabilitado por `requires` e não se
+  // aplica; campo presente e nulo ficou em branco de verdade.
+  function camposObrigatoriosVazios(input) {
+    var vazios = [];
+
+    function conferir(campo, valor) {
+      if (valor === undefined) return;
+      if (valor === null && !campo.optional) vazios.push(campo.label);
+    }
+
+    SCHEMA.factors.forEach(function (fator) {
+      if (fator.subfields && fator.subfields.length > 0) {
+        var aninhado = input[fator.key] || {};
+        fator.subfields.forEach(function (sub) {
+          conferir(sub, aninhado[sub.key]);
+        });
+        return;
+      }
+      conferir(fator, input[fator.key]);
+    });
+
+    return vazios;
   }
+
+  // Ponto separa o aninhamento ("losses.config"), como no atributo name dos
+  // campos. Query string em vez de sessionStorage: funciona por file://.
+  function paraQueryString(input) {
+    var partes = [];
+
+    Object.keys(input).forEach(function (chave) {
+      var valor = input[chave];
+
+      if (valor === null) return;
+
+      if (typeof valor === "object") {
+        Object.keys(valor).forEach(function (sub) {
+          if (valor[sub] === null) return;
+          partes.push(
+            encodeURIComponent(chave + "." + sub) + "=" +
+            encodeURIComponent(valor[sub])
+          );
+        });
+        return;
+      }
+
+      partes.push(encodeURIComponent(chave) + "=" + encodeURIComponent(valor));
+    });
+
+    return partes.join("&");
+  }
+
+  /* Peça que cada fator materializa. Caso de operação e perdas não têm
+     manifestação geométrica — o viewport diz isso em vez de fingir movimento. */
+  var PECA_DO_FATOR = {
+    blower_direction: "blower",
+    housing: "ipcLid",
+    board_position: "ipcBoard",
+    deflector_hole: "deflector",
+    material_coil_support: "coilSupport",
+    run_case: null,
+    losses: null
+  };
+
+  var svg = document.getElementById("fogao-svg");
+  var badge = document.getElementById("fogao-badge");
+  var explodido = false;
+  var destaque = null;
+  var timerBadge = null;
+
+  function rotuloDoNivel(fator, valor) {
+    var achado = null;
+    (fator.levels || []).forEach(function (n) { if (n.value === valor) achado = n.label; });
+    return achado;
+  }
+
+  function acharFator(chave) {
+    var achado = null;
+    SCHEMA.factors.forEach(function (f) { if (f.key === chave) achado = f; });
+    return achado;
+  }
+
+  function contarEscolhidos(input) {
+    var n = 0;
+    SCHEMA.factors.forEach(function (f) {
+      if (f.subfields && f.subfields.length > 0) {
+        var sub = input[f.key] || {};
+        if (sub.present) n++;
+        return;
+      }
+      if (input[f.key]) n++;
+    });
+    return n;
+  }
+
+  function atualizarFaixa(input) {
+    var regime = input.run_case ? rotuloDoNivel(acharFator("run_case"), input.run_case) : null;
+    var perdas = input.losses || {};
+    var arranjo = null;
+    if (perdas.present === "declared") {
+      arranjo = [perdas.config, perdas.order].filter(Boolean).join(" · ") || "declarada";
+    } else if (perdas.present === "none") {
+      arranjo = "Sem perda";
+    } else if (perdas.present === "missing") {
+      arranjo = "Não declarado";
+    }
+    var fluxo = input.blower_direction || null;
+
+    function põe(id, texto, classe) {
+      var el = document.getElementById(id);
+      el.textContent = texto || "—";
+      el.className = texto ? (classe || "") : "is-none";
+    }
+    põe("st-regime", regime);
+    põe("st-losses", arranjo);
+    põe("st-flow", fluxo, "is-flow");
+  }
+
+  function mostrarBadge(texto) {
+    if (timerBadge) clearTimeout(timerBadge);
+    if (!texto) { badge.hidden = true; return; }
+    badge.textContent = texto;
+    badge.hidden = false;
+    timerBadge = setTimeout(function () {
+      badge.hidden = true;
+      destaque = null;
+      redesenhar();
+    }, 1600);
+  }
+
+  function redesenhar() {
+    var input = collectInput();
+    var n = contarEscolhidos(input);
+    // Quatro estados de montagem: chassi, ventilação, eletrônica, cooktop.
+    var nivel = n === 0 ? 1 : n <= 2 ? 2 : n <= 4 ? 3 : 4;
+
+    document.getElementById("build-count").textContent = n;
+    atualizarFaixa(input);
+
+    FOGAO.desenhar(svg, {
+      nivel: nivel,
+      modo: "montagem",
+      explode: explodido,
+      placa: input.board_position === "Right" ? "right" : "center",
+      soprador: input.blower_direction === "To Back" ? "back" : input.blower_direction ? "front" : null,
+      alojamento: input.housing && input.housing !== "Closed" ? "open" : "closed",
+      material: input.material_coil_support === "Plastic" ? "plastic"
+        : input.material_coil_support === "Aluminium Plate" ? "plate" : "aluminium",
+      novo: destaque
+    });
+  }
+
+  form.addEventListener("change", function (event) {
+    var chave = (event.target.name || "").split(".")[0];
+    var peca = PECA_DO_FATOR[chave];
+    destaque = peca || null;
+    redesenhar();
+
+    if (!event.target.value) { mostrarBadge(null); return; }
+    var fator = acharFator(chave);
+    mostrarBadge(peca
+      ? (fator ? fator.label.toUpperCase() : chave)
+      : (fator ? fator.label.toUpperCase() + " · SEM EFEITO GEOMÉTRICO" : ""));
+  });
+
+  document.getElementById("view-toggle").addEventListener("click", function (event) {
+    var botao = event.target.closest("button");
+    if (!botao) return;
+    explodido = botao.dataset.explode === "1";
+    Array.prototype.forEach.call(this.querySelectorAll("button"), function (b) {
+      b.setAttribute("aria-pressed", String(b === botao));
+    });
+    redesenhar();
+  });
 
   form.addEventListener("submit", function (event) {
     event.preventDefault();
+    errorSection.hidden = true;
 
     var input = collectInput();
-    var ponto = input[SCHEMA.measurement_point_key];
+    var faltando = camposObrigatoriosVazios(input);
 
-    if (!ponto || !ponto.trim()) {
-      showError("Informe o ponto de medição.");
+    if (faltando.length > 0) {
+      showError("Informe: " + faltando.join(", ") + ".");
       return;
     }
 
-    showResult(input, fakeTemperature(input));
+    window.location.href = TELA_RESULTADO + "?" + paraQueryString(input);
   });
 
   buildForm();
+  redesenhar();
   document.getElementById("model-version").textContent = MODEL_VERSION;
 })();

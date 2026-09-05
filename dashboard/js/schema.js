@@ -15,6 +15,9 @@ var SCHEMA = {
    * rodada (Seção 4.2.1c e 4.2.3c da documentação) e por isso não aparece
    * aqui. Fecha a entrada em vocabulário conhecido, no mesmo padrão dos
    * demais fatores (RN-04).
+   *
+   * Sem consumidor hoje: a consulta deixou de pedir ponto de medição. Fica
+   * como catálogo canônico e para o filtro por subsistema de RF-10.
    */
   measurement_point_groups: [
     {
