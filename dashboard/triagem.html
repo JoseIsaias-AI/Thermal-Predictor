@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Triagem térmica — Thermal Predictor</title>
+
+  <!-- Fontes hospedadas localmente em css/tokens.css (@font-face), sem
+       dependência de rede (RNF-02 e RNF-04, Tabela 48 da documentação). -->
+  <link rel="stylesheet" href="css/tokens.css">
+  <link rel="stylesheet" href="css/app.css">
+  <link rel="stylesheet" href="css/triagem.css">
+  <link rel="stylesheet" href="css/fogao.css">
+</head>
+<body>
+
+<header class="masthead">
+  <div class="masthead__inner">
+    <!-- O amarelo do anel é da marca e não se recolore. A proibição de
+         misturar paletas vale para a interface, não para o logotipo. -->
+    <img class="masthead__logo" src="img/logo-whirlpool.png"
+         alt="Whirlpool Corporation" width="1259" height="419">
+
+    <div class="masthead__identity">
+      <p class="masthead__kicker">Triagem térmica</p>
+      <h1 class="masthead__system-name">Thermal Predictor</h1>
+    </div>
+  </div>
+</header>
+
+<nav class="nav" aria-label="Telas do painel">
+  <div class="nav__inner">
+    <a class="nav__link" href="index.html">Consulta</a>
+    <a class="nav__link" href="triagem.html" aria-current="page">Triagem</a>
+  </div>
+</nav>
+
+<main class="page">
+
+  <!-- RF-15 e RN-07: fixo nesta tela, não só na inicial. -->
+  <section class="scope-notice" aria-labelledby="scope-notice-title">
+    <h2 class="scope-notice__title" id="scope-notice-title">Enquadramento da leitura</h2>
+    <p>
+      Esta tela é uma <strong>triagem pré-CFD</strong>. Ela ordena pontos de
+      medição por risco térmico estimado para ajudar a decidir o que enviar
+      para simulação primeiro. Ela <strong>não substitui a simulação</strong>
+      e não emite parecer de conformidade.
+    </p>
+    <p>
+      Nenhum estado exibido é aprovação. <em>Dentro do limite</em> significa
+      que a folga prevista supera a tolerância de exibição, não que o
+      componente esteja verificado. A confirmação continua sendo a simulação.
+    </p>
+    <p>
+      A tolerância que define a <em>banda de incerteza</em> é
+      <span id="tolerance-fraction">10%</span> do limite declarado de cada
+      ponto. Uma folga menor que isso é apresentada como inconclusiva: a
+      configuração vai para verificação, e não é descartada.
+    </p>
+  </section>
+
+  <!-- Sai quando houver modelo treinado. -->
+  <p class="stub-banner" id="stub-banner" hidden>
+    <strong>Nenhum modelo treinado está carregado.</strong>
+    As temperaturas e os limites são sintéticos: não são previsões e não
+    correspondem a especificação de componente. <strong>Os números abaixo não
+    mudam com a configuração avaliada</strong> — mudar um fator e consultar de
+    novo devolve exatamente esta mesma tabela. Ela demonstra o formato da
+    resposta, não o comportamento térmico.
+    Modelo: <span id="model-version">—</span>.
+  </p>
+
+  <!-- Sem o eco da configuração, a tabela fica solta. -->
+  <section class="panel" id="config-panel" hidden>
+    <h2 class="panel__title">Configuração avaliada</h2>
+    <dl class="meta-list" id="config-list"></dl>
+    <p class="panel__note">
+      A posição da placa e o estado do alojamento deslocam termopares no
+      modelo. Os outros cinco fatores não movem geometria.
+    </p>
+    <p class="panel__note" id="config-default-note" hidden>
+      Nenhuma configuração foi informada. Estes são os fatores de referência
+      do conjunto de dados de exemplo.
+      <a href="index.html">Montar uma configuração</a>.
+    </p>
+  </section>
+
+  <p class="status-line" id="loading">Carregando triagem…</p>
+
+  <section class="error" id="error" hidden>
+    <span class="error__label">Triagem indisponível</span>
+    <span id="error-message"></span>
+  </section>
+
+  <!-- Nasce explodido: com o produto assentado, 48 dos 78 pontos ficam
+       ocultos sob o cooktop e na face traseira. -->
+  <section class="heat" id="heat" hidden>
+
+    <div class="heat__side">
+      <div class="heat__block">
+        <h3 class="heat__label">Folga prevista</h3>
+        <!-- A escala mora com a legenda que ela colore, não na barra do
+             viewport, que já estava estourando de controles. -->
+        <span class="toggle toggle--mini" id="heat-scale">
+          <button type="button" data-scale="a" aria-pressed="true">Escala A</button>
+          <button type="button" data-scale="b" aria-pressed="false">Escala B</button>
+        </span>
+        <div class="ramp" id="ramp"></div>
+        <div class="mono-key">
+          <svg width="14" height="14" aria-hidden="true"><rect x="2" y="2" width="10" height="10" fill="#fff" stroke="#767777" stroke-width="1.2" stroke-dasharray="2.5 2"></rect></svg>
+          <span>Monitoramento<b>limite não declarado</b></span>
+          <strong id="mono-count">—</strong>
+        </div>
+        <p class="legend-note">
+          Forma e faixa carregam a mesma informação que a cor. Clique numa
+          faixa para filtrar. <em>Dentro do limite</em> não é aprovação — é
+          ausência de problema neste ponto.
+        </p>
+      </div>
+
+      <!-- Visível só no campo térmico: aí a cor é temperatura, não risco. -->
+      <div class="heat__block" id="field-legend" hidden>
+        <h3 class="heat__label">Temperatura prevista <span>°C</span></h3>
+        <div class="field-scale"><span class="field-scale__bar" id="field-bar"></span>
+          <span class="field-scale__ends" id="field-ticks"></span>
+        </div>
+        <p class="legend-note">
+          Campo interpolado no volume a partir dos 78 termopares e amostrado
+          nas faces do produto. Frio azul, quente vermelho. A escala é
+          equalizada por quantil — os rótulos acima marcam os quartis em °C,
+          e por isso não são igualmente espaçados.
+          Aqui a cor representa temperatura, e não estado de risco: nenhuma
+          faixa significa aprovação. Os 10 pontos sem limite entram no campo —
+          não têm folga, mas têm temperatura.
+        </p>
+      </div>
+
+      <div class="heat__block">
+        <h3 class="heat__label">Filtrar</h3>
+        <label class="filter">
+          <span class="filter__label">Componente</span>
+          <input type="search" id="filter-name" placeholder="Buscar componente…" autocomplete="off">
+        </label>
+        <div class="chips" id="filter-state"></div>
+        <p class="legend-note" id="filter-count"></p>
+      </div>
+
+      <div class="heat__block">
+        <h3 class="heat__label">Isolar subsistema</h3>
+        <div class="subsys" id="subsys"></div>
+        <p class="legend-note">
+          Colunas: pontos acima do limite · total. Isolar mantém os demais como
+          contorno vazio, não os apaga.
+        </p>
+      </div>
+    </div>
+
+    <div class="heat__main">
+      <div class="viewport__bar">
+        <span class="toggle" id="heat-explode">
+          <button type="button" data-explode="0" aria-pressed="false">Assentado</button>
+          <button type="button" data-explode="1" aria-pressed="true">Explodido</button>
+        </span>
+        <span class="hint" id="occlusion-hint">Assentado oculta 48 dos 78 pontos</span>
+        <button type="button" class="vbtn" id="heat-wide" hidden>Ver tudo</button>
+        <button type="button" class="vbtn" id="heat-reset" hidden>Reenquadrar</button>
+        <span class="toggle" id="heat-view">
+          <button type="button" data-view="pontos" aria-pressed="true">Pontos</button>
+          <button type="button" data-view="campo" aria-pressed="false">Campo térmico</button>
+        </span>
+      </div>
+
+      <!-- O palco recorta o desenho; o balão e o rodapé ficam fora do recorte
+           para não serem cortados quando o modelo está aproximado. -->
+      <div class="viewport__frame">
+        <div class="viewport__stage">
+          <svg class="viewport__svg" id="heat-svg" role="img"
+               aria-label="Mapa de calor esquemático dos 78 pontos de medição sobre o fogão"></svg>
+        </div>
+        <div class="tip" id="heat-tip" role="status" aria-live="polite"></div>
+        <p class="viewport__disclaimer">
+          <strong id="heat-view-name">VISTA EXPLODIDA ESQUEMÁTICA</strong>
+          <span id="heat-view-note">Sem CAD · a posição indica o subsistema, não a coordenada real</span>
+        </p>
+      </div>
+    </div>
+
+    <div class="heat__side heat__side--right">
+      <div class="heat__block">
+        <h3 class="heat__label">Ponto selecionado</h3>
+        <div id="detail"><p class="detail__empty">Clique num ponto do modelo ou numa linha da tabela.</p></div>
+      </div>
+    </div>
+
+  </section>
+
+  <section class="panel" id="screening-panel" hidden>
+    <h2 class="panel__title">Pontos com limite declarado</h2>
+
+    <ul class="tally" id="tally"></ul>
+
+    <div class="table-scroll">
+      <table class="data-table">
+        <caption>
+          Ordem: estado de risco mais crítico primeiro; dentro de um mesmo
+          estado, folga crescente. Folga é limite menos temperatura prevista;
+          folga negativa indica previsão acima do limite.
+        </caption>
+        <thead>
+          <tr>
+            <th scope="col">Ponto de medição</th>
+            <th scope="col" class="num">Temp. prevista (°C)</th>
+            <th scope="col" class="num">Limite (°C)</th>
+            <th scope="col" class="num">Folga (°C)</th>
+            <th scope="col" class="num">Folga (%)</th>
+            <th scope="col">Estado</th>
+          </tr>
+        </thead>
+        <tbody id="screening-body"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- RN-03: sem colunas de limite, folga ou estado. -->
+  <section class="panel panel--monitoring" id="monitoring-panel" hidden>
+    <h2 class="panel__title">Pontos apenas monitorados</h2>
+
+    <p class="panel__note">
+      <span id="monitoring-count">—</span> dos 78 pontos de medição não
+      possuem limite térmico declarado. Eles não recebem estado de risco e
+      não entram na ordenação acima: sem limite, não há folga a calcular. O
+      painel exibe apenas a temperatura prevista, para acompanhamento.
+    </p>
+
+    <div class="table-scroll">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th scope="col">Ponto de medição</th>
+            <th scope="col" class="num">Temp. prevista (°C)</th>
+            <th scope="col">Leitura</th>
+          </tr>
+        </thead>
+        <tbody id="monitoring-body"></tbody>
+      </table>
+    </div>
+  </section>
+
+</main>
+
+<!-- schema.js traduz a configuração da URL em rótulos legíveis.
+     dados_triagem.js precisa vir antes de triagem.js. -->
+<script src="js/schema.js"></script>
+<script src="js/dados_triagem.js"></script>
+<script src="js/fogao.js"></script>
+<script src="js/triagem.js"></script>
+</body>
+</html>
