@@ -76,7 +76,7 @@
             <button type="button" data-explode="0" aria-pressed="true">Assentado</button>
             <button type="button" data-explode="1" aria-pressed="false">Explodido</button>
           </span>
-          <span class="hint" id="build-hint">Arraste para girar</span>
+          <span class="hint" id="build-hint">Arraste para girar e inclinar</span>
           <button type="button" class="vbtn" id="reset-view" hidden>Reenquadrar</button>
           <span class="hint" style="flex:none"><span id="build-count">0</span> de 7 fatores</span>
         </div>
@@ -85,11 +85,14 @@
           <svg class="viewport__svg" id="fogao-svg" role="img"
                aria-label="Representação esquemática do fogão sendo montada conforme os fatores escolhidos"></svg>
           <p class="viewport__badge" id="fogao-badge" hidden></p>
-          <p class="viewport__disclaimer">
-            <strong>REPRESENTAÇÃO ESQUEMÁTICA</strong>
-            Sem CAD · proporções aproximadas · não dimensional
-          </p>
         </div>
+
+        <!-- Fora do palco, e não sobre ele: o palco é flex e recorta, e o
+             modelo girado chegava a cobrir este texto. -->
+        <p class="viewport__disclaimer">
+          <strong>REPRESENTAÇÃO ESQUEMÁTICA</strong>
+          Sem CAD · proporções aproximadas · não dimensional
+        </p>
 
         <!-- Caso de operação e perdas não têm manifestação geométrica: em vez
              de inventar movimento, aparecem aqui. -->

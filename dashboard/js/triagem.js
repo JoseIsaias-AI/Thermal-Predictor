@@ -498,6 +498,7 @@
       modo: "calor",
       vista: mapa.vista,
       yaw: orbita ? orbita.valor() : 0,
+      elev: orbita ? orbita.elevacao() : null,
       foco: foco.area,
       t: foco.t,
       semAnimacao: foco.anim !== null,
@@ -528,9 +529,9 @@
     var campoAtivo = mapa.vista === "campo";
     document.getElementById("occlusion-hint").textContent =
       meta ? meta.nome
-      : campoAtivo ? "Campo no volume · arraste para girar"
-      : mapa.explode ? "Explodido · arraste para girar"
-      : "Assentado oculta pontos · arraste para girar";
+      : campoAtivo ? "Campo no volume · arraste para girar e inclinar"
+      : mapa.explode ? "Explodido · arraste para girar e inclinar"
+      : "Assentado oculta pontos · arraste para girar e inclinar";
 
     document.getElementById("heat-view-name").textContent =
       meta ? "VISTA DE COMPONENTE"
