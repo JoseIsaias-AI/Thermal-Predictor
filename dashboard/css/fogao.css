@@ -24,17 +24,25 @@
   flex-direction: column;
 }
 
-/* Sem wrap: o texto do hint muda de tamanho entre modos, e com quebra de
-   linha os botoes pulavam de lugar a cada clique. O hint e quem encolhe. */
+/* O hint e quem encolhe: o texto dele muda de tamanho entre modos, e sem isso
+   os botoes pulavam de lugar a cada clique.
+
+   A quebra de linha e valvula de escape, nao layout normal. Ela so entra em
+   acao quando os quatro controles fixos ja nao cabem na coluna — situacao em
+   que, sem wrap, o ultimo toggle vazava para fora da coluna do meio e era
+   pintado por cima do painel do ponto selecionado. Como o hint encolhe antes
+   de qualquer botao quebrar, os botoes seguem parados no uso normal. */
 .viewport__bar {
   background: var(--color-surface);
   border-bottom: var(--border-width) solid var(--color-border);
   padding: var(--space-2) var(--space-3);
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: var(--space-3);
+  gap: var(--space-2) var(--space-3);
   font-size: var(--size-kicker);
   min-height: 2.25rem;
+  min-width: 0;
 }
 
 .viewport__bar > .toggle,
@@ -51,16 +59,18 @@
 .viewport__stage { overflow: hidden; }
 .viewport__frame { position: relative; }
 
-/* O desenho é esquemático e a tela precisa dizer isso. */
+/* O desenho é esquemático e a tela precisa dizer isso.
+
+   Fica no fluxo, abaixo do palco, e nao em posicao absoluta sobre ele: o
+   modelo girado encostava no texto e chegava a cobri-lo. Continua fora do
+   recorte do palco, entao segue visivel com o modelo aproximado. */
 .viewport__disclaimer {
-  position: absolute;
-  right: var(--space-4);
-  bottom: var(--space-3);
+  margin: 0;
+  padding: 0 var(--space-4) var(--space-3);
   text-align: right;
   font-size: var(--size-kicker);
   color: var(--color-text-muted);
   line-height: 1.4;
-  pointer-events: none;
 }
 
 .viewport__disclaimer strong {
@@ -148,10 +158,15 @@
 
 .toggle button:focus-visible { outline: 2px solid var(--color-focus-ring); outline-offset: -2px; }
 
+/* Base zero, e nao auto: com wrap ligado na barra, um item de base automatica
+   reivindica a largura do proprio texto na hora de decidir a quebra, e a
+   barra ia para duas linhas mesmo quando os botoes cabiam em uma. Com base
+   zero o hint so ocupa a sobra, encolhe com reticencias, e a quebra fica
+   reservada ao caso em que nem os botoes cabem. */
 .hint {
   color: var(--wp-gray-medium);
   font-size: var(--size-kicker);
-  flex: 1 1 auto;
+  flex: 1 1 0;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;

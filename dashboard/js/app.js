@@ -280,6 +280,7 @@
       nivel: nivel,
       modo: "montagem",
       yaw: orbita ? orbita.valor() : 0,
+      elev: orbita ? orbita.elevacao() : null,
       explode: explodido,
       placa: input.board_position === "Right" ? "right" : "center",
       soprador: input.blower_direction === "To Back" ? "back" : input.blower_direction ? "front" : null,

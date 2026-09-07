@@ -4,24 +4,45 @@
  * vertical. Sem ponto de fuga — comparar peças importa mais que realismo, e
  * perspectiva sugeriria precisão dimensional que não temos (não há CAD).
  *
- * `yaw` gira o modelo em torno do eixo vertical. A ordem de pintura das
- * peças é a ordem de montagem, que é invariante a esse giro.
+ * `yaw` gira o modelo em torno do eixo vertical e `elev` inclina a câmera
+ * entre a vista quase frontal e a quase de planta. A ordem de pintura das
+ * peças é a ordem de montagem, que é invariante aos dois.
  */
 
 var FOGAO = (function () {
   "use strict";
 
-  var S = 0.8, OX = 60, OY = 520;
+  var S = 0.8, OX = 60, OY_BASE = 520, OY = OY_BASE;
   var NS = "http://www.w3.org/2000/svg";
   var CAIXA = { x: 320, y: 240, z: 300 };
   var CX = 160, CY = 120;
 
-  /* Direção que entra na tela: é o vetor que a projeção anula. Serve para
-     ordenar por profundidade e para descartar as faces de trás. */
-  var OLHAR = [-0.7, 1, -0.554];
-
   var YAW = 0;
   var LIMITE_YAW = 0.6; // ±34°, faixa em que as três faces da frente seguem visíveis
+
+  /* Elevação da câmera.
+   *
+   * ELEV_0 é o ângulo já embutido nos coeficientes originais, e é o que faz
+   * inclinação neutra reproduzir exatamente o desenho anterior. Ele sai do
+   * eixo de profundidade (0,70, −0,40): uma direção unitária do modelo com
+   * 0,70 na horizontal da tela guarda √(1 − 0,70²) = 0,714 entrando na tela,
+   * e o que se enxerga disso na vertical é 0,714 · sen(ELEV_0) = 0,40.
+   *
+   * Subir a elevação abre o plano do chão e achata a altura: é o que separa
+   * pontos que, de planta, caem uns sobre os outros. Descer aproxima da
+   * elevação frontal, onde o empilhamento vertical fica legível.
+   *
+   * A faixa foi medida sobre os 78 marcadores, e não arbitrada. Subindo até
+   * 68° os pares de marcadores que se tocam caem de 11 para 7, e o desenho
+   * ainda cabe no quadro. Descendo, quem limita é a grade de 37 pontos da
+   * placa IPC, que é plana e horizontal: a menor distância entre marcadores
+   * vai de 9,5 em ELEV_0 para 7,45 a 22° e 6,04 a 12°, com o símbolo medindo
+   * cerca de 9. Por isso o piso fica em 22°, onde os marcadores ainda se
+   * distinguem e nenhum outro subsistema piora. */
+  var ELEV_0 = Math.asin(0.40 / Math.sqrt(1 - 0.70 * 0.70));
+  var ELEV_MIN = 22 * Math.PI / 180;
+  var ELEV_MAX = 68 * Math.PI / 180;
+  var ELEV = ELEV_0;
 
   var RAMPA_A = ["#0d436b", "#3f7aa3", "#9dbdd2", "#d1d3d4", "#dd9a92", "#c04b3d", "#8f2419", "#5e120b"];
   var RAMPA_B = ["#eef0f1", "#cfd2d5", "#a6aaae", "#7c8189", "#5b616b", "#3e444d", "#262b32", "#12151a"];
@@ -43,15 +64,74 @@ var FOGAO = (function () {
 
   /* Contribuição de cada eixo do modelo para a tela. Na axonometria os três
      eixos contribuem; de frente, o eixo perpendicular à peça deixa de
-     contribuir e é isso que achata o desenho. */
+     contribuir e é isso que achata o desenho.
+
+     A inclinação entra como dois fatores sobre as componentes verticais: o
+     plano do chão cresce com sen(ELEV) e o eixo vertical encolhe com
+     cos(ELEV), ambos medidos contra ELEV_0. Em ELEV_0 os dois valem 1 e a
+     base volta a ser a original. As componentes horizontais não mudam: o
+     eixo vertical do modelo continua vertical na tela, que é o que mantém a
+     leitura de altura direta em qualquer inclinação.
+
+     O alvo do enquadramento em peça não é escalado: aproximar numa peça leva
+     a uma vista de planta ou de elevação fixa, e é para lá que a
+     interpolação precisa convergir, venha de onde vier a inclinação. */
   function base() {
     var t = FOCO.t;
     var plano = FOCO.plano === "elevacao";
+    var chao = Math.sin(ELEV) / Math.sin(ELEV_0);
+    var alto = Math.cos(ELEV) / Math.cos(ELEV_0);
     return {
-      ax: [entre(S, 1, t), entre(S * 0.22, 0, t)],
-      ay: [entre(S * 0.70, 0, t), entre(S * -0.40, plano ? 0 : 1, t)],
-      az: [0, entre(S * -1, plano ? -1 : 0, t)]
+      ax: [entre(S, 1, t), entre(S * 0.22 * chao, 0, t)],
+      ay: [entre(S * 0.70, 0, t), entre(S * -0.40 * chao, plano ? 0 : 1, t)],
+      az: [0, entre(S * -1 * alto, plano ? -1 : 0, t)]
     };
+  }
+
+  /* Volume que a cena pode ocupar, já contando o deslocamento do explodido: o
+     mainback recua 90 em y, a barra de manípulos avança 52, e a tampa da IPC
+     sobe até 464 em z. Serve só para enquadrar, não é desenhado. */
+  var CENA = { x0: -18, x1: 338, y0: -64, y1: 336, z0: 0, z1: 464 };
+
+  /* Centro vertical projetado da cena, na elevação dada.
+     Inclinar para cima abre o plano do chão e empurraria o desenho para fora
+     da base do quadro, que é fixo em 520×620. Comparar este centro com o
+     mesmo centro em ELEV_0 dá a correção exata da origem, e em ELEV_0 a
+     correção é zero, o que mantém o enquadramento original intacto. */
+  function centroVertical(elev) {
+    var guarda = ELEV, min = Infinity, max = -Infinity, i, j, k;
+    ELEV = elev;
+    var b = base();
+    for (i = 0; i < 2; i++) for (j = 0; j < 2; j++) for (k = 0; k < 2; k++) {
+      var r = girar(i ? CENA.x1 : CENA.x0, j ? CENA.y1 : CENA.y0);
+      var v = b.ax[1] * r[0] + b.ay[1] * r[1] + b.az[1] * (k ? CENA.z1 : CENA.z0);
+      if (v < min) min = v;
+      if (v > max) max = v;
+    }
+    ELEV = guarda;
+    return (min + max) / 2;
+  }
+
+  /* Direção que entra na tela: é o vetor que a projeção anula, ou seja, o
+     núcleo da matriz 2×3 formada pelos três eixos projetados. Serve para
+     ordenar por profundidade e para descartar as faces de trás.
+
+     Era uma constante, (−0,7, 1, −0,554), válida só enquanto a base fosse
+     fixa. Derivar da base corrente mantém as duas coisas corretas em
+     qualquer inclinação: sem isso, inclinar a câmera manteria visíveis faces
+     que passaram para trás e inverteria a ordem de pintura do campo térmico.
+     Em ELEV_0 o cálculo devolve exatamente a direção da constante antiga.
+     Normalizado, para que a margem de tolerância de `viradaParaFrente`
+     signifique sempre o mesmo ângulo. */
+  function olhar() {
+    var b = base(), A = b.ax, B = b.ay, C = b.az;
+    var v = [
+      B[0] * C[1] - C[0] * B[1],
+      C[0] * A[1] - A[0] * C[1],
+      A[0] * B[1] - B[0] * A[1]
+    ];
+    var n = Math.hypot(v[0], v[1], v[2]) || 1;
+    return [v[0] / n, v[1] / n, v[2] / n];
   }
 
   function girar(x, y) {
@@ -83,8 +163,8 @@ var FOGAO = (function () {
      bobina vazaria por cima. Peça usa a ordem de montagem, que é a ordem de
      empilhamento física — e essa é invariante ao giro em torno do vertical. */
   function fundura(x, y, z) {
-    var r = girar(x, y);
-    return OLHAR[0] * r[0] + OLHAR[1] * r[1] + OLHAR[2] * z;
+    var r = girar(x, y), o = olhar();
+    return o[0] * r[0] + o[1] * r[1] + o[2] * z;
   }
 
   /* Tons por peça: branco segue dominante e o azul do guia aparece só no
@@ -323,9 +403,9 @@ var FOGAO = (function () {
   }
 
   function viradaParaFrente(n) {
-    var c = Math.cos(YAW), s = Math.sin(YAW);
+    var c = Math.cos(YAW), s = Math.sin(YAW), o = olhar();
     var nx = n[0] * c - n[1] * s, ny = n[0] * s + n[1] * c;
-    return nx * OLHAR[0] + ny * OLHAR[1] + n[2] * OLHAR[2] < -0.02;
+    return nx * o[0] + ny * o[1] + n[2] * o[2] < -0.02;
   }
 
   function campoTermico(pontos) {
@@ -409,11 +489,15 @@ var FOGAO = (function () {
 
   function calcular(op) {
     YAW = Math.max(-LIMITE_YAW, Math.min(LIMITE_YAW, op.yaw || 0));
+    ELEV = Math.max(ELEV_MIN, Math.min(ELEV_MAX, op.elev == null ? ELEV_0 : op.elev));
 
     var meta = PECA_DA_AREA[op.foco];
     FOCO.t = meta ? Math.max(0, Math.min(1, op.t == null ? 1 : op.t)) : 0;
     FOCO.plano = meta ? meta.plano : "planta";
     var pecaEmFoco = meta ? meta.peca : null;
+
+    // Depois de YAW, ELEV e FOCO: a correção é medida na projeção corrente.
+    OY = OY_BASE + (centroVertical(ELEV_0) - centroVertical(ELEV));
 
     // Opacidade de tudo que pertence a uma peça que não é a que está em foco.
     function esmaece(idDaPeca) {
@@ -697,23 +781,36 @@ var FOGAO = (function () {
     return ctm ? pt.matrixTransform(ctm.inverse()) : null;
   }
 
-  /* Arrastar para girar. Devolve o ângulo corrente e avisa se houve arrasto,
-     para o clique não ser confundido com o fim de uma rotação. */
+  /* Arrastar para girar, na horizontal, e para inclinar, na vertical. Devolve
+     os dois ângulos e avisa se houve arrasto, para o clique não ser
+     confundido com o fim de uma rotação.
+
+     Arrastar para baixo puxa o topo do produto na direção de quem olha, e
+     por isso sobe a elevação: é a mesma metáfora de agarrar que o giro
+     horizontal já usava. A sensibilidade vertical é um pouco menor que a
+     horizontal porque o curso útil é menor. */
   function orbita(svg, aoGirar) {
-    var yaw = 0, arrastando = false, x0 = 0, base = 0, andou = false;
+    var yaw = 0, elev = ELEV_0;
+    var arrastando = false, x0 = 0, y0 = 0, baseYaw = 0, baseElev = 0, andou = false;
 
     svg.addEventListener("pointerdown", function (e) {
-      arrastando = true; andou = false; x0 = e.clientX; base = yaw;
-      svg.setPointerCapture(e.pointerId);
+      arrastando = true; andou = false;
+      x0 = e.clientX; y0 = e.clientY;
+      baseYaw = yaw; baseElev = elev;
+      // A captura falha se o ponteiro ja foi liberado entre o evento e aqui.
+      // Sem o guarda a excecao interrompia o resto do handler, e o cursor
+      // ficava sem o estado de arrasto embora o arrasto funcionasse.
+      try { svg.setPointerCapture(e.pointerId); } catch (erro) { /* segue sem captura */ }
       svg.classList.add("girando");
     });
 
     svg.addEventListener("pointermove", function (e) {
       if (!arrastando) return;
-      var d = e.clientX - x0;
-      if (Math.abs(d) > 3) andou = true;
-      yaw = Math.max(-LIMITE_YAW, Math.min(LIMITE_YAW, base + d * 0.005));
-      aoGirar(yaw);
+      var dx = e.clientX - x0, dy = e.clientY - y0;
+      if (Math.abs(dx) > 3 || Math.abs(dy) > 3) andou = true;
+      yaw = Math.max(-LIMITE_YAW, Math.min(LIMITE_YAW, baseYaw + dx * 0.005));
+      elev = Math.max(ELEV_MIN, Math.min(ELEV_MAX, baseElev + dy * 0.004));
+      aoGirar(yaw, elev);
     });
 
     function soltar(e) {
@@ -727,9 +824,12 @@ var FOGAO = (function () {
 
     return {
       valor: function () { return yaw; },
+      elevacao: function () { return elev; },
       arrastou: function () { return andou; },
-      zerar: function () { yaw = 0; aoGirar(0); },
-      girado: function () { return Math.abs(yaw) > 0.001; }
+      zerar: function () { yaw = 0; elev = ELEV_0; aoGirar(0, ELEV_0); },
+      girado: function () {
+        return Math.abs(yaw) > 0.001 || Math.abs(elev - ELEV_0) > 0.001;
+      }
     };
   }
 
