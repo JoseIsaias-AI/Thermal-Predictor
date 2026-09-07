@@ -101,9 +101,10 @@
         <h3 class="heat__label">Folga prevista</h3>
         <!-- A escala mora com a legenda que ela colore, não na barra do
              viewport, que já estava estourando de controles. -->
-        <span class="toggle toggle--mini" id="heat-scale">
-          <button type="button" data-scale="a" aria-pressed="true">Escala A</button>
-          <button type="button" data-scale="b" aria-pressed="false">Escala B</button>
+        <span class="toggle toggle--mini" id="heat-scale"
+              role="group" aria-label="Paleta da escala de folga">
+          <button type="button" data-scale="a" aria-pressed="true">Cor</button>
+          <button type="button" data-scale="b" aria-pressed="false">Tons de cinza</button>
         </span>
         <div class="ramp" id="ramp"></div>
         <div class="mono-key">
@@ -112,9 +113,15 @@
           <strong id="mono-count">—</strong>
         </div>
         <p class="legend-note">
-          Forma e faixa carregam a mesma informação que a cor. Clique numa
-          faixa para filtrar. <em>Dentro do limite</em> não é aprovação — é
-          ausência de problema neste ponto.
+          Forma e faixa carregam a mesma informação que a cor. Clique nas
+          faixas para filtrar; várias somam, e as duas vizinhas de zero
+          recompõem a banda de incerteza. <em>Dentro do limite</em> não é
+          aprovação — é ausência de problema neste ponto.
+        </p>
+        <p class="legend-note">
+          <strong>Tons de cinza</strong> troca a rampa azul–vermelha por uma
+          escala clara–escura. A ordem das faixas é a mesma; o que sai é a
+          matiz, para que nenhuma cor possa ser lida como aprovação (RN-07).
         </p>
       </div>
 
@@ -142,7 +149,22 @@
           <input type="search" id="filter-name" placeholder="Buscar componente…" autocomplete="off">
         </label>
         <div class="chips" id="filter-state"></div>
+        <!-- Eco das faixas marcadas na rampa, que fica no bloco de cima. -->
+        <div class="chips chips--echo" id="filter-bands"></div>
+        <!-- RN-03: monitorado nao e um quarto estado, e um universo a parte. -->
+        <label class="check">
+          <input type="checkbox" id="filter-mono" checked>
+          <span>Incluir os pontos monitorados</span>
+        </label>
         <p class="legend-note" id="filter-count"></p>
+        <button type="button" class="vbtn vbtn--clear" id="filter-clear" hidden>
+          Limpar filtros
+        </button>
+        <p class="legend-note">
+          Estado e faixa filtram apenas os pontos com limite declarado. Os
+          10 monitorados não têm estado nem folga, e entram ou saem pela caixa
+          acima.
+        </p>
       </div>
 
       <div class="heat__block">

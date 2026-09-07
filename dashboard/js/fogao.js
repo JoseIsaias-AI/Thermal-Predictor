@@ -44,6 +44,14 @@ var FOGAO = (function () {
   var ELEV_MAX = 68 * Math.PI / 180;
   var ELEV = ELEV_0;
 
+  /* Duas rampas para a mesma folga, expostas na interface como "Cor" e "Tons
+     de cinza". A divergente codifica o sinal da folga na matiz, e o cinza
+     neutro do meio cai sobre a faixa de 0 a +10%, que e a banda de incerteza
+     de RN-01: inconclusivo nao puxa para lado nenhum. A monocromatica codifica
+     so a ordem, e existe porque azul-vermelho convida a ler azul como
+     aprovado — leitura que RN-07 proibe. Quem precisa dessa garantia troca a
+     paleta e perde a matiz, nao a informacao: forma do marcador, rotulo do
+     estado e faixa numerica seguem iguais nas duas. */
   var RAMPA_A = ["#0d436b", "#3f7aa3", "#9dbdd2", "#d1d3d4", "#dd9a92", "#c04b3d", "#8f2419", "#5e120b"];
   var RAMPA_B = ["#eef0f1", "#cfd2d5", "#a6aaae", "#7c8189", "#5b616b", "#3e444d", "#262b32", "#12151a"];
 

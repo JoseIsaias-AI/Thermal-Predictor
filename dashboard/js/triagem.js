@@ -155,8 +155,8 @@
   /* ----- Mapa de calor ----- */
 
   var svgCalor = document.getElementById("heat-svg");
-  var mapa = { explode: true, escala: "a", isolar: "todos", faixa: null, sel: null,
-               vista: "pontos", nome: "", estados: {} };
+  var mapa = { explode: true, escala: "a", isolar: "todos", faixas: {}, sel: null,
+               vista: "pontos", nome: "", estados: {}, mono: true };
   var desenho = null;
   var linhaPorId = {};
   var orbita = null;
@@ -202,7 +202,7 @@
       var b = document.createElement("button");
       b.type = "button";
       b.className = "ramp__row" + (i === 3 ? " ramp__row--boundary" : "");
-      b.setAttribute("aria-pressed", String(mapa.faixa === i));
+      b.setAttribute("aria-pressed", String(!!mapa.faixas[i]));
 
       var chip = document.createElement("span");
       chip.className = "ramp__chip";
@@ -222,7 +222,9 @@
       b.appendChild(n);
 
       b.addEventListener("click", function () {
-        mapa.faixa = mapa.faixa === i ? null : i;
+        // Faixas somam: marcar as duas vizinhas de zero remonta a banda de
+        // incerteza de RN-01 sem inventar limiar fora dos cortes de 0 e 10%.
+        if (mapa.faixas[i]) delete mapa.faixas[i]; else mapa.faixas[i] = true;
         montarRampa();
         aplicarFiltros();
       });
@@ -361,11 +363,13 @@
        quer ler o painel ao lado, e só desce até a tabela se quiser detalhe. */
   }
 
+  /* Só os três estados de RN-01. Monitoramento não entra: por RN-03 esses
+     pontos não recebem estado de risco, e listá-los aqui sugeriria um quarto
+     estado que a regra não define. Quem os governa é a caixa de inclusão. */
   var ESTADOS = [
     ["acima_do_limite", "Acima do limite"],
     ["banda_de_incerteza", "Banda de incerteza"],
-    ["dentro_do_limite", "Dentro do limite"],
-    ["monitoramento", "Monitoramento"]
+    ["dentro_do_limite", "Dentro do limite"]
   ];
 
   function montarChips() {
@@ -385,32 +389,91 @@
     });
   }
 
-  // Um ponto passa quando atende a todos os filtros ativos ao mesmo tempo.
+  /* As faixas de folga moram na legenda de cor, do outro lado do painel. Sem
+     um eco aqui, o usuário vê a tabela encolher e não acha o controle que a
+     encolheu; o eco também desfaz a faixa, para não virar mero aviso. */
+  function montarFaixasAtivas() {
+    var caixa = document.getElementById("filter-bands");
+    caixa.innerHTML = "";
+
+    Object.keys(mapa.faixas).sort(function (a, b) { return a - b; }).forEach(function (i) {
+      var b = document.createElement("button");
+      b.type = "button";
+      b.className = "chip-echo";
+      b.setAttribute("aria-label", "Remover a faixa de folga " + FOGAO.FAIXAS[i]);
+
+      var rotulo = document.createElement("span");
+      rotulo.textContent = "Folga " + FOGAO.FAIXAS[i];
+      b.appendChild(rotulo);
+
+      var x = document.createElement("b");
+      x.setAttribute("aria-hidden", "true");
+      x.textContent = "×";
+      b.appendChild(x);
+
+      b.addEventListener("click", function () {
+        delete mapa.faixas[i];
+        montarRampa();
+        aplicarFiltros();
+      });
+      caixa.appendChild(b);
+    });
+  }
+
+  // Volta ao estado de primeira carga: nada filtrado, monitorados inclusos.
+  function limparFiltros() {
+    mapa.nome = "";
+    mapa.estados = {};
+    mapa.faixas = {};
+    mapa.mono = true;
+
+    document.getElementById("filter-name").value = "";
+    document.getElementById("filter-mono").checked = true;
+    montarChips();
+    montarRampa();
+    aplicarFiltros();
+  }
+
+  /* Um ponto passa quando atende a todos os filtros ativos ao mesmo tempo.
+     Estado e faixa só valem para os 68 com limite declarado: sem limite não
+     há folga a comparar (RN-03), então o nome e a caixa de inclusão são os
+     únicos filtros que alcançam os 10 monitorados. */
   function passaNoFiltro(p) {
+    if (mapa.nome && p.TC_Name.toLowerCase().indexOf(mapa.nome) < 0) return false;
+    if (p.is_monitor_only) return mapa.mono;
+
     var estados = Object.keys(mapa.estados);
     if (estados.length && estados.indexOf(p.estado) < 0) return false;
-    if (mapa.nome && p.TC_Name.toLowerCase().indexOf(mapa.nome) < 0) return false;
-    if (mapa.faixa !== null) {
-      if (p.is_monitor_only) return false;
-      if (FOGAO.faixaDaRampa(p.margem_percentual) !== mapa.faixa) return false;
-    }
+
+    var faixas = Object.keys(mapa.faixas);
+    if (faixas.length && !mapa.faixas[FOGAO.faixaDaRampa(p.margem_percentual)]) return false;
+
     return true;
   }
 
+  /* A contagem anda nos dois universos separados, e não num total de 78: os
+     68 com limite e os 10 monitorados respondem a filtros diferentes, e somar
+     os dois apagaria justamente a separação que RN-03 mantém. */
   function aplicarFiltros() {
-    var n = 0;
+    var comLimite = 0, monitorados = 0;
     todosOsPontos().forEach(function (p) {
       var ok = passaNoFiltro(p);
-      if (ok) n++;
+      if (ok) { if (p.is_monitor_only) monitorados += 1; else comLimite += 1; }
       var tr = linhaPorId[p.measurement_id];
       if (tr) tr.hidden = !ok;
     });
 
-    var texto = document.getElementById("filter-count");
-    var ativo = mapa.nome || mapa.faixa !== null || Object.keys(mapa.estados).length;
-    texto.textContent = ativo
-      ? n + " de " + DADOS_TRIAGEM.total_pontos + " pontos passam nos filtros"
-      : "Sem filtro: todos os " + DADOS_TRIAGEM.total_pontos + " pontos.";
+    var total = DADOS_TRIAGEM.total_classificados;
+    var mono = DADOS_TRIAGEM.total_monitoramento;
+    var ativo = mapa.nome || !mapa.mono ||
+      Object.keys(mapa.faixas).length || Object.keys(mapa.estados).length;
+
+    document.getElementById("filter-count").textContent = ativo
+      ? comLimite + " de " + total + " com limite · " + monitorados + " de " + mono + " monitorados"
+      : "Sem filtro: os " + total + " pontos com limite e os " + mono + " monitorados.";
+
+    montarFaixasAtivas();
+    document.getElementById("filter-clear").hidden = !ativo;
 
     redesenharCalor();
   }
@@ -572,6 +635,13 @@
       mapa.nome = this.value.trim().toLowerCase();
       aplicarFiltros();
     });
+
+    document.getElementById("filter-mono").addEventListener("change", function () {
+      mapa.mono = this.checked;
+      aplicarFiltros();
+    });
+
+    document.getElementById("filter-clear").addEventListener("click", limparFiltros);
 
     orbita = FOGAO.orbita(svgCalor, function () {
       document.getElementById("heat-reset").hidden = !orbita.girado();
