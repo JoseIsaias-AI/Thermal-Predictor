@@ -394,6 +394,45 @@
 
 .chips button:focus-visible { outline: 2px solid var(--color-focus-ring); outline-offset: 1px; }
 
+.check {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+  font-size: var(--size-kicker);
+  color: var(--color-text-muted);
+  cursor: pointer;
+}
+
+.check input { accent-color: var(--color-accent); margin: 0; }
+.check input:focus-visible { outline: 2px solid var(--color-focus-ring); outline-offset: 1px; }
+
+/* Eco de um filtro cujo controle esta em outro bloco: marcado como ativo, e
+   clicavel para desfazer. */
+.chips--echo { margin-top: var(--space-2); }
+.chips--echo:empty { display: none; }
+
+.chip-echo {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-family: var(--font-body);
+  font-size: var(--size-kicker);
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text);
+  background: var(--color-surface-accent);
+  border: var(--border-width) solid var(--color-accent);
+  border-radius: var(--radius);
+  padding: 3px var(--space-2);
+  cursor: pointer;
+}
+
+.chip-echo b { font-weight: var(--weight-bold); color: var(--color-accent); }
+.chip-echo:hover { background: var(--color-surface); }
+.chip-echo:focus-visible { outline: 2px solid var(--color-focus-ring); outline-offset: 1px; }
+
+.vbtn--clear { margin-top: var(--space-3); }
+
 /* Linha que o filtro escondeu. */
 tr[hidden] { display: none; }
 
