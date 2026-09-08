@@ -1,0 +1,231 @@
+/* Tela de engenharia: memória de cálculo da triagem.
+ * Complementa app.css e triagem.css; cores e tipografia vêm de tokens.css.
+ *
+ * A tela é de leitura, não de operação: não há controle nem seleção aqui.
+ * Por isso o vocabulário é o de documento, e reaproveita `panel`,
+ * `panel__note` e `data-table` das outras telas em vez de criar equivalentes.
+ */
+
+/* ----- Critério de aceitação ----- */
+
+/* Duas exigências lado a lado, porque a leitura correta é justamente que são
+   independentes: uma coluna só sugeriria sequência ou hierarquia. */
+.criteria {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr));
+  gap: var(--space-4);
+  margin-bottom: var(--space-4);
+}
+
+.criterion {
+  border: var(--border-width) solid var(--color-border);
+  border-left: 3px solid var(--color-accent);
+  border-radius: var(--radius);
+  padding: var(--space-4);
+}
+
+.criterion__title {
+  font-family: var(--font-display);
+  font-weight: var(--weight-bold);
+  font-size: var(--size-kicker);
+  letter-spacing: var(--tracking-kicker);
+  text-transform: uppercase;
+  color: var(--color-accent);
+  margin: 0 0 var(--space-2);
+}
+
+.criterion__statement {
+  margin: 0 0 var(--space-3);
+  font-size: var(--size-small);
+  line-height: var(--leading-body);
+}
+
+.criterion__meta {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: var(--space-1) var(--space-3);
+  margin: 0;
+  font-size: var(--size-kicker);
+}
+
+.criterion__meta dt { color: var(--color-text-muted); }
+.criterion__meta dd { margin: 0; }
+
+/* Pendência é estado declarado, não falha: sem cor de alerta. */
+.criterion__meta dd.is-pending {
+  font-weight: var(--weight-semibold);
+  color: var(--wp-charcoal);
+}
+
+/* ----- Números de destaque ----- */
+
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+  gap: var(--space-4);
+  margin: 0 0 var(--space-4);
+  padding: 0;
+}
+
+.stat {
+  border-top: 2px solid var(--color-border-strong);
+  padding-top: var(--space-2);
+}
+
+.stat dt {
+  font-size: var(--size-kicker);
+  color: var(--color-text-muted);
+  margin-bottom: var(--space-1);
+}
+
+.stat__value {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: var(--weight-light);
+  font-size: 1.75rem;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text);
+}
+
+/* Unidade menor que o número: a grandeza é o que se compara. */
+.stat__value span {
+  font-size: var(--size-subhead);
+  color: var(--color-text-muted);
+  margin-left: 2px;
+}
+
+.stat__note {
+  margin: var(--space-1) 0 0;
+  font-size: var(--size-kicker);
+  color: var(--color-text-muted);
+}
+
+/* ----- Hipóteses ----- */
+
+.hyp {
+  border-top: var(--border-width) solid var(--color-border);
+  padding-top: var(--space-4);
+  margin-top: var(--space-4);
+}
+
+.hyp:first-of-type { border-top: 0; padding-top: 0; margin-top: 0; }
+
+.hyp__code {
+  font-family: var(--font-display);
+  font-weight: var(--weight-bold);
+  font-size: var(--size-subhead);
+  color: var(--color-accent);
+  margin: 0 0 var(--space-2);
+}
+
+.hyp__code span {
+  font-weight: var(--weight-regular);
+  font-size: var(--size-kicker);
+  letter-spacing: var(--tracking-kicker);
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+  margin-left: var(--space-2);
+}
+
+.hyp__claim {
+  margin: 0 0 var(--space-3);
+  font-size: var(--size-small);
+  line-height: var(--leading-body);
+}
+
+.hyp__stats {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: var(--space-1) var(--space-4);
+  margin: 0 0 var(--space-3);
+  padding: var(--space-3);
+  background: var(--color-surface-sunken);
+  border-radius: var(--radius);
+  font-size: var(--size-kicker);
+}
+
+.hyp__stats dt { color: var(--color-text-muted); }
+.hyp__stats dd { margin: 0; font-variant-numeric: tabular-nums; }
+
+.hyp__note,
+.hyp__impact {
+  margin: 0 0 var(--space-2);
+  font-size: var(--size-small);
+  color: var(--color-text-muted);
+  line-height: var(--leading-body);
+}
+
+/* A consequência para a modelagem é o que o engenheiro leva desta seção, e
+   por isso fica em tom de texto normal, não de nota. */
+.hyp__impact {
+  color: var(--color-text);
+  border-left: 3px solid var(--color-border-strong);
+  padding-left: var(--space-3);
+}
+
+.hyp .table-scroll { margin-bottom: var(--space-3); }
+
+/* ----- Painéis que aguardam o modelo ----- */
+
+/* Contorno tracejado: o mesmo recurso que a tela de triagem usa para o bloco
+   de monitoramento, e que aqui diz que o conteúdo ainda não existe. */
+.panel--pending { border-style: dashed; }
+
+.pending-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+  gap: var(--space-4);
+  margin-bottom: var(--space-4);
+}
+
+.pending {
+  border: var(--border-width) dashed var(--color-border-strong);
+  border-radius: var(--radius);
+  padding: var(--space-4);
+}
+
+.pending__title {
+  font-family: var(--font-body);
+  font-weight: var(--weight-semibold);
+  font-size: var(--size-small);
+  color: var(--color-text);
+  margin: 0;
+}
+
+/* O travessão ocupa o lugar do número e mantém a altura do cartão, para a
+   grade não pular quando os valores chegarem. */
+.pending__value {
+  font-family: var(--font-display);
+  font-weight: var(--weight-light);
+  font-size: 1.75rem;
+  line-height: 1.1;
+  color: var(--wp-gray-medium);
+  margin: var(--space-2) 0;
+}
+
+.pending__def {
+  margin: 0 0 var(--space-2);
+  font-size: var(--size-kicker);
+  color: var(--color-text-muted);
+  line-height: 1.5;
+}
+
+.pending__target {
+  margin: 0;
+  font-size: var(--size-kicker);
+  font-weight: var(--weight-semibold);
+  color: var(--wp-charcoal);
+}
+
+/* ----- Código embutido no texto ----- */
+
+code {
+  font-family: var(--font-mono);
+  font-size: 0.92em;
+  background: var(--color-surface-sunken);
+  padding: 1px 4px;
+  border-radius: var(--radius);
+}
+
+.data-table code { background: none; padding: 0; }
