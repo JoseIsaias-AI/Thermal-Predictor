@@ -218,6 +218,71 @@
   color: var(--wp-charcoal);
 }
 
+/* ----- Gráficos -----
+ *
+ * Desenhados em SVG por js/engenharia.js. Sem preenchimento decorativo, sem
+ * sombra e sem gradiente: cada traço do gráfico carrega um valor. As cores
+ * saem dos mesmos tokens do restante do painel, e a paleta do guia não admite
+ * amarelo, laranja nem verde em destaque.
+ */
+
+.chart-figure {
+  margin: 0 0 var(--space-4);
+}
+
+/* O viewBox tem proporção fixa e a largura acompanha a coluna: os gráficos
+   são pequenos e não ganham nada em esticar além da largura de leitura. */
+.chart {
+  display: block;
+  width: 100%;
+  max-width: 34rem;
+  height: auto;
+  overflow: visible;
+}
+
+.chart-figure figcaption {
+  margin-top: var(--space-2);
+  font-size: var(--size-kicker);
+  color: var(--color-text-muted);
+  line-height: 1.5;
+  max-width: 34rem;
+}
+
+/* Três papéis de texto dentro do gráfico: rótulo de eixo, rótulo de série e
+   valor. O valor é o único em peso semibold, para a leitura cair nele. */
+.chart__label {
+  font-family: var(--font-body);
+  font-size: 10px;
+  fill: var(--color-text-muted);
+}
+
+.chart__label--forte {
+  fill: var(--wp-near-black);
+  font-weight: var(--weight-semibold);
+}
+
+.chart__valor {
+  font-family: var(--font-body);
+  font-size: 11px;
+  font-weight: var(--weight-semibold);
+  fill: var(--color-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.chart__eixo {
+  font-family: var(--font-body);
+  font-size: 9.5px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  fill: var(--wp-gray-medium);
+}
+
+.chart__foot {
+  font-family: var(--font-body);
+  font-size: 10px;
+  fill: var(--color-text-muted);
+}
+
 /* ----- Código embutido no texto ----- */
 
 code {
