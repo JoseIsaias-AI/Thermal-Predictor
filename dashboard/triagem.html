@@ -11,6 +11,7 @@
   <link rel="stylesheet" href="css/app.css">
   <link rel="stylesheet" href="css/triagem.css">
   <link rel="stylesheet" href="css/fogao.css">
+  <link rel="stylesheet" href="css/grafico.css">
 </head>
 <body>
 
@@ -32,6 +33,7 @@
   <div class="nav__inner">
     <a class="nav__link" href="index.html">Consulta</a>
     <a class="nav__link" href="triagem.html" aria-current="page">Triagem</a>
+    <a class="nav__link" href="comparacao.html">Comparação</a>
   </div>
 </nav>
 
@@ -121,7 +123,7 @@
         <p class="legend-note">
           <strong>Tons de cinza</strong> troca a rampa azul–vermelha por uma
           escala clara–escura. A ordem das faixas é a mesma; o que sai é a
-          matiz, para que nenhuma cor possa ser lida como aprovação (RN-07).
+          matiz, para que nenhuma cor possa ser lida como aprovação.
         </p>
       </div>
 
@@ -221,7 +223,7 @@
 
     <ul class="tally" id="tally"></ul>
 
-    <div class="table-scroll">
+    <div class="table-scroll" id="screening-table">
       <table class="data-table">
         <caption>
           Ordem: estado de risco mais crítico primeiro; dentro de um mesmo
@@ -241,6 +243,87 @@
         <tbody id="screening-body"></tbody>
       </table>
     </div>
+  </section>
+
+  <!-- Os desenhos leem o mesmo recorte da tabela acima e apontam para a mesma
+       seleção: um ponto sob o ponteiro acende nos quatro ao mesmo tempo. -->
+  <section class="panel" id="visuais" hidden>
+    <h2 class="panel__title">Leitura visual</h2>
+
+    <div class="kpis" id="kpis"></div>
+
+    <div class="chart__frame">
+
+      <div class="viz">
+        <h3 class="viz__titulo">
+          Onde estou apertado
+          <span class="viz__sub">folga por ponto, do mais crítico ao menos</span>
+          <button type="button" class="viz__acao" id="viz-ranking-todos" hidden></button>
+        </h3>
+        <div class="chart__scroll">
+          <svg class="chart__svg" id="viz-ranking" role="img"
+               aria-label="Folga prevista de cada ponto de medição, ordenada do mais crítico ao menos crítico"></svg>
+        </div>
+        <p class="chart__note">
+          Folga, e não temperatura absoluta: uma temperatura alta numa bobina não diz nada
+          sozinha, estar acima do próprio limite diz tudo. Como a folga já traz
+          o limite embutido, uma escala só serve a pontos cujos limites são muito diferentes entre si. A haste mede a distância até a fronteira.
+        </p>
+      </div>
+
+      <div class="viz">
+        <div>
+          <h3 class="viz__titulo">
+            O conjunto passa no critério
+            <span class="viz__sub">previsão contra limite</span>
+          </h3>
+          <div class="chart__scroll">
+            <svg class="chart__svg" id="viz-criterio" role="img"
+                 aria-label="Dispersão da temperatura prevista contra o limite declarado de cada ponto, com a reta onde os dois se igualam"></svg>
+          </div>
+          <p class="chart__note">
+            Mesma figura da análise exploratória, agora com a previsão no lugar
+            da medição. Todo ponto acima da reta ultrapassa o próprio limite; a
+            faixa logo abaixo dela é a banda de incerteza.
+          </p>
+        </div>
+
+      </div>
+
+      <div class="viz">
+        <div>
+          <h3 class="viz__titulo">
+            Onde o risco se concentra
+            <span class="viz__sub">folga por subsistema</span>
+          </h3>
+          <div class="chart__scroll">
+            <svg class="chart__svg" id="viz-subsistema" role="img"
+                 aria-label="Distribuição da folga prevista por subsistema, com caixa de quartis e cada ponto sobreposto"></svg>
+          </div>
+          <p class="chart__note">
+            A caixa marca o intervalo entre quartis e a mediana; os pontos
+            ficam por cima porque com 68 observações esconder cada uma atrás de
+            um resumo custa mais do que ganha. Isolar um subsistema recua os
+            demais, não os apaga.
+          </p>
+        </div>
+      </div>
+
+      <div class="tip" id="viz-tip" role="status" aria-live="polite"></div>
+    </div>
+
+    <p class="legend-note">
+      As quatro leituras respeitam os filtros da tabela. Passe o ponteiro num
+      ponto para acendê-lo nas quatro; clique para abrir o mesmo detalhe que a
+      linha da tabela e o modelo abrem. Os
+      <span id="viz-mono-count">—</span> pontos monitorados não entram: sem
+      limite declarado, não há folga a desenhar.
+    </p>
+    <p class="legend-note">
+      Não há barra de erro do modelo. Ela depende de um erro por ponto que só
+      existe depois do treino, e desenhar uma faixa sem esse número seria
+      inventar precisão que a ferramenta não tem.
+    </p>
   </section>
 
   <!-- RN-03: sem colunas de limite, folga ou estado. -->
@@ -275,6 +358,7 @@
 <script src="js/schema.js"></script>
 <script src="js/dados_triagem.js"></script>
 <script src="js/fogao.js"></script>
+<script src="js/grafico.js"></script>
 <script src="js/triagem.js"></script>
 </body>
 </html>
