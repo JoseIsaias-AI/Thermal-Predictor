@@ -10,3 +10,8 @@
 
 # Ambiente Python local (não versionar).
 .venv/
+
+# Saída dos notebooks de modelagem (12 e 13): temperaturas previstas a partir dos dados de
+# ensaio do parceiro. Mesmo motivo que bloqueia os CSVs acima, e os notebooks regeneram os
+# arquivos em qualquer máquina.
+previsao_triagem*.json
