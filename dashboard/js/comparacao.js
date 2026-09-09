@@ -153,6 +153,16 @@
   }
 
 
+  /* A query string que a tela de triagem lê: mesma granularidade de FATORES,
+     com o fator composto de perdas aberto em `losses.<sub>`. */
+  function parametrosDaConfig(cfg) {
+    return FATORES.map(function (f) {
+      return encodeURIComponent(f.chave) + "=" +
+        encodeURIComponent(valorDoFator(cfg, f.chave));
+    }).join("&");
+  }
+
+
   /* ----- Perfil de folga -----
      Os pontos com limite declarado, do mais crítico ao mais folgado, como
      um degradê de paradas duras. Um elemento por cartão em vez de um por ponto: a
@@ -1414,18 +1424,31 @@
   document.getElementById("run-total").textContent = D.total_rodadas;
 
   document.getElementById("model-version").textContent = D.versao_modelo;
-  document.getElementById("stub-line").hidden = !D.preditor_e_stub;
+  document.getElementById("stub-banner").hidden = !D.preditor_e_stub;
 
   montarFacetas();
 
   /* Abre comparando, e não em branco: a referência da triagem contra a
      configuração de menor contagem acima do limite. É o par que a tela existe
      para mostrar, e qualquer um dos dois lados se troca no catálogo. */
+  var promissora = CFGS.slice().sort(function (a, b) {
+    return a.resumo[0] - b.resumo[0];
+  })[0];
+
+  // A mesma configuração que a tela já escolhia para abrir a comparação, dita
+  // por extenso no topo: quem chega aqui quer saber qual estoura menos.
+  document.getElementById("lead-id").textContent = promissora.id;
+  document.getElementById("lead-fp").textContent =
+    impressaoDigital(promissora).map(function (t) { return t[1]; }).join(" · ");
+  document.getElementById("lead-over").textContent = promissora.resumo[0];
+  document.getElementById("lead-band").textContent = promissora.resumo[1];
+  document.getElementById("lead-in").textContent = promissora.resumo[2];
+  document.getElementById("lead-link").href =
+    "triagem.html?" + parametrosDaConfig(promissora);
+  document.getElementById("lead-card").hidden = false;
+
   var inicial = lerUrl();
   if (inicial.length < 2) {
-    var promissora = CFGS.slice().sort(function (a, b) {
-      return a.resumo[0] - b.resumo[0];
-    })[0];
     inicial = [D.config_referencia_triagem, promissora.id];
     if (inicial[0] === inicial[1]) inicial[1] = CFGS[0].id;
   }

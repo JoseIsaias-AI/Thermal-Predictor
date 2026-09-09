@@ -27,34 +27,60 @@
       <p class="masthead__kicker">Triagem térmica</p>
       <h1 class="masthead__system-name">Thermal Predictor</h1>
     </div>
-  </div>
-</header>
 
-<nav class="nav" aria-label="Telas do painel">
-  <div class="nav__inner">
+    <nav class="nav" aria-label="Telas do painel">
     <a class="nav__link" href="index.html">Consulta</a>
     <a class="nav__link" href="triagem.html">Triagem</a>
     <a class="nav__link" href="comparacao.html" aria-current="page">Comparação</a>
     <a class="nav__link" href="engenharia.html">Engenharia</a>
+    </nav>
+
+    <span class="masthead__push"></span>
+
+    <!-- Sai quando houver modelo treinado. Até lá, é o que impede que um
+         número sintético seja lido como previsão. Fica na barra, e não no
+         corpo da página, para valer nas quatro telas. -->
+    <p class="model-chip" id="stub-banner">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.3" aria-hidden="true"><circle cx="7" cy="7" r="5.6"></circle><path d="M7 4.2v3.4"></path><circle cx="7" cy="9.9" r="0.6" fill="currentColor" stroke="none"></circle></svg>
+      <span><strong>Modelo <span id="model-version">—</span></strong> · valores sintéticos, não previsões</span>
+    </p>
   </div>
-</nav>
+</header>
 
 <main class="page page--wide">
 
   <!-- RF-15 e RN-07: fixo e visível nesta tela. A frase que enquadra a leitura
        fica sempre à vista; o desdobramento da regra vai para o expansível, em
        vez de três parágrafos que ninguém lê duas vezes. -->
+  <!-- A pergunta que a tela existe para responder, respondida antes do
+       catálogo: qual configuração do histórico estoura menos pontos. -->
+  <section class="lead-card" id="lead-card" hidden>
+    <div class="lead-card__id">
+      <span class="lead-card__kicker">Menos pontos acima do limite</span>
+      <b class="lead-card__cfg" id="lead-id">—</b>
+      <span class="lead-card__fp" id="lead-fp"></span>
+    </div>
+
+    <dl class="lead-card__nums">
+      <div><dt>acima do limite</dt><dd class="is-over" id="lead-over">—</dd></div>
+      <div><dt>na banda</dt><dd id="lead-band">—</dd></div>
+      <div><dt>dentro</dt><dd id="lead-in">—</dd></div>
+    </dl>
+
+    <span class="push"></span>
+
+    <a class="button" id="lead-link" href="triagem.html">
+      Abrir triagem completa
+      <svg width="15" height="12" viewBox="0 0 15 12" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M1 6h12"></path><path d="M9 2l4 4-4 4"></path></svg>
+    </a>
+  </section>
+
   <section class="notice" aria-labelledby="notice-title">
     <p class="notice__lead" id="notice-title">
       <strong>Filtro de triagem pré-CFD.</strong> Ajuda a escolher o que enviar
       para simulação primeiro. <strong>Não substitui a simulação</strong> nem
       emite parecer de conformidade.
     </p>
-    <p class="notice__sub" id="stub-line">
-      Modelo <span id="model-version">—</span>: temperaturas e limites são
-      sintéticos, e as diferenças entre colunas são ilustrativas.
-    </p>
-
     <details class="more">
       <summary>Enquadramento completo e critério de estado</summary>
       <p>
@@ -132,12 +158,10 @@
 
       <p class="chart__note" id="pc-conta"></p>
       <p class="chart__note">
-        Uma linha por configuração, e não por ponto de medição — com 68 linhas
-        por configuração o desenho viraria um borrão, que é a ressalva que o
-        patrocinador levantou junto com o pedido. Os três últimos eixos são
-        respostas do conjunto, e o lado de cima é sempre o melhor. Arraste
-        sobre um eixo para restringi-lo; clique numa linha para pôr ou tirar a
-        configuração da comparação.
+        Uma linha por configuração. Nos três últimos eixos — as respostas do
+        conjunto — o lado de cima é sempre o melhor. Arraste sobre um eixo para
+        restringi-lo; clique numa linha para pôr ou tirar a configuração da
+        comparação.
       </p>
     </div>
   </section>

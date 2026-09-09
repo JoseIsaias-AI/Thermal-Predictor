@@ -80,11 +80,15 @@
     var tr = document.createElement("tr");
     tr.className = "row--" + ponto.estado;
 
+    // Folga é a coluna que decide, e a única que sai do neutro quando é
+    // negativa: as outras colunas ficam legíveis por contraste com ela.
+    var sinal = ponto.margem_c < 0 ? " margin--negative" : " margin--positive";
+
     tr.appendChild(celulaPonto(ponto));
     tr.appendChild(celula(grausC(ponto.temperatura_prevista_c), "num"));
     tr.appendChild(celula(grausC(ponto.limit_c), "num"));
-    tr.appendChild(celula(grausC(ponto.margem_c), "num"));
-    tr.appendChild(celula(percentual(ponto.margem_percentual), "num"));
+    tr.appendChild(celula(grausC(ponto.margem_c), "num" + sinal));
+    tr.appendChild(celula(percentual(ponto.margem_percentual), "num" + sinal));
     tr.appendChild(celulaEstado(ponto));
 
     return tr;
@@ -1070,6 +1074,8 @@
     });
 
     document.getElementById("viz-mono-count").textContent = DADOS_TRIAGEM.total_monitoramento;
+    // A faixa de KPIs mora no topo da página, e não mais dentro de `visuais`.
+    document.getElementById("kpis").hidden = false;
     document.getElementById("visuais").hidden = false;
     desenharVisuais();
 
@@ -1214,14 +1220,21 @@
   function renderConfiguracao(config, veioDaUrl) {
     var lista = document.getElementById("config-list");
 
+    // Cada fator num bloco próprio: a lista é grade, e não nove linhas
+    // empilhadas empurrando o mapa para fora da tela.
     linhasDaConfiguracao(config).forEach(function (linha) {
+      var item = document.createElement("div");
+      item.className = "cfg-item";
+
       var dt = document.createElement("dt");
       dt.textContent = linha[0];
-      lista.appendChild(dt);
+      item.appendChild(dt);
 
       var dd = document.createElement("dd");
       dd.textContent = linha[1];
-      lista.appendChild(dd);
+      item.appendChild(dd);
+
+      lista.appendChild(item);
     });
 
     document.getElementById("config-default-note").hidden = veioDaUrl;

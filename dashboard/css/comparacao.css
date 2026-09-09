@@ -22,6 +22,87 @@
   --slot-d: var(--wp-near-black);
 }
 
+/* ----- Resposta de abertura -----
+   A tela abre respondendo o que ela existe para responder, e não com o
+   catálogo de 32 cartões: qual configuração do histórico estoura menos
+   pontos, com quanto, e um caminho direto para a triagem dela. */
+
+.lead-card {
+  display: flex;
+  align-items: center;
+  gap: var(--space-6);
+  flex-wrap: wrap;
+  background: var(--color-surface-accent);
+  border: var(--border-width) solid var(--color-border);
+  border-left: 4px solid var(--color-accent);
+  border-radius: var(--radius);
+  padding: var(--space-4) var(--space-5);
+  margin: 0 0 var(--space-4);
+}
+
+.lead-card[hidden] { display: none; }
+
+.lead-card__id {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  flex: none;
+}
+
+.lead-card__kicker {
+  font-family: var(--font-display);
+  font-weight: var(--weight-bold);
+  font-size: var(--size-kicker);
+  letter-spacing: var(--tracking-kicker);
+  text-transform: uppercase;
+  color: var(--color-accent);
+}
+
+.lead-card__cfg {
+  font-family: var(--font-display);
+  font-weight: var(--weight-light);
+  font-size: 2.125rem;
+  line-height: 1.1;
+  color: var(--color-accent);
+}
+
+.lead-card__fp {
+  font-size: var(--size-kicker);
+  color: var(--wp-charcoal);
+}
+
+.lead-card__nums {
+  display: flex;
+  gap: var(--space-6);
+  margin: 0;
+  flex: none;
+}
+
+.lead-card__nums div {
+  display: flex;
+  flex-direction: column-reverse;
+  gap: var(--space-1);
+}
+
+.lead-card__nums dt {
+  font-size: var(--size-kicker);
+  color: var(--wp-charcoal);
+}
+
+.lead-card__nums dd {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: var(--weight-light);
+  font-size: 2.125rem;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-accent);
+}
+
+.lead-card__nums dd.is-over { color: var(--color-critical); }
+
+.lead-card .button { text-decoration: none; flex: none; }
+
 /* ----- Faixa de enquadramento (RF-15, RN-07) -----
    Sem cor de alerta: não é alerta, é o enquadramento permanente da leitura. */
 
@@ -41,31 +122,7 @@
   color: var(--color-text-muted);
 }
 
-/* ----- Blocos expansíveis ----- */
-
-.more { margin-top: var(--space-3); }
-
-.more > summary {
-  cursor: pointer;
-  font-family: var(--font-display);
-  font-weight: var(--weight-bold);
-  font-size: var(--size-kicker);
-  letter-spacing: var(--tracking-kicker);
-  text-transform: uppercase;
-  color: var(--color-accent);
-}
-
-.more > summary:focus-visible { outline: 2px solid var(--color-focus-ring); outline-offset: 2px; }
-.more[open] > summary { margin-bottom: var(--space-3); }
-
-.more p {
-  margin: 0 0 var(--space-2);
-  font-size: var(--size-small);
-  color: var(--color-text-muted);
-  max-width: 62ch;
-}
-
-.more p:last-child { margin-bottom: 0; }
+/* Os blocos expansíveis (`.more`) moram em app.css: as quatro telas usam. */
 
 /* ----- Título com etapa ----- */
 

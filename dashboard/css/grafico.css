@@ -92,16 +92,30 @@
   margin-bottom: var(--space-5);
 }
 
+/* `display: grid` vence o atributo `hidden` sozinho. */
+.kpis[hidden] { display: none; }
+
 .kpi {
   border: var(--border-width) solid var(--color-border);
   border-top: 3px solid var(--color-border-strong);
   border-radius: var(--radius);
-  padding: var(--space-3) var(--space-4);
+  padding: var(--space-3) var(--space-4) var(--space-4);
   min-width: 0;
 }
 
-.kpi--alerta { border-top-color: var(--wp-near-black); }
+/* Contagem acima do limite é o único número desta faixa que muda a decisão
+   de hoje, e é o único que sai do neutro. */
+.kpi--alerta {
+  border-top-color: var(--color-critical);
+  background: var(--color-critical-bg);
+}
+
+.kpi--alerta .kpi__rotulo,
+.kpi--alerta .kpi__valor,
+.kpi--alerta .kpi__nota { color: var(--color-critical); }
+
 .kpi--atencao { border-top-color: var(--color-accent); }
+.kpi--atencao .kpi__valor { color: var(--color-accent); }
 
 .kpi__rotulo {
   display: block;
@@ -118,7 +132,7 @@
   display: block;
   font-family: var(--font-display);
   font-weight: var(--weight-light);
-  font-size: 2.4rem;
+  font-size: var(--size-metric);
   line-height: 1;
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.01em;

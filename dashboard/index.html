@@ -25,46 +25,60 @@
       <p class="masthead__kicker">Triagem térmica</p>
       <h1 class="masthead__system-name">Thermal Predictor</h1>
     </div>
-  </div>
-</header>
 
-<nav class="nav" aria-label="Telas do painel">
-  <div class="nav__inner">
+    <nav class="nav" aria-label="Telas do painel">
     <a class="nav__link" href="index.html" aria-current="page">Consulta</a>
     <a class="nav__link" href="triagem.html">Triagem</a>
     <a class="nav__link" href="comparacao.html">Comparação</a>
     <a class="nav__link" href="engenharia.html">Engenharia</a>
+    </nav>
+
+    <span class="masthead__push"></span>
+
+    <!-- Sai quando houver modelo treinado. Até lá, é o que impede que um
+         número sintético seja lido como previsão. Fica na barra, e não no
+         corpo da página, para valer nas quatro telas. -->
+    <p class="model-chip" id="stub-banner">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.3" aria-hidden="true"><circle cx="7" cy="7" r="5.6"></circle><path d="M7 4.2v3.4"></path><circle cx="7" cy="9.9" r="0.6" fill="currentColor" stroke="none"></circle></svg>
+      <span><strong>Modelo <span id="model-version">—</span></strong> · valores sintéticos, não previsões</span>
+    </p>
   </div>
-</nav>
+</header>
 
 <main class="page">
-
-  <!-- Sai quando houver modelo treinado. Até lá, é o que impede que um
-       número sintético seja lido como previsão. -->
-  <p class="stub-banner" id="stub-banner">
-    <strong>Nenhum modelo treinado está carregado.</strong>
-    Os números da triagem são sintéticos e não variam com a configuração
-    montada aqui. Modelo: <span id="model-version">—</span>.
-  </p>
 
   <div class="split">
 
     <div class="split__form">
       <section class="panel">
-        <h2 class="panel__title">Configuração a avaliar</h2>
-
-        <p class="panel__note">
-          Escolha os sete fatores de projeto. O fogão ao lado se monta a cada
-          escolha. O resultado é a triagem térmica: os 78 pontos de medição,
-          ordenados do mais crítico para o menos crítico.
-        </p>
+        <!-- Quantos fatores faltam é a única pergunta que o formulário
+             responde enquanto está sendo preenchido, e por isso fica no
+             lugar do parágrafo que descrevia o que já se vê. -->
+        <div class="form-progress">
+          <div class="form-progress__head">
+            <h2 class="panel__title">Configuração a avaliar</h2>
+            <span class="form-progress__count">
+              <span id="form-count">0</span> / 7 fatores
+            </span>
+          </div>
+          <div class="form-progress__track">
+            <span class="form-progress__fill" id="form-fill"></span>
+          </div>
+        </div>
 
         <form id="prediction-form" novalidate>
           <!-- Campos construídos pelo app.js a partir de js/schema.js. -->
           <div class="field-grid" id="factor-fields"></div>
 
           <div class="form-actions">
-            <button class="button" type="submit">Ver triagem térmica</button>
+            <p class="form-actions__hint">
+              Ordena os <strong>78 pontos</strong> de medição do mais crítico
+              para o menos crítico.
+            </p>
+            <button class="button" type="submit">
+              Ver triagem térmica
+              <svg width="15" height="12" viewBox="0 0 15 12" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M1 6h12"></path><path d="M9 2l4 4-4 4"></path></svg>
+            </button>
           </div>
         </form>
       </section>

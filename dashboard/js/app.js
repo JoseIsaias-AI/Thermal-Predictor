@@ -274,6 +274,10 @@
     var nivel = n === 0 ? 1 : n <= 2 ? 2 : n <= 4 ? 3 : 4;
 
     document.getElementById("build-count").textContent = n;
+    // Mesma contagem, no cabeçalho do formulário: quem está preenchendo olha
+    // para a coluna dos campos, não para a barra do modelo.
+    document.getElementById("form-count").textContent = n;
+    document.getElementById("form-fill").style.width = (n / 7 * 100) + "%";
     atualizarFaixa(input);
 
     FOGAO.desenhar(svg, {
