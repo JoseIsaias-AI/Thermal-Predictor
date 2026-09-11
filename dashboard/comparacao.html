@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Comparação de configurações — Thermal Predictor</title>
+
+  <!-- Fontes hospedadas localmente em css/tokens.css (@font-face), sem
+       dependência de rede (RNF-02 e RNF-04, Tabela 48 da documentação). -->
+  <link rel="stylesheet" href="css/tokens.css">
+  <link rel="stylesheet" href="css/app.css">
+  <link rel="stylesheet" href="css/triagem.css">
+  <link rel="stylesheet" href="css/fogao.css">
+  <link rel="stylesheet" href="css/grafico.css">
+  <link rel="stylesheet" href="css/comparacao.css">
+</head>
+<body>
+
+<header class="masthead">
+  <div class="masthead__inner">
+    <!-- O amarelo do anel é da marca e não se recolore. A proibição de
+         misturar paletas vale para a interface, não para o logotipo. -->
+    <img class="masthead__logo" src="img/logo-whirlpool.png"
+         alt="Whirlpool Corporation" width="1259" height="419">
+
+    <div class="masthead__identity">
+      <p class="masthead__kicker">Triagem térmica</p>
+      <h1 class="masthead__system-name">Thermal Predictor</h1>
+    </div>
+
+    <nav class="nav" aria-label="Telas do painel">
+    <a class="nav__link" href="index.html">Consulta</a>
+    <a class="nav__link" href="triagem.html">Triagem</a>
+    <a class="nav__link" href="comparacao.html" aria-current="page">Comparação</a>
+    <a class="nav__link" href="engenharia.html">Engenharia</a>
+    </nav>
+
+    <span class="masthead__push"></span>
+
+    <!-- Sai quando houver modelo treinado. Até lá, é o que impede que um
+         número sintético seja lido como previsão. Fica na barra, e não no
+         corpo da página, para valer nas quatro telas. -->
+    <p class="model-chip" id="stub-banner">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.3" aria-hidden="true"><circle cx="7" cy="7" r="5.6"></circle><path d="M7 4.2v3.4"></path><circle cx="7" cy="9.9" r="0.6" fill="currentColor" stroke="none"></circle></svg>
+      <span><strong>Modelo <span id="model-version">—</span></strong> · valores sintéticos, não previsões</span>
+    </p>
+  </div>
+</header>
+
+<main class="page page--wide">
+
+  <!-- RF-15 e RN-07: fixo e visível nesta tela. A frase que enquadra a leitura
+       fica sempre à vista; o desdobramento da regra vai para o expansível, em
+       vez de três parágrafos que ninguém lê duas vezes. -->
+  <!-- A pergunta que a tela existe para responder, respondida antes do
+       catálogo: qual configuração do histórico estoura menos pontos. -->
+  <section class="lead-card" id="lead-card" hidden>
+    <div class="lead-card__id">
+      <span class="lead-card__kicker">Menos pontos acima do limite</span>
+      <b class="lead-card__cfg" id="lead-id">—</b>
+      <span class="lead-card__fp" id="lead-fp"></span>
+    </div>
+
+    <dl class="lead-card__nums">
+      <div><dt>acima do limite</dt><dd class="is-over" id="lead-over">—</dd></div>
+      <div><dt>na banda</dt><dd id="lead-band">—</dd></div>
+      <div><dt>dentro</dt><dd id="lead-in">—</dd></div>
+    </dl>
+
+    <span class="push"></span>
+
+    <a class="button" id="lead-link" href="triagem.html">
+      Abrir triagem completa
+      <svg width="15" height="12" viewBox="0 0 15 12" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M1 6h12"></path><path d="M9 2l4 4-4 4"></path></svg>
+    </a>
+  </section>
+
+  <section class="notice" aria-labelledby="notice-title">
+    <p class="notice__lead" id="notice-title">
+      <strong>Filtro de triagem pré-CFD.</strong> Ajuda a escolher o que enviar
+      para simulação primeiro. <strong>Não substitui a simulação</strong> nem
+      emite parecer de conformidade.
+    </p>
+    <details class="more">
+      <summary>Enquadramento completo e critério de estado</summary>
+      <p>
+        A diferença entre duas colunas é <strong>diferença entre previsões</strong>,
+        não entre simulações. Ela indica onde vale olhar, não qual configuração
+        está aprovada.
+      </p>
+      <p>
+        Nenhum estado exibido é aprovação. <em>Dentro do limite</em> significa
+        que a folga prevista supera a tolerância de exibição, não que o
+        componente esteja verificado. A confirmação continua sendo a simulação.
+      </p>
+      <p>
+        A tolerância que define a <em>banda de incerteza</em> é
+        <span id="tolerance-fraction">10%</span> do limite declarado de cada
+        ponto — o mesmo critério único de estado usado na tela de triagem.
+      </p>
+    </details>
+  </section>
+
+  <section class="error" id="error" hidden>
+    <span class="error__label">Comparação indisponível</span>
+    <span id="error-message"></span>
+  </section>
+
+  <!-- ---------- 1 · Escolher ---------- -->
+
+  <section class="panel">
+    <h2 class="panel__title">
+      <span class="step">1</span> Escolha as configurações
+      <span class="panel__title-sub">
+        <span id="cfg-total">—</span> combinações distintas ·
+        <span id="run-total">—</span> rodadas · até 4 por vez
+      </span>
+    </h2>
+
+    <div class="cmp-tools">
+      <label class="filter cmp-tools__search">
+        <span class="filter__label">Buscar</span>
+        <input type="search" id="cfg-search" placeholder="CFG-07, Pyro, Plastic…" autocomplete="off">
+      </label>
+      <div class="cmp-facets" id="cfg-facets"></div>
+    </div>
+
+    <p class="legend-note" id="cfg-count"></p>
+
+    <div class="cmp-grid" id="cfg-grid"></div>
+
+    <!-- A faixa do cartão se explica pelo próprio eixo; não precisa de um
+         parágrafo dizendo o que é da esquerda para a direita. -->
+    <div class="axis-key">
+      <span class="axis-key__bar" id="axis-sample"></span>
+      <span>◀ mais crítico</span>
+      <span class="push"></span>
+      <span>mais folgado ▶</span>
+      <b>folga dos pontos com limite</b>
+    </div>
+
+    <!-- O mesmo catálogo, desenhado. Cada linha é uma configuração; arrastar
+         sobre um eixo apaga o que fica fora da restrição. -->
+    <div class="viz">
+      <h3 class="viz__titulo">
+        Que combinações sobrevivem às restrições
+        <span class="viz__sub">os sete fatores e três respostas, um eixo cada</span>
+        <button type="button" class="viz__acao" id="pc-limpar" hidden>Limpar restrições</button>
+      </h3>
+
+      <div class="chart__frame">
+        <div class="chart__scroll">
+          <svg class="chart__svg" id="pc-svg" role="img"
+               aria-label="Coordenadas paralelas das configurações, com um eixo por fator de projeto e por resposta agregada"></svg>
+        </div>
+        <div class="tip" id="pc-tip" role="status" aria-live="polite"></div>
+      </div>
+
+      <p class="chart__note" id="pc-conta"></p>
+      <p class="chart__note">
+        Uma linha por configuração. Nos três últimos eixos — as respostas do
+        conjunto — o lado de cima é sempre o melhor. Arraste sobre um eixo para
+        restringi-lo; clique numa linha para pôr ou tirar a configuração da
+        comparação.
+      </p>
+    </div>
+  </section>
+
+  <!-- ---------- Bandeja ---------- -->
+
+  <div class="cmp-tray" id="cfg-tray" hidden>
+    <span class="cmp-tray__label">Comparando</span>
+    <div class="cmp-tray__slots" id="cfg-tray-slots"></div>
+    <span class="push"></span>
+    <button type="button" class="vbtn vbtn--clear" id="cfg-clear">Limpar seleção</button>
+  </div>
+
+  <p class="status-line" id="empty-hint">
+    Selecione pelo menos duas configurações acima para montar a comparação.
+  </p>
+
+  <!-- ---------- 2 · O que muda ---------- -->
+
+  <section id="comparison" hidden>
+
+    <section class="panel">
+      <h2 class="panel__title">
+        <span class="step">2</span> O que muda entre elas
+        <span class="panel__title-sub">contagem por estado e fatores divergentes</span>
+      </h2>
+
+      <div class="cmp-heads" id="cmp-heads"></div>
+
+      <!-- RN-02 continua exibida, mas dita em uma linha: ela é constante na
+           base e não separa uma configuração da outra. -->
+      <p class="legend-note">
+        A severidade é o pior estado entre os pontos, e é
+        <em>acima do limite</em> nas configurações da base — quem distingue
+        uma da outra é a contagem acima do limite.
+      </p>
+
+      <div class="cmp-factors" id="cmp-factors"></div>
+    </section>
+
+    <!-- ---------- 3 · Onde divergem ---------- -->
+
+    <section class="panel">
+      <h2 class="panel__title">
+        <span class="step">3</span> Onde elas divergem
+        <span class="panel__title-sub" id="cmp-count"></span>
+      </h2>
+
+      <div class="cmp-bar">
+        <span class="toggle" id="cmp-view">
+          <button type="button" data-view="tabela" aria-pressed="true">Tabela</button>
+          <button type="button" data-view="deslocamento" aria-pressed="false">Deslocamento</button>
+          <button type="button" data-view="malha" aria-pressed="false">Malha</button>
+        </span>
+
+        <span class="toggle" id="cmp-sort">
+          <button type="button" data-sort="divergencia" aria-pressed="true">Maior divergência</button>
+          <button type="button" data-sort="severidade" aria-pressed="false">Severidade</button>
+          <button type="button" data-sort="subsistema" aria-pressed="false">Subsistema</button>
+        </span>
+
+        <label class="check cmp-bar__check">
+          <input type="checkbox" id="cmp-only-flip">
+          <span>Só onde o estado muda</span>
+        </label>
+
+        <span class="push"></span>
+
+        <span class="toggle toggle--mini" id="cmp-scale"
+              role="group" aria-label="Paleta da escala de folga">
+          <button type="button" data-scale="a" aria-pressed="true">Cor</button>
+          <button type="button" data-scale="b" aria-pressed="false">Tons de cinza</button>
+        </span>
+      </div>
+
+      <div class="chips" id="cmp-areas"></div>
+
+      <p class="legend-note" id="cmp-caption"></p>
+
+      <div class="table-scroll" id="cmp-tabela">
+        <table class="data-table cmp-table">
+          <thead>
+            <tr id="cmp-thead-groups"></tr>
+            <tr id="cmp-thead-cols"></tr>
+          </thead>
+          <tbody id="cmp-body"></tbody>
+        </table>
+      </div>
+
+      <!-- As duas vistas gráficas dos mesmos dados: nada é acrescentado à
+           pilha, a alternância troca o que ocupa este lugar. -->
+      <div class="chart" id="cmp-chart" hidden>
+        <div class="chart__frame">
+          <div class="chart__scroll">
+            <svg class="chart__svg" id="cmp-svg" role="img" aria-labelledby="chart-alt"></svg>
+          </div>
+          <div class="tip" id="chart-tip" role="status" aria-live="polite"></div>
+        </div>
+        <p class="chart__note" id="chart-alt"></p>
+      </div>
+
+      <details class="more">
+        <summary>Como ler</summary>
+        <p>
+          <strong>Deslocamento</strong> põe cada ponto num eixo de folga
+          relativa, com o limite no zero e a banda de incerteza sombreada. A
+          linha vai da folga de uma configuração à da outra: linhas todas no
+          mesmo sentido significam que uma configuração é melhor em toda parte;
+          linhas em sentidos opostos significam troca — ganha-se num ponto e
+          perde-se em outro. É a leitura que a tabela não dá.
+        </p>
+        <p>
+          <strong>Malha</strong> dá uma célula a cada ponto de medição,
+          agrupada por subsistema, com uma malha por configuração. A forma
+          repete o estado (triângulo acima do limite, losango na banda,
+          círculo dentro, quadrado tracejado sem limite declarado), de modo que
+          a leitura não depende da cor. Serve para ver <em>onde</em> no produto
+          a mudança se concentra.
+        </p>
+        <p>
+          <strong>Divergência</strong> mede o quanto a folga prevista de um mesmo
+          ponto muda de uma configuração para outra. Com duas colunas é a
+          diferença assinada em relação à referência; com três ou mais, a
+          amplitude entre a maior e a menor folga. A barra é redundante com o
+          número e com a seta: nenhuma informação depende só da cor.
+        </p>
+        <p>
+          Um ponto que <strong>muda de estado</strong> recebe marca própria,
+          porque atravessar o limite pesa mais na decisão do que uma variação
+          numérica maior dentro do mesmo estado.
+        </p>
+        <p>
+          <strong>Tons de cinza</strong> troca a rampa azul–vermelha por uma
+          escala clara–escura, para que nenhuma cor possa ser lida como
+          aprovação.
+        </p>
+      </details>
+    </section>
+
+    <!-- RN-03: sem colunas de limite, folga ou estado. -->
+    <section class="panel panel--monitoring" id="mono-panel">
+      <h2 class="panel__title">
+        Pontos apenas monitorados
+        <span class="panel__title-sub">
+          <span id="mono-count">—</span> dos 78 sem limite declarado · sem folga
+          e sem estado, a divergência aqui é de temperatura
+        </span>
+      </h2>
+
+      <div class="table-scroll">
+        <table class="data-table cmp-table">
+          <thead>
+            <tr id="mono-thead"></tr>
+          </thead>
+          <tbody id="mono-body"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <p class="trace" id="trace-note"></p>
+
+  </section>
+
+</main>
+
+<!-- schema.js traduz os fatores em rótulos legíveis; fogao.js dá a escala de
+     folga; dados_comparacao.js precisa vir antes de comparacao.js. -->
+<script src="js/schema.js"></script>
+<script src="js/dados_comparacao.js"></script>
+<script src="js/fogao.js"></script>
+<script src="js/grafico.js"></script>
+<script src="js/comparacao.js"></script>
+</body>
+</html>

@@ -1,0 +1,734 @@
+/* Tela de comparação lado a lado (RF-11). Complementa app.css e triagem.css;
+   cores e tipografia vêm de tokens.css.
+
+   Nenhuma cor nova entra aqui. As colunas se distinguem por letra e por tom
+   da paleta do guia; a divergência usa a mesma rampa de folga da triagem,
+   servida por fogao.js. Amarelo, laranja e verde continuam fora.
+
+   A tela tem três etapas numeradas, e cada uma cabe em uma frase. O texto que
+   explica a regra por extenso mora nos blocos expansíveis: ele precisa estar
+   na tela, não precisa estar aberto o tempo todo. */
+
+/* A comparação sai da largura de leitura da página: quatro colunas de quatro
+   campos não cabem em 68rem sem virar rolagem horizontal permanente. */
+.page--wide { max-width: 96rem; }
+
+/* Tom de cada coluna. Distinguem-se também pela letra, que é o canal
+   primário: a cor só reforça. */
+:root {
+  --slot-a: var(--wp-blue-core);
+  --slot-b: var(--wp-charcoal);
+  --slot-c: var(--wp-blue-accent);
+  --slot-d: var(--wp-near-black);
+}
+
+/* ----- Resposta de abertura -----
+   A tela abre respondendo o que ela existe para responder, e não com o
+   catálogo de 32 cartões: qual configuração do histórico estoura menos
+   pontos, com quanto, e um caminho direto para a triagem dela. */
+
+.lead-card {
+  display: flex;
+  align-items: center;
+  gap: var(--space-6);
+  flex-wrap: wrap;
+  background: var(--color-surface-accent);
+  border: var(--border-width) solid var(--color-border);
+  border-left: 4px solid var(--color-accent);
+  border-radius: var(--radius);
+  padding: var(--space-4) var(--space-5);
+  margin: 0 0 var(--space-4);
+}
+
+.lead-card[hidden] { display: none; }
+
+.lead-card__id {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  flex: none;
+}
+
+.lead-card__kicker {
+  font-family: var(--font-display);
+  font-weight: var(--weight-bold);
+  font-size: var(--size-kicker);
+  letter-spacing: var(--tracking-kicker);
+  text-transform: uppercase;
+  color: var(--color-accent);
+}
+
+.lead-card__cfg {
+  font-family: var(--font-display);
+  font-weight: var(--weight-light);
+  font-size: 2.125rem;
+  line-height: 1.1;
+  color: var(--color-accent);
+}
+
+.lead-card__fp {
+  font-size: var(--size-kicker);
+  color: var(--wp-charcoal);
+}
+
+.lead-card__nums {
+  display: flex;
+  gap: var(--space-6);
+  margin: 0;
+  flex: none;
+}
+
+.lead-card__nums div {
+  display: flex;
+  flex-direction: column-reverse;
+  gap: var(--space-1);
+}
+
+.lead-card__nums dt {
+  font-size: var(--size-kicker);
+  color: var(--wp-charcoal);
+}
+
+.lead-card__nums dd {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: var(--weight-light);
+  font-size: 2.125rem;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-accent);
+}
+
+.lead-card__nums dd.is-over { color: var(--color-critical); }
+
+.lead-card .button { text-decoration: none; flex: none; }
+
+/* ----- Faixa de enquadramento (RF-15, RN-07) -----
+   Sem cor de alerta: não é alerta, é o enquadramento permanente da leitura. */
+
+.notice {
+  border: var(--border-width) solid var(--color-border-strong);
+  border-left: 3px solid var(--color-accent);
+  border-radius: var(--radius);
+  padding: var(--space-3) var(--space-4);
+  margin: 0 0 var(--space-5);
+}
+
+.notice__lead { margin: 0; font-size: var(--size-body); }
+
+.notice__sub {
+  margin: var(--space-1) 0 0;
+  font-size: var(--size-small);
+  color: var(--color-text-muted);
+}
+
+/* Os blocos expansíveis (`.more`) moram em app.css: as quatro telas usam. */
+
+/* ----- Título com etapa ----- */
+
+.panel__title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-2) var(--space-3);
+}
+
+.step {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.4rem;
+  height: 1.4rem;
+  flex: none;
+  font-size: var(--size-kicker);
+  line-height: 1;
+  color: var(--color-text-inverse);
+  background: var(--color-accent);
+  border-radius: var(--radius);
+}
+
+/* O subtítulo diz o que a etapa mostra; sem ele, cada bloco precisaria de um
+   parágrafo de abertura. */
+.panel__title-sub {
+  font-family: var(--font-body);
+  font-weight: var(--weight-regular);
+  font-size: var(--size-kicker);
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--color-text-muted);
+}
+
+/* ----- Ferramentas do seletor ----- */
+
+.cmp-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: var(--space-4);
+  margin-bottom: var(--space-3);
+}
+
+.cmp-tools__search { flex: 0 0 14rem; }
+
+.cmp-facets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+  flex: 1;
+  min-width: 0;
+}
+
+.cmp-facet { min-width: 0; }
+
+.cmp-facet__label {
+  display: block;
+  font-size: var(--size-kicker);
+  font-weight: var(--weight-semibold);
+  color: var(--color-text-muted);
+  margin-bottom: var(--space-1);
+}
+
+/* O bloco .chips já nasce com margem superior, pensada para a barra lateral
+   da triagem; aqui o rótulo do facet já dá o respiro. */
+.cmp-facet .chips { margin-top: 0; }
+
+/* ----- Grade de cartões ----- */
+
+/* O catálogo inteiro em altura livre empurra a comparação para fora da
+   primeira tela. Ele rola dentro do próprio quadro; a busca e os facetes
+   acima são o caminho curto para quem já sabe o que procura. */
+.cmp-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(15.5rem, 1fr));
+  gap: var(--space-3);
+  margin-top: var(--space-3);
+  max-height: 25rem;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: var(--space-1);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius);
+}
+
+.cfg-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  width: 100%;
+  text-align: left;
+  font-family: var(--font-body);
+  font-size: var(--size-small);
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: var(--border-width) solid var(--color-border-strong);
+  border-radius: var(--radius);
+  padding: var(--space-3);
+  cursor: pointer;
+}
+
+.cfg-card:hover { background: var(--color-surface-sunken); }
+.cfg-card:focus-visible { outline: 2px solid var(--color-focus-ring); outline-offset: 1px; }
+
+/* A régua da esquerda repete a cor da coluna que o cartão virou, para que a
+   ligação entre a grade e a tabela não dependa só de memória. */
+.cfg-card[aria-pressed="true"] {
+  background: var(--color-surface-accent);
+  border-color: var(--slot);
+  box-shadow: inset 3px 0 0 var(--slot);
+}
+
+/* Já há quatro escolhidas: o cartão continua legível, mas não recebe clique. */
+.cfg-card[disabled] { opacity: 0.45; cursor: not-allowed; }
+.cfg-card[disabled]:hover { background: var(--color-surface); }
+
+.cfg-card__top {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.cfg-card__id {
+  font-family: var(--font-mono);
+  font-size: var(--size-small);
+  font-weight: var(--weight-semibold);
+  letter-spacing: 0.02em;
+}
+
+.cfg-card__runs {
+  font-size: var(--size-kicker);
+  color: var(--color-text-muted);
+  margin-left: auto;
+}
+
+/* Letra da coluna. Quadrada e sólida: é a âncora entre cartão e tabela. */
+.slot {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.15rem;
+  height: 1.15rem;
+  flex: none;
+  font-family: var(--font-display);
+  font-weight: var(--weight-bold);
+  font-size: var(--size-kicker);
+  line-height: 1;
+  color: var(--color-text-inverse);
+  background: var(--slot, var(--wp-gray-medium));
+  border-radius: var(--radius);
+}
+
+/* ----- Perfil de folga -----
+   Os pontos com limite, do mais crítico ao mais folgado, como um degradê
+   de paradas duras. Um elemento só: 68 nós por cartão, em 32 cartões,
+   custaria mais em DOM do que a informação vale. */
+
+.profile {
+  display: block;
+  height: 9px;
+  border: var(--border-width) solid var(--color-border-strong);
+  border-radius: 1px;
+}
+
+/* O eixo abaixo da grade substitui o parágrafo que explicava a faixa: a
+   direção da leitura é a única coisa que precisava ser dita. */
+.axis-key {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+  font-size: var(--size-kicker);
+  color: var(--color-text-muted);
+}
+
+.axis-key__bar {
+  width: 4rem;
+  height: 9px;
+  flex: none;
+  border: var(--border-width) solid var(--color-border-strong);
+}
+
+.axis-key b { font-weight: var(--weight-regular); color: var(--wp-gray-medium); }
+
+.cfg-card__counts {
+  display: flex;
+  gap: var(--space-3);
+  font-size: var(--size-kicker);
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-muted);
+}
+
+.cfg-card__counts b {
+  font-weight: var(--weight-semibold);
+  color: var(--color-text);
+}
+
+.cfg-card__counts .is-over { color: var(--wp-near-black); }
+
+/* ----- Impressão digital dos sete fatores ----- */
+
+.fp {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+}
+
+.fp__token {
+  font-size: 10px;
+  line-height: 1.5;
+  color: var(--color-text-muted);
+  background: var(--color-surface-sunken);
+  border: 1px solid var(--color-border);
+  border-radius: 1px;
+  padding: 0 4px;
+  white-space: nowrap;
+}
+
+/* Nível que difere da referência: é o que orienta a escolha, então ganha peso
+   em vez de se perder na sequência. */
+.fp__token--diff {
+  color: var(--color-text);
+  background: var(--color-surface);
+  border-color: var(--color-border-strong);
+  font-weight: var(--weight-semibold);
+}
+
+/* ----- Bandeja de seleção ----- */
+
+.cmp-tray {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  border: var(--border-width) solid var(--color-border-strong);
+  border-left: 3px solid var(--color-accent);
+  border-radius: var(--radius);
+  padding: var(--space-3) var(--space-4);
+  margin-bottom: var(--space-5);
+  position: sticky;
+  top: 0;
+  background: var(--color-surface);
+  z-index: 5;
+}
+
+.cmp-tray[hidden] { display: none; }
+
+.cmp-tray__label {
+  font-family: var(--font-display);
+  font-weight: var(--weight-bold);
+  font-size: var(--size-kicker);
+  letter-spacing: var(--tracking-kicker);
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+.cmp-tray__slots { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+
+.cmp-tray__slot {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-family: var(--font-body);
+  font-size: var(--size-kicker);
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: var(--border-width) solid var(--color-border-strong);
+  border-radius: var(--radius);
+  padding: 2px var(--space-2);
+  cursor: pointer;
+}
+
+.cmp-tray__slot b {
+  font-family: var(--font-mono);
+  font-weight: var(--weight-semibold);
+}
+
+.cmp-tray__slot span[aria-hidden] { color: var(--color-text-muted); }
+.cmp-tray__slot:hover span[aria-hidden] { color: var(--wp-near-black); }
+.cmp-tray__slot:focus-visible { outline: 2px solid var(--color-focus-ring); outline-offset: 1px; }
+
+/* ----- Cabeçalhos de resumo ----- */
+
+.cmp-heads {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+  gap: var(--space-3);
+}
+
+.cmp-head {
+  border: var(--border-width) solid var(--color-border);
+  border-top: 3px solid var(--slot);
+  border-radius: var(--radius);
+  padding: var(--space-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.cmp-head--ref { background: var(--color-surface-accent); }
+
+.cmp-head__top { display: flex; align-items: center; gap: var(--space-2); }
+
+.cmp-head__id {
+  font-family: var(--font-mono);
+  font-weight: var(--weight-semibold);
+}
+
+.cmp-head__runs {
+  font-size: var(--size-kicker);
+  color: var(--color-text-muted);
+  margin-left: auto;
+}
+
+/* Uma linha por fato. A severidade de RN-02 é a mesma nas configurações da
+   base: dizer isso entre parênteses, ao lado dela, poupa o parágrafo que
+   explicava por que ela não distingue nada. */
+.cmp-head__line {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  margin: 0;
+  font-size: var(--size-kicker);
+  color: var(--color-text-muted);
+  min-width: 0;
+}
+
+.cmp-head__line > b {
+  flex: 1 1 auto;
+  min-width: 0;
+  color: var(--color-text);
+  font-weight: var(--weight-semibold);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cmp-head__line > .num {
+  margin-left: auto;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text);
+  font-weight: var(--weight-semibold);
+  white-space: nowrap;
+}
+
+.cmp-head__line .state { font-size: var(--size-kicker); margin-left: auto; }
+
+/* Referência é a coluna contra a qual a divergência é medida. Só uma por vez. */
+.cmp-head__ref {
+  font-family: var(--font-body);
+  font-size: var(--size-kicker);
+  color: var(--color-text-muted);
+  background: none;
+  border: var(--border-width) solid var(--color-border-strong);
+  border-radius: var(--radius);
+  padding: 0 var(--space-2);
+  cursor: pointer;
+}
+
+.cmp-head__ref[aria-pressed="true"] {
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+  color: var(--color-text-inverse);
+  font-weight: var(--weight-semibold);
+  cursor: default;
+}
+
+.cmp-head__ref:focus-visible { outline: 2px solid var(--color-focus-ring); outline-offset: 1px; }
+
+/* ----- Fatores que diferem ----- */
+
+.cmp-factors {
+  display: flex;
+  flex-direction: column;
+  margin-top: var(--space-4);
+  border-top: var(--border-width) solid var(--color-border);
+}
+
+.cmp-factor {
+  display: grid;
+  grid-template-columns: 13rem 1fr;
+  gap: var(--space-3);
+  align-items: baseline;
+  padding: var(--space-2) 0 var(--space-2) var(--space-3);
+  border-bottom: 1px solid var(--color-border);
+  font-size: var(--size-small);
+  box-shadow: inset 3px 0 0 var(--color-accent);
+}
+
+.cmp-factor__name { font-weight: var(--weight-semibold); }
+.cmp-factor__vals { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+
+.cmp-factor__val {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius);
+  padding: 1px var(--space-2);
+  font-size: var(--size-kicker);
+  background: var(--color-surface);
+}
+
+.cmp-factor__val .slot { width: 0.95rem; height: 0.95rem; font-size: 9px; }
+
+/* Os fatores idênticos não somem — colapsam. Cinco linhas repetindo "igual em
+   todas" custavam mais atenção do que o fato que carregavam. */
+.cmp-same > summary {
+  cursor: pointer;
+  padding: var(--space-2) 0 var(--space-2) var(--space-3);
+  font-size: var(--size-kicker);
+  color: var(--color-text-muted);
+}
+
+.cmp-same > summary:focus-visible { outline: 2px solid var(--color-focus-ring); outline-offset: -2px; }
+
+.cmp-same__list {
+  display: grid;
+  grid-template-columns: 13rem 1fr;
+  gap: var(--space-1) var(--space-3);
+  margin: 0 0 var(--space-3) var(--space-3);
+  font-size: var(--size-kicker);
+  color: var(--color-text-muted);
+}
+
+.cmp-same__list dd { margin: 0; }
+
+/* ----- Barra de controles da tabela ----- */
+
+.cmp-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+}
+
+.cmp-bar__check { margin-top: 0; }
+
+/* ----- Tabela lado a lado ----- */
+
+/* O corpo herda a cor da linha, e é isso que deixa o realce de hover e o de
+   divergência atravessarem a célula fixa em vez de pararem nela. */
+.cmp-table tbody tr { background: var(--color-surface); }
+
+.cmp-table th,
+.cmp-table td {
+  vertical-align: middle;
+  padding: var(--space-2);
+}
+
+/* Com quatro campos por configuração, o rótulo por extenso da coluna decide a
+   largura de toda ela. Quebrar o cabeçalho em duas linhas devolve à tabela a
+   largura de que a coluna de divergência precisa para caber na tela. */
+.cmp-table thead th.num { white-space: normal; }
+
+/* Coluna do ponto fixa na rolagem horizontal: com quatro configurações a
+   tabela sai da tela, e uma linha de números sem o nome do ponto não se lê. */
+.cmp-sticky {
+  position: sticky;
+  left: 0;
+  z-index: 2;
+  background: inherit;
+  border-right: var(--border-width) solid var(--color-border-strong);
+  min-width: 11rem;
+}
+
+.cmp-table thead .cmp-sticky {
+  z-index: 4;
+  background: var(--color-surface);
+}
+
+.cmp-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  background: var(--color-surface);
+}
+
+/* Faixa que agrupa as quatro colunas de uma configuração. */
+.cmp-group {
+  text-align: center !important;
+  border-bottom: 3px solid var(--slot) !important;
+  color: var(--color-text) !important;
+}
+
+.cmp-group__inner {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+/* Separador entre grupos: sem ele, doze colunas de números viram uma parede. */
+.cmp-edge { border-left: var(--border-width) solid var(--color-border-strong); }
+
+.cmp-table .point__name { font-weight: var(--weight-semibold); }
+
+/* O que a coluna significa, dito no próprio cabeçalho, no lugar do parágrafo
+   que ficava embaixo da tabela. */
+.cmp-hint {
+  display: block;
+  font-family: var(--font-body);
+  font-weight: var(--weight-regular);
+  font-size: 9.5px;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--wp-gray-medium);
+  white-space: nowrap;
+}
+
+/* ----- Divergência ----- */
+
+.diverge {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  justify-content: flex-end;
+}
+
+.diverge__track {
+  position: relative;
+  flex: none;
+  width: 4rem;
+  height: 12px;
+  background: var(--color-surface-sunken);
+  border: 1px solid var(--color-border);
+}
+
+/* Eixo do zero. Com duas colunas ele fica no meio, porque a diferença tem
+   sinal; com três ou mais a barra é amplitude e cresce da esquerda. */
+.diverge__axis {
+  position: absolute;
+  top: -2px;
+  bottom: -2px;
+  left: 50%;
+  width: 1px;
+  background: var(--color-border-strong);
+}
+
+.diverge--amp .diverge__axis { display: none; }
+
+.diverge__fill { position: absolute; top: 0; bottom: 0; }
+
+.diverge__num {
+  font-variant-numeric: tabular-nums;
+  font-weight: var(--weight-semibold);
+  font-size: var(--size-kicker);
+  min-width: 3.6rem;
+  text-align: right;
+}
+
+.diverge__num .is-nil { color: var(--wp-gray-medium); font-weight: var(--weight-regular); }
+
+/* A seta repete o sinal do número: a barra nunca é o único canal. */
+.diverge__arrow { font-size: 10px; }
+
+/* Marca do ponto que atravessa o limite entre as configurações. */
+.flip {
+  display: inline-block;
+  font-family: var(--font-display);
+  font-weight: var(--weight-bold);
+  font-size: 9.5px;
+  letter-spacing: var(--tracking-kicker);
+  text-transform: uppercase;
+  color: var(--wp-near-black);
+  background: none;
+  border: 1px solid var(--color-border-strong);
+  border-radius: 1px;
+  padding: 0 4px;
+  margin-top: 3px;
+  white-space: nowrap;
+}
+
+/* Posição no ranking de divergência, nas primeiras linhas apenas. */
+.rank {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  color: var(--color-accent);
+  border: 1px solid var(--wp-blue-accent);
+  border-radius: 1px;
+  padding: 0 3px;
+  margin-left: var(--space-2);
+  vertical-align: 1px;
+}
+
+.row--diverge { background: var(--color-surface-accent) !important; }
+.row--diverge .cmp-sticky { box-shadow: inset 3px 0 0 var(--color-accent); }
+
+/* ----- Rodapé de rastreabilidade (RNF-06) ----- */
+
+.trace {
+  font-size: var(--size-kicker);
+  color: var(--color-text-muted);
+  margin: 0 0 var(--space-6);
+}
+
+/* ----- Responsivo ----- */
+
+@media (max-width: 60rem) {
+  .cmp-factor,
+  .cmp-same__list { grid-template-columns: 1fr; gap: var(--space-1); }
+  .cmp-tools__search { flex: 1 1 100%; }
+  .diverge__track { width: 3rem; }
+}
+

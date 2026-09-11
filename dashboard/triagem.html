@@ -11,6 +11,7 @@
   <link rel="stylesheet" href="css/app.css">
   <link rel="stylesheet" href="css/triagem.css">
   <link rel="stylesheet" href="css/fogao.css">
+  <link rel="stylesheet" href="css/grafico.css">
 </head>
 <body>
 
@@ -25,50 +26,57 @@
       <p class="masthead__kicker">Triagem térmica</p>
       <h1 class="masthead__system-name">Thermal Predictor</h1>
     </div>
+
+    <nav class="nav" aria-label="Telas do painel">
+    <a class="nav__link" href="index.html">Consulta</a>
+    <a class="nav__link" href="triagem.html" aria-current="page">Triagem</a>
+    <a class="nav__link" href="comparacao.html">Comparação</a>
+    <a class="nav__link" href="engenharia.html">Engenharia</a>
+    </nav>
+
+    <span class="masthead__push"></span>
+
+    <!-- Sai quando houver modelo treinado. Até lá, é o que impede que um
+         número sintético seja lido como previsão. Fica na barra, e não no
+         corpo da página, para valer nas quatro telas. -->
+    <p class="model-chip" id="stub-banner">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.3" aria-hidden="true"><circle cx="7" cy="7" r="5.6"></circle><path d="M7 4.2v3.4"></path><circle cx="7" cy="9.9" r="0.6" fill="currentColor" stroke="none"></circle></svg>
+      <span><strong>Modelo <span id="model-version">—</span></strong> · valores sintéticos, não previsões</span>
+    </p>
   </div>
 </header>
 
-<nav class="nav" aria-label="Telas do painel">
-  <div class="nav__inner">
-    <a class="nav__link" href="index.html">Consulta</a>
-    <a class="nav__link" href="triagem.html" aria-current="page">Triagem</a>
-  </div>
-</nav>
-
 <main class="page">
 
-  <!-- RF-15 e RN-07: fixo nesta tela, não só na inicial. -->
-  <section class="scope-notice" aria-labelledby="scope-notice-title">
-    <h2 class="scope-notice__title" id="scope-notice-title">Enquadramento da leitura</h2>
-    <p>
-      Esta tela é uma <strong>triagem pré-CFD</strong>. Ela ordena pontos de
-      medição por risco térmico estimado para ajudar a decidir o que enviar
-      para simulação primeiro. Ela <strong>não substitui a simulação</strong>
-      e não emite parecer de conformidade.
-    </p>
-    <p>
-      Nenhum estado exibido é aprovação. <em>Dentro do limite</em> significa
-      que a folga prevista supera a tolerância de exibição, não que o
-      componente esteja verificado. A confirmação continua sendo a simulação.
-    </p>
-    <p>
-      A tolerância que define a <em>banda de incerteza</em> é
-      <span id="tolerance-fraction">10%</span> do limite declarado de cada
-      ponto. Uma folga menor que isso é apresentada como inconclusiva: a
-      configuração vai para verificação, e não é descartada.
-    </p>
-  </section>
+  <!-- RF-15 e RN-07: continua fixo nesta tela e continua inteiro. Fechado por
+       padrão, para a tela abrir nos números da triagem. -->
+  <details class="scope-notice">
+    <summary>Como ler esta triagem</summary>
+    <div class="scope-notice__body">
+      <p>
+        Esta tela é uma <strong>triagem pré-CFD</strong>. Ela ordena pontos de
+        medição por risco térmico estimado para ajudar a decidir o que enviar
+        para simulação primeiro. Ela <strong>não substitui a simulação</strong>
+        e não emite parecer de conformidade.
+      </p>
+      <p>
+        Nenhum estado exibido é aprovação. <em>Dentro do limite</em> significa
+        que a folga prevista supera a tolerância de exibição, não que o
+        componente esteja verificado. A confirmação continua sendo a simulação.
+      </p>
+      <p>
+        A tolerância que define a <em>banda de incerteza</em> é
+        <span id="tolerance-fraction">10%</span> do limite declarado de cada
+        ponto. Uma folga menor que isso é apresentada como inconclusiva: a
+        configuração vai para verificação, e não é descartada.
+      </p>
+    </div>
+  </details>
 
-  <!-- Sai quando houver modelo treinado. -->
-  <p class="stub-banner" id="stub-banner" hidden>
-    <strong>Nenhum modelo treinado está carregado.</strong>
-    As temperaturas e os limites são sintéticos: não são previsões e não
-    correspondem a especificação de componente. <strong>Os números abaixo não
-    mudam com a configuração avaliada</strong> — mudar um fator e consultar de
-    novo devolve exatamente esta mesma tabela. Ela demonstra o formato da
-    resposta, não o comportamento térmico.
-    Modelo: <span id="model-version">—</span>.
-  </p>
+  <!-- Os quatro números que decidem o que fazer com esta configuração. Eram
+       calculados desde sempre, mas ficavam abaixo do mapa e da tabela: quem
+       abria a tela via prosa antes de ver quantos pontos estouram. -->
+  <div class="kpis" id="kpis" hidden></div>
 
   <!-- Sem o eco da configuração, a tabela fica solta. -->
   <section class="panel" id="config-panel" hidden>
@@ -112,17 +120,21 @@
           <span>Monitoramento<b>limite não declarado</b></span>
           <strong id="mono-count">—</strong>
         </div>
-        <p class="legend-note">
-          Forma e faixa carregam a mesma informação que a cor. Clique nas
-          faixas para filtrar; várias somam, e as duas vizinhas de zero
-          recompõem a banda de incerteza. <em>Dentro do limite</em> não é
-          aprovação — é ausência de problema neste ponto.
-        </p>
-        <p class="legend-note">
-          <strong>Tons de cinza</strong> troca a rampa azul–vermelha por uma
-          escala clara–escura. A ordem das faixas é a mesma; o que sai é a
-          matiz, para que nenhuma cor possa ser lida como aprovação (RN-07).
-        </p>
+        <p class="legend-note">Clique numa faixa para filtrar.</p>
+        <details class="more">
+          <summary>Sobre a escala</summary>
+          <p>
+            Forma e faixa carregam a mesma informação que a cor. Várias faixas
+            somam, e as duas vizinhas de zero recompõem a banda de incerteza.
+            <em>Dentro do limite</em> não é aprovação — é ausência de problema
+            neste ponto.
+          </p>
+          <p>
+            <strong>Tons de cinza</strong> troca a rampa azul–vermelha por uma
+            escala clara–escura. A ordem das faixas é a mesma; o que sai é a
+            matiz, para que nenhuma cor possa ser lida como aprovação.
+          </p>
+        </details>
       </div>
 
       <!-- Visível só no campo térmico: aí a cor é temperatura, não risco. -->
@@ -131,15 +143,21 @@
         <div class="field-scale"><span class="field-scale__bar" id="field-bar"></span>
           <span class="field-scale__ends" id="field-ticks"></span>
         </div>
-        <p class="legend-note">
-          Campo interpolado no volume a partir dos 78 termopares e amostrado
-          nas faces do produto. Frio azul, quente vermelho. A escala é
-          equalizada por quantil — os rótulos acima marcam os quartis em °C,
-          e por isso não são igualmente espaçados.
-          Aqui a cor representa temperatura, e não estado de risco: nenhuma
-          faixa significa aprovação. Os 10 pontos sem limite entram no campo —
-          não têm folga, mas têm temperatura.
-        </p>
+        <p class="legend-note">Frio azul, quente vermelho.</p>
+        <details class="more">
+          <summary>Sobre o campo</summary>
+          <p>
+            Campo interpolado no volume a partir dos 78 termopares e amostrado
+            nas faces do produto. A escala é equalizada por quantil — os
+            rótulos acima marcam os quartis em °C, e por isso não são
+            igualmente espaçados.
+          </p>
+          <p>
+            Aqui a cor representa temperatura, e não estado de risco: nenhuma
+            faixa significa aprovação. Os 10 pontos sem limite entram no campo
+            — não têm folga, mas têm temperatura.
+          </p>
+        </details>
       </div>
 
       <div class="heat__block">
@@ -161,9 +179,7 @@
           Limpar filtros
         </button>
         <p class="legend-note">
-          Estado e faixa filtram apenas os pontos com limite declarado. Os
-          10 monitorados não têm estado nem folga, e entram ou saem pela caixa
-          acima.
+          Estado e faixa filtram só os pontos com limite.
         </p>
       </div>
 
@@ -171,8 +187,7 @@
         <h3 class="heat__label">Isolar subsistema</h3>
         <div class="subsys" id="subsys"></div>
         <p class="legend-note">
-          Colunas: pontos acima do limite · total. Isolar mantém os demais como
-          contorno vazio, não os apaga.
+          Colunas: acima do limite · total.
         </p>
       </div>
     </div>
@@ -221,7 +236,7 @@
 
     <ul class="tally" id="tally"></ul>
 
-    <div class="table-scroll">
+    <div class="table-scroll" id="screening-table">
       <table class="data-table">
         <caption>
           Ordem: estado de risco mais crítico primeiro; dentro de um mesmo
@@ -241,6 +256,85 @@
         <tbody id="screening-body"></tbody>
       </table>
     </div>
+  </section>
+
+  <!-- Os desenhos leem o mesmo recorte da tabela acima e apontam para a mesma
+       seleção: um ponto sob o ponteiro acende nos quatro ao mesmo tempo. -->
+  <section class="panel" id="visuais" hidden>
+    <h2 class="panel__title">Leitura visual</h2>
+
+    <div class="chart__frame">
+
+      <div class="viz">
+        <h3 class="viz__titulo">
+          Onde estou apertado
+          <span class="viz__sub">folga por ponto, do mais crítico ao menos</span>
+          <button type="button" class="viz__acao" id="viz-ranking-todos" hidden></button>
+        </h3>
+        <div class="chart__scroll">
+          <svg class="chart__svg" id="viz-ranking" role="img"
+               aria-label="Folga prevista de cada ponto de medição, ordenada do mais crítico ao menos crítico"></svg>
+        </div>
+        <p class="chart__note">
+          Folga, e não temperatura absoluta: uma temperatura alta numa bobina não diz nada
+          sozinha, estar acima do próprio limite diz tudo. Como a folga já traz
+          o limite embutido, uma escala só serve a pontos cujos limites são muito diferentes entre si. A haste mede a distância até a fronteira.
+        </p>
+      </div>
+
+      <div class="viz">
+        <div>
+          <h3 class="viz__titulo">
+            O conjunto passa no critério
+            <span class="viz__sub">previsão contra limite</span>
+          </h3>
+          <div class="chart__scroll">
+            <svg class="chart__svg" id="viz-criterio" role="img"
+                 aria-label="Dispersão da temperatura prevista contra o limite declarado de cada ponto, com a reta onde os dois se igualam"></svg>
+          </div>
+          <p class="chart__note">
+            Mesma figura da análise exploratória, agora com a previsão no lugar
+            da medição. Todo ponto acima da reta ultrapassa o próprio limite; a
+            faixa logo abaixo dela é a banda de incerteza.
+          </p>
+        </div>
+
+      </div>
+
+      <div class="viz">
+        <div>
+          <h3 class="viz__titulo">
+            Onde o risco se concentra
+            <span class="viz__sub">folga por subsistema</span>
+          </h3>
+          <div class="chart__scroll">
+            <svg class="chart__svg" id="viz-subsistema" role="img"
+                 aria-label="Distribuição da folga prevista por subsistema, com caixa de quartis e cada ponto sobreposto"></svg>
+          </div>
+          <p class="chart__note">
+            A caixa marca o intervalo entre quartis e a mediana; os pontos
+            ficam por cima porque com 68 observações esconder cada uma atrás de
+            um resumo custa mais do que ganha. Isolar um subsistema recua os
+            demais, não os apaga.
+          </p>
+        </div>
+      </div>
+
+      <div class="tip" id="viz-tip" role="status" aria-live="polite"></div>
+    </div>
+
+    <p class="legend-note">
+      As quatro leituras respeitam os filtros da tabela. Passe o ponteiro num
+      ponto para acendê-lo nas quatro; clique para abrir o mesmo detalhe que a
+      linha da tabela e o modelo abrem. Os
+      <span id="viz-mono-count">—</span> pontos monitorados não entram: sem
+      limite declarado, não há folga a desenhar.
+    </p>
+    <p class="legend-note">
+      Não há barra de erro do modelo. Ela depende de um erro por ponto que só
+      existe depois do treino, e desenhar uma faixa sem esse número seria
+      inventar precisão que a ferramenta não tem.
+    </p>
   </section>
 
   <!-- RN-03: sem colunas de limite, folga ou estado. -->
@@ -275,6 +369,7 @@
 <script src="js/schema.js"></script>
 <script src="js/dados_triagem.js"></script>
 <script src="js/fogao.js"></script>
+<script src="js/grafico.js"></script>
 <script src="js/triagem.js"></script>
 </body>
 </html>

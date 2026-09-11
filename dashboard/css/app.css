@@ -16,16 +16,22 @@ body {
   line-height: var(--leading-body);
 }
 
-/* ----- Cabeçalho ----- */
+/* ----- Cabeçalho -----
+ *
+ * Identidade, navegação e estado do modelo na mesma faixa. Antes eram duas
+ * faixas empilhadas somando 122px antes de qualquer dado; a decisão que o
+ * painel existe para apoiar começava abaixo da dobra em três das quatro
+ * telas. */
 
 .masthead {
   border-bottom: var(--border-width) solid var(--color-border);
-  padding: var(--space-5) var(--space-6);
+  padding: 0 var(--space-6);
 }
 
 .masthead__inner {
   max-width: var(--content-max);
   margin: 0 auto;
+  min-height: 60px;
   display: flex;
   align-items: center;
   gap: var(--space-4);
@@ -34,41 +40,121 @@ body {
 /* O guia proíbe distorcer o logotipo. `width: auto` preserva a proporção e
    `flex: none` impede que o flexbox o comprima em telas estreitas. */
 .masthead__logo {
-  height: 40px;
+  height: 26px;
   width: auto;
   flex: none;
-  margin-right: var(--space-2);
-}
-
-@media (max-width: 30rem) {
-  .masthead__inner {
-    flex-wrap: wrap;
-  }
 }
 
 /* Linha vertical de 1pt separando logotipo e nome do sistema, como o guia exige. */
 .masthead__identity {
   padding-left: var(--space-4);
   border-left: 1px solid var(--color-border-strong);
+  flex: none;
 }
 
-/* 1.4375rem ≈ altura do "W" do logotipo a 40px, conforme o guia. */
 .masthead__system-name {
   font-family: var(--font-display);
   font-weight: var(--weight-light);
-  font-size: 1.4375rem;
-  line-height: 1;
+  font-size: 1.1875rem;
+  line-height: 1.2;
   margin: 0;
 }
 
 .masthead__kicker {
   font-family: var(--font-display);
   font-weight: var(--weight-bold);
+  font-size: 0.625rem;
+  letter-spacing: var(--tracking-kicker);
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+  margin: 0;
+  line-height: 1.2;
+}
+
+/* Empurra o estado do modelo para a direita da faixa. */
+.masthead__push {
+  flex-grow: 1;
+}
+
+@media (max-width: 60rem) {
+  .masthead__inner {
+    flex-wrap: wrap;
+    padding: var(--space-3) 0;
+  }
+
+  .masthead__push {
+    flex-basis: 100%;
+  }
+}
+
+/* ----- Navegação entre telas ----- */
+
+.nav {
+  display: flex;
+  gap: var(--space-6);
+  align-self: stretch;
+  align-items: center;
+  margin-left: var(--space-5);
+  flex-wrap: wrap;
+}
+
+.nav__link {
+  font-family: var(--font-display);
+  font-weight: var(--weight-bold);
   font-size: var(--size-kicker);
   letter-spacing: var(--tracking-kicker);
   text-transform: uppercase;
   color: var(--color-text-muted);
-  margin: 0 0 var(--space-1);
+  text-decoration: none;
+  padding: var(--space-5) 0 calc(var(--space-5) - 2px);
+  border-bottom: 2px solid transparent;
+  line-height: 1;
+}
+
+.nav__link:hover {
+  color: var(--color-accent);
+}
+
+.nav__link[aria-current="page"] {
+  color: var(--color-accent);
+  border-bottom-color: var(--color-accent);
+}
+
+.nav__link:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 1px;
+}
+
+/* ----- Estado do modelo -----
+ *
+ * Era uma faixa azul de três linhas dentro do corpo da página, presente em
+ * algumas telas. Vira um chip na barra, e por isso vale nas quatro. */
+
+.model-chip {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex: none;
+  margin: 0;
+  padding: var(--space-1) var(--space-3);
+  background: var(--color-surface-accent);
+  border: var(--border-width) solid #cfe0f2;
+  border-radius: var(--radius);
+  font-size: var(--size-kicker);
+  color: var(--color-accent);
+  line-height: 1.4;
+}
+
+.model-chip[hidden] {
+  display: none;
+}
+
+.model-chip strong {
+  font-weight: var(--weight-semibold);
+}
+
+.model-chip svg {
+  flex: none;
 }
 
 /* ----- Estrutura ----- */
@@ -96,26 +182,49 @@ body {
   margin: 0 0 var(--space-4);
 }
 
-/* ----- Aviso de valores sintéticos ----- */
+/* O aviso de valores sintéticos virou `.model-chip`, na barra do cabeçalho. */
 
-.stub-banner {
-  background: var(--color-surface-accent);
-  border-left: 3px solid var(--color-accent);
-  padding: var(--space-3) var(--space-4);
-  margin: 0 0 var(--space-5);
-  font-size: var(--size-small);
-}
+/* ----- Blocos expansíveis -----
+ *
+ * O texto que explica a regra por extenso precisa estar na tela; não precisa
+ * estar aberto o tempo todo. Usado nas quatro telas, por isso mora aqui. */
 
-.stub-banner strong {
+.more { margin-top: var(--space-3); }
+
+.more > summary {
+  cursor: pointer;
   font-family: var(--font-display);
   font-weight: var(--weight-bold);
+  font-size: var(--size-kicker);
+  letter-spacing: var(--tracking-kicker);
+  text-transform: uppercase;
+  color: var(--color-accent);
 }
+
+.more > summary:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
+}
+
+.more[open] > summary { margin-bottom: var(--space-3); }
+
+.more p {
+  margin: 0 0 var(--space-2);
+  font-size: var(--size-small);
+  color: var(--color-text-muted);
+  max-width: 62ch;
+}
+
+.more p:last-child { margin-bottom: 0; }
 
 /* ----- Formulário ----- */
 
+/* 13rem, e não 15rem: com 15rem faltavam dois pixels para a segunda coluna
+   caber na largura da coluna do formulário, e os sete fatores voltavam a
+   empilhar. */
 .field-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
   gap: var(--space-4);
 }
 
@@ -130,15 +239,45 @@ body {
   font-size: var(--size-small);
 }
 
+/* A ajuda continua no DOM e continua lida por leitor de tela; some da varredura
+   visual e reaparece no campo em foco. Sete legendas cinzas permanentes
+   dobravam a altura da coluna sem ajudar quem já sabe o que é o fator. */
 .field__help {
   font-size: var(--size-small);
   color: var(--color-text-muted);
+  max-height: 0;
+  overflow: hidden;
+  opacity: 0;
+  transition: max-height 0.12s ease, opacity 0.12s ease;
+}
+
+.field:focus-within .field__help,
+.field:hover .field__help {
+  max-height: 4rem;
+  opacity: 1;
+}
+
+/* Dentro do fieldset a ajuda descreve o grupo, e não um campo: fica visível. */
+.fieldset > .field__help {
+  max-height: none;
+  opacity: 1;
+  margin: 0 0 var(--space-3);
 }
 
 /* Campo cuja condição de aplicação não está satisfeita. O <select> também fica
    desabilitado, o que o navegador sinaliza por cursor e por leitor de tela. */
 .field--inactive {
   opacity: 0.5;
+}
+
+/* Coluna do formulário mais larga que as 22rem definidas em fogao.css: com
+   22rem a grade `auto-fit` de `.field-grid` só resolvia uma coluna, e os sete
+   fatores viravam uma pilha de sete linhas. O painel do modelo não muda.
+   Seletor com o pai para vencer fogao.css, que é carregado depois. */
+.split > .split__form { flex: 0 0 34rem; }
+
+@media (max-width: 64rem) {
+  .split > .split__form { flex: 1 1 100%; }
 }
 
 .field select,
@@ -149,7 +288,8 @@ body {
   background: var(--color-surface);
   border: var(--border-width) solid var(--color-border-strong);
   border-radius: var(--radius);
-  padding: var(--space-2);
+  padding: 0 var(--space-2);
+  min-height: 40px;
 }
 
 .field select:focus-visible,
@@ -166,6 +306,13 @@ body {
   margin: var(--space-4) 0 0;
 }
 
+/* O fator composto ocupa a linha inteira: numa coluna só ele empurrava os
+   dois fatores seguintes para uma escada de alturas desiguais. */
+.field-grid > .fieldset {
+  grid-column: 1 / -1;
+  margin: 0;
+}
+
 .fieldset > legend {
   font-weight: var(--weight-semibold);
   font-size: var(--size-small);
@@ -175,6 +322,10 @@ body {
 /* ----- Botão ----- */
 
 .button {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 48px;
   font-family: var(--font-display);
   font-weight: var(--weight-bold);
   font-size: var(--size-small);
@@ -184,7 +335,7 @@ body {
   background: var(--color-accent);
   border: var(--border-width) solid var(--color-accent);
   border-radius: var(--radius);
-  padding: var(--space-3) var(--space-5);
+  padding: 0 var(--space-6);
   cursor: pointer;
 }
 
@@ -193,8 +344,75 @@ body {
   border-color: var(--color-accent-hover);
 }
 
+.button svg {
+  flex: none;
+}
+
+/* A ação fica numa barra própria, colada no rodapé do painel: antes ela era
+   o último item de uma coluna longa e desaparecia junto com os campos. */
 .form-actions {
-  margin-top: var(--space-5);
+  margin: var(--space-5) calc(var(--space-5) * -1) calc(var(--space-5) * -1);
+  padding: var(--space-4) var(--space-5);
+  border-top: var(--border-width) solid var(--color-border);
+  background: var(--color-surface-sunken);
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+}
+
+.form-actions__hint {
+  margin: 0;
+  font-size: var(--size-small);
+  color: var(--color-text-muted);
+  line-height: 1.35;
+  flex-grow: 1;
+  min-width: 12rem;
+}
+
+.form-actions__hint strong {
+  font-weight: var(--weight-semibold);
+  color: var(--color-text);
+}
+
+/* ----- Progresso da montagem ----- */
+
+.form-progress {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin-bottom: var(--space-5);
+}
+
+.form-progress__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.form-progress__count {
+  font-family: var(--font-display);
+  font-weight: var(--weight-bold);
+  font-size: var(--size-small);
+  letter-spacing: var(--tracking-subhead);
+  color: var(--color-accent);
+  font-variant-numeric: tabular-nums;
+}
+
+.form-progress__track {
+  height: 3px;
+  background: var(--color-border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.form-progress__fill {
+  display: block;
+  height: 3px;
+  width: 0;
+  background: var(--wp-blue-accent);
+  transition: width 0.15s ease;
 }
 
 /* ----- Resultado ----- */

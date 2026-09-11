@@ -67,6 +67,14 @@
   --wp-blue-accent: #00a0dd;
   --wp-blue-light:  #edf4fc;
 
+  /* Extremos da rampa de folga desenhada em fogao.js. Reusar as mesmas
+     paradas mantém tabela, legenda e modelo falando a mesma língua, e não
+     introduz paleta nova: são as cores que o painel já pinta. */
+  --wp-red:      #c04b3d;
+  --wp-red-deep: #8f2419;
+  --wp-red-tint: #fbf1ef;
+  --wp-blue-mid: #3f7aa3;
+
   /* Papéis semânticos: é o que o app.css referencia. Trocar a cor core é
      editar só este bloco. */
   --color-surface:        var(--wp-white);
@@ -80,6 +88,13 @@
   --color-accent:         var(--wp-blue-core);
   --color-accent-hover:   #0a3554;
   --color-focus-ring:     var(--wp-blue-accent);
+
+  /* Papéis de risco. Só o que está acima do limite pede cor: o resto do
+     painel continua em neutro, e a cor segue redundante com o rótulo. */
+  --color-critical:       var(--wp-red-deep);
+  --color-critical-soft:  var(--wp-red);
+  --color-critical-bg:    var(--wp-red-tint);
+  --color-positive:       var(--wp-blue-mid);
 
   /* Tipografia. É Nunito Sans, não Nunito — são fontes diferentes.
      Hospedadas localmente pelas declarações @font-face acima. */
@@ -97,6 +112,10 @@
   --size-body:    0.9375rem;
   --size-subhead: 1rem;
   --size-title:   1.5rem;
+  /* Um número que decide a leitura da tela não pode sair do mesmo corpo do
+     parágrafo ao lado. */
+  --size-metric:  2.6rem;
+  --size-display: 3.5rem;
 
   --tracking-kicker:  0.05em;
   --tracking-subhead: 0.03em;

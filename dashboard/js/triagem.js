@@ -31,6 +31,13 @@
     return (fracao * 100).toFixed(1) + "%";
   }
 
+  function el(tag, classe, texto) {
+    var n = document.createElement(tag);
+    if (classe) n.className = classe;
+    if (texto !== undefined && texto !== null) n.textContent = texto;
+    return n;
+  }
+
   function celula(texto, classe) {
     var td = document.createElement("td");
     td.textContent = texto;
@@ -73,11 +80,15 @@
     var tr = document.createElement("tr");
     tr.className = "row--" + ponto.estado;
 
+    // Folga é a coluna que decide, e a única que sai do neutro quando é
+    // negativa: as outras colunas ficam legíveis por contraste com ela.
+    var sinal = ponto.margem_c < 0 ? " margin--negative" : " margin--positive";
+
     tr.appendChild(celulaPonto(ponto));
     tr.appendChild(celula(grausC(ponto.temperatura_prevista_c), "num"));
     tr.appendChild(celula(grausC(ponto.limit_c), "num"));
-    tr.appendChild(celula(grausC(ponto.margem_c), "num"));
-    tr.appendChild(celula(percentual(ponto.margem_percentual), "num"));
+    tr.appendChild(celula(grausC(ponto.margem_c), "num" + sinal));
+    tr.appendChild(celula(percentual(ponto.margem_percentual), "num" + sinal));
     tr.appendChild(celulaEstado(ponto));
 
     return tr;
@@ -151,6 +162,412 @@
     montarMapa();
   }
 
+
+
+
+  /* ----- Leitura visual da triagem -----
+
+     Quatro figuras abaixo da tabela, que respondem, nesta ordem, as perguntas
+     que a tabela não responde:
+
+       cartões        o veredito em dois segundos
+       ranking        onde estou apertado, do pior para o menos pior
+       previsto×limite  o conjunto passa no critério
+       por subsistema onde o risco se concentra
+
+     Todas leem o mesmo recorte da tabela e apontam para a mesma seleção: o
+     ponto sob o ponteiro acende nas quatro ao mesmo tempo, e o clique abre o
+     mesmo painel de detalhe que a linha e o modelo abrem. São quatro vistas
+     de um instrumento, e não quatro figuras soltas.
+
+     Duas ausências são deliberadas. Não há barra de erro do modelo: ela
+     depende de um erro por ponto que só existe depois do treino, e desenhar
+     uma faixa sem esse número seria inventar precisão. E não há pizza,
+     rosca nem velocímetro: onde a informação é um número, o número comunica
+     melhor do que o desenho dele. */
+
+  var svgRanking = document.getElementById("viz-ranking");
+  var svgCritério = document.getElementById("viz-criterio");
+  var svgSubsistema = document.getElementById("viz-subsistema");
+  var dicaViz = null;
+  var rankingTodos = false;
+
+  var RANKING_TOPO = 14;
+
+  function classificadosVisiveis() {
+    return DADOS_TRIAGEM.pontos.filter(passaNoFiltro);
+  }
+
+  function rampaAtual() {
+    return mapa.escala === "b" ? FOGAO.RAMPA_B : FOGAO.RAMPA_A;
+  }
+
+  function dicaDoPonto(p) {
+    return "<b class=\"tip__name\">" + p.TC_Name + "</b>" +
+      "<span class=\"tip__state\">" + p.Key_Area + "</span><br>" +
+      "<span class=\"tip__num\">" + p.temperatura_prevista_c.toFixed(1) + " °C</span>" +
+      " de <span class=\"tip__num\">" + p.limit_c.toFixed(0) + " °C</span>" +
+      " · <span class=\"tip__num\">folga " + p.margem_c.toFixed(1) + " °C</span>" +
+      " (" + (p.margem_percentual * 100).toFixed(1) + "%)" +
+      "<span class=\"tip__state\"> · " + p.estado_rotulo + "</span>";
+  }
+
+  /* Uma marca de ponto de medição, com tudo que ela precisa saber fazer:
+     acender junto com suas irmãs, abrir o balão e abrir o detalhe. */
+  function marcaDoPonto(p, cx, cy, escala) {
+    var m = GRAFICO.el("path", {
+      d: FOGAO.formaDoPonto(cx, cy, p.estado, false),
+      "class": "ax-marca",
+      "data-ponto": p.measurement_id
+    });
+    if (escala && escala !== 1) {
+      m.setAttribute("transform",
+        "translate(" + cx + " " + cy + ") scale(" + escala + ") translate(" + (-cx) + " " + (-cy) + ")");
+    }
+    m.style.fill = rampaAtual()[FOGAO.faixaDaRampa(p.margem_percentual)];
+    m.style.stroke = p.measurement_id === mapa.sel ? "#0d436b" : "#484949";
+    m.style.strokeWidth = p.measurement_id === mapa.sel ? "2.4" : "0.7";
+
+    m.addEventListener("pointerenter", function () {
+      realcar(p.measurement_id);
+      dicaViz.mostrar(m, dicaDoPonto(p));
+    });
+    m.addEventListener("pointerleave", function () { realcar(null); });
+    m.addEventListener("click", function () { selecionar(p); });
+    return m;
+  }
+
+  /* O mesmo ponto acende nas quatro figuras. Percorrer o DOM é mais barato
+     que redesenhar tudo a cada movimento do ponteiro, e é instantâneo. */
+  function realcar(id) {
+    var caixa = document.getElementById("visuais");
+    caixa.classList.toggle("viz-apagando", !!id);
+    Array.prototype.forEach.call(caixa.querySelectorAll(".ax-marca"), function (m) {
+      m.classList.toggle("is-realce", !!id && m.dataset.ponto === id);
+    });
+    if (!id) dicaViz.esconder();
+  }
+
+
+  /* ----- Cartões ----- */
+
+  function montarKpis() {
+    var pts = classificadosVisiveis();
+    var caixa = document.getElementById("kpis");
+    caixa.innerHTML = "";
+
+    var acima = pts.filter(function (p) { return p.estado === "acima_do_limite"; });
+    var banda = pts.filter(function (p) { return p.estado === "banda_de_incerteza"; });
+
+    var pior = null;
+    pts.forEach(function (p) { if (!pior || p.margem_c < pior.margem_c) pior = p; });
+
+    // Subsistema mais crítico é o de maior proporção acima, e não o de maior
+    // contagem: sete pontos de um subsistema de trinta e sete não é o mesmo
+    // que seis de oito.
+    var porArea = {};
+    pts.forEach(function (p) {
+      var a = porArea[p.Key_Area] || (porArea[p.Key_Area] = { n: 0, acima: 0 });
+      a.n += 1;
+      if (p.estado === "acima_do_limite") a.acima += 1;
+    });
+    var critico = null;
+    Object.keys(porArea).forEach(function (a) {
+      var r = porArea[a].acima / porArea[a].n;
+      if (!critico || r > critico.r) critico = { area: a, r: r, d: porArea[a] };
+    });
+
+    function cartao(rotulo, valor, unidade, nota, classe) {
+      var c = el("div", "kpi" + (classe ? " " + classe : ""));
+      c.appendChild(el("span", "kpi__rotulo", rotulo));
+      var v = el("span", "kpi__valor", valor);
+      if (unidade) v.appendChild(el("small", null, unidade));
+      c.appendChild(v);
+      c.appendChild(el("span", "kpi__nota", nota));
+      return c;
+    }
+
+    caixa.appendChild(cartao("Acima do limite", String(acima.length),
+      "de " + pts.length, "pontos com previsão acima do próprio limite",
+      acima.length ? "kpi--alerta" : null));
+
+    caixa.appendChild(cartao("Inconclusivos", String(banda.length),
+      "na banda", "folga menor que a tolerância de exibição",
+      banda.length ? "kpi--atencao" : null));
+
+    caixa.appendChild(cartao("Pior folga",
+      pior ? pior.margem_c.toFixed(1) : "—", "°C",
+      pior ? pior.TC_Name : "sem pontos no recorte",
+      pior && pior.margem_c < 0 ? "kpi--alerta" : null));
+
+    caixa.appendChild(cartao("Subsistema mais crítico",
+      critico ? (critico.r * 100).toFixed(0) : "—", "%",
+      critico ? critico.area + " · " + critico.d.acima + " de " + critico.d.n + " acima" : "—",
+      critico && critico.r > 0 ? "kpi--alerta" : null));
+  }
+
+
+  /* ----- Ranking de folga -----
+     Folga, e não temperatura absoluta: saber que a bobina fica muito quente não diz
+     nada sozinho; saber que ela fica acima do próprio limite, e por quanto, diz
+     tudo. A folga já traz o limite embutido, e é o que permite pôr numa
+     escala só pontos cujos limites são muito diferentes entre si. */
+
+  function desenharRanking() {
+    GRAFICO.limpar(svgRanking);
+
+    var pts = classificadosVisiveis().slice();
+    var ORDEM = { acima_do_limite: 0, banda_de_incerteza: 1, dentro_do_limite: 2 };
+    pts.sort(function (a, b) {
+      return ORDEM[a.estado] - ORDEM[b.estado] || a.margem_percentual - b.margem_percentual;
+    });
+
+    var total = pts.length;
+    var mostrados = rankingTodos ? pts : pts.slice(0, RANKING_TOPO);
+
+    var ML = 186, MR = 62, MT = 40, MB = 12, ALT = 20;
+    var LARG = 880, PW = LARG - ML - MR;
+    var H = MT + Math.max(1, mostrados.length) * ALT + MB;
+
+    svgRanking.setAttribute("viewBox", "0 0 " + LARG + " " + H);
+    svgRanking.setAttribute("height", H);
+
+    var botao = document.getElementById("viz-ranking-todos");
+    botao.hidden = total <= RANKING_TOPO;
+    botao.textContent = rankingTodos
+      ? "Ver só os " + RANKING_TOPO + " piores"
+      : "Ver todos os " + total;
+
+    if (!mostrados.length) {
+      svgRanking.appendChild(GRAFICO.texto(ML, MT + 16,
+        "Nenhum ponto atende aos filtros ativos.", "ax-text"));
+      return;
+    }
+
+    // Escala fixa nos 68, e não no recorte: assim a mesma folga ocupa sempre
+    // o mesmo lugar, e dois recortes se comparam.
+    var lo = 0, hi = 0;
+    DADOS_TRIAGEM.pontos.forEach(function (p) {
+      lo = Math.min(lo, p.margem_percentual);
+      hi = Math.max(hi, p.margem_percentual);
+    });
+    lo -= 0.04; hi += 0.04;
+
+    var X = GRAFICO.eixoDeFolga(svgRanking, {
+      lo: lo, hi: hi, x0: ML, largura: PW,
+      topo: MT - 12, base: H - MB, yRotulo: MT - 18,
+      tolerancia: DADOS_TRIAGEM.tolerancia_fracao
+    });
+    svgRanking.appendChild(GRAFICO.texto(ML, 14, "FOLGA RELATIVA AO LIMITE", "ax-rotulo"));
+
+    var zero = X(0);
+    mostrados.forEach(function (p, k) {
+      var y = MT + k * ALT + ALT / 2;
+      var cx = X(p.margem_percentual);
+
+      svgRanking.appendChild(GRAFICO.el("rect", {
+        x: 0, y: y - ALT / 2, width: LARG, height: ALT,
+        "class": k % 2 === 1 ? "ax-faixa-alt" : "ax-hit"
+      }));
+
+      // A haste sai do limite e vai até a folga: o comprimento é a distância
+      // do ponto à fronteira que decide.
+      var haste = GRAFICO.el("line", {
+        x1: zero, y1: y, x2: cx, y2: y, "class": "desl-linha"
+      });
+      haste.style.stroke = rampaAtual()[FOGAO.faixaDaRampa(p.margem_percentual)];
+      haste.style.opacity = "0.55";
+      svgRanking.appendChild(haste);
+
+      svgRanking.appendChild(marcaDoPonto(p, cx, y));
+
+      svgRanking.appendChild(GRAFICO.texto(ML - 12, y + 3.5,
+        GRAFICO.corta(p.TC_Name, 28),
+        p.measurement_id === mapa.sel ? "ax-text ax-text--forte" : "ax-text", "end"));
+      svgRanking.appendChild(GRAFICO.texto(ML + PW + 8, y + 3.5,
+        p.margem_c.toFixed(1), "ax-text", "start"));
+    });
+  }
+
+
+  /* ----- Previsto contra limite -----
+     Mesma figura da Seção 4.2.1 da documentação, que o parceiro já leu com
+     dados medidos: a reta onde a previsão iguala o limite, e todo ponto
+     acima dela ultrapassa o próprio limite. Aqui ela volta com a previsão no
+     lugar da medição, o que mantém a mesma linguagem visual entre a
+     exploração e o painel. */
+
+  function desenharCriterio() {
+    GRAFICO.limpar(svgCritério);
+
+    var pts = classificadosVisiveis();
+    var ML = 58, MR = 20, MT = 34, MB = 46;
+    var LARG = 660, ALT = 500;
+    var PW = LARG - ML - MR, PH = ALT - MT - MB;
+
+    svgCritério.setAttribute("viewBox", "0 0 " + LARG + " " + ALT);
+    svgCritério.setAttribute("height", ALT);
+
+    var maxLim = 0, maxTemp = 0;
+    DADOS_TRIAGEM.pontos.forEach(function (p) {
+      maxLim = Math.max(maxLim, p.limit_c);
+      maxTemp = Math.max(maxTemp, p.temperatura_prevista_c);
+    });
+    var topo = Math.ceil(Math.max(maxLim, maxTemp) / 50) * 50;
+
+    function X(v) { return ML + v / topo * PW; }
+    function Y(v) { return MT + PH - v / topo * PH; }
+
+    for (var t = 0; t <= topo; t += 50) {
+      svgCritério.appendChild(GRAFICO.el("line",
+        { x1: X(t), y1: MT, x2: X(t), y2: MT + PH, "class": "ax-line" }));
+      svgCritério.appendChild(GRAFICO.el("line",
+        { x1: ML, y1: Y(t), x2: ML + PW, y2: Y(t), "class": "ax-line" }));
+      svgCritério.appendChild(GRAFICO.texto(X(t), MT + PH + 14, String(t), "ax-text", "middle"));
+      svgCritério.appendChild(GRAFICO.texto(ML - 6, Y(t) + 3.5, String(t), "ax-text", "end"));
+    }
+
+    /* A banda entre a reta do limite e 90% dela é a banda de incerteza vista
+       neste par de eixos: abaixo dela o ponto está dentro, dentro dela a
+       folga não supera a tolerância, acima dela ultrapassa o limite. */
+    var tol = DADOS_TRIAGEM.tolerancia_fracao;
+    svgCritério.appendChild(GRAFICO.el("path", {
+      d: "M" + X(0) + " " + Y(0) + " L" + X(topo) + " " + Y(topo) +
+         " L" + X(topo) + " " + Y(topo * (1 - tol)) + " Z",
+      "class": "ax-band"
+    }));
+
+    svgCritério.appendChild(GRAFICO.el("line", {
+      x1: X(0), y1: Y(0), x2: X(topo), y2: Y(topo), "class": "ax-zero"
+    }));
+
+    svgCritério.appendChild(GRAFICO.texto(X(topo) - 6, Y(topo) + 16,
+      "previsão = limite", "ax-text ax-text--forte", "end"));
+    svgCritério.appendChild(GRAFICO.texto(ML, MT - 10,
+      "TEMPERATURA PREVISTA (°C)", "ax-rotulo"));
+    svgCritério.appendChild(GRAFICO.texto(ML + PW, ALT - 8,
+      "LIMITE DECLARADO (°C)", "ax-rotulo", "end"));
+    svgCritério.appendChild(GRAFICO.texto(ML, ALT - 8,
+      "acima da reta = ultrapassa o limite", "ax-text ax-text--eixo"));
+
+    pts.forEach(function (p) {
+      svgCritério.appendChild(marcaDoPonto(p,
+        X(p.limit_c), Y(p.temperatura_prevista_c), 0.85));
+    });
+  }
+
+
+  /* ----- Dispersão por subsistema -----
+     Onde o risco se concentra. A caixa de quartis dá a leitura de grupo que
+     um diagrama de caixa daria; os pontos por cima ficam porque com 68
+     observações esconder cada uma atrás de um resumo custa mais do que
+     ganha. */
+
+  function desenharSubsistema() {
+    GRAFICO.limpar(svgSubsistema);
+
+    var visiveis = classificadosVisiveis();
+    var ML = 148, MR = 26, MT = 40, MB = 12;
+    var LARG = 880, PW = LARG - ML - MR;
+
+    if (!visiveis.length) {
+      svgSubsistema.setAttribute("viewBox", "0 0 " + LARG + " 70");
+      svgSubsistema.setAttribute("height", 70);
+      svgSubsistema.appendChild(GRAFICO.texto(ML, 40,
+        "Nenhum ponto atende aos filtros ativos.", "ax-text"));
+      return;
+    }
+
+    var lo = 0, hi = 0;
+    DADOS_TRIAGEM.pontos.forEach(function (p) {
+      lo = Math.min(lo, p.margem_percentual);
+      hi = Math.max(hi, p.margem_percentual);
+    });
+    lo -= 0.04; hi += 0.04;
+
+    var porArea = {};
+    visiveis.forEach(function (p) { (porArea[p.Key_Area] = porArea[p.Key_Area] || []).push(p); });
+    var areas = Object.keys(porArea).sort(function (a, b) {
+      return porArea[b].length - porArea[a].length;
+    });
+
+    var PASSO = 11, RAIO = 13;
+    var faixas = areas.map(function (area) {
+      var xs = porArea[area].map(function (p) { return p.margem_percentual; });
+      var desvios = GRAFICO.enxame(xs, RAIO / PW * (hi - lo), PASSO);
+      var extremo = desvios.reduce(function (m, d) { return Math.max(m, Math.abs(d)); }, 0);
+      return { area: area, pontos: porArea[area], desvios: desvios, altura: Math.max(38, extremo * 2 + 26) };
+    });
+
+    var H = MT + faixas.reduce(function (t, f) { return t + f.altura; }, 0) + MB;
+    svgSubsistema.setAttribute("viewBox", "0 0 " + LARG + " " + H);
+    svgSubsistema.setAttribute("height", H);
+
+    var X = GRAFICO.eixoDeFolga(svgSubsistema, {
+      lo: lo, hi: hi, x0: ML, largura: PW,
+      topo: MT - 12, base: H - MB, yRotulo: MT - 18,
+      tolerancia: DADOS_TRIAGEM.tolerancia_fracao
+    });
+    svgSubsistema.appendChild(GRAFICO.texto(ML, 14, "FOLGA RELATIVA AO LIMITE", "ax-rotulo"));
+
+    function quantil(ordenados, q) {
+      var i = (ordenados.length - 1) * q, b = Math.floor(i), r = i - b;
+      return ordenados[b + 1] !== undefined
+        ? ordenados[b] + (ordenados[b + 1] - ordenados[b]) * r
+        : ordenados[b];
+    }
+
+    var y = MT;
+    faixas.forEach(function (f, k) {
+      var meio = y + f.altura / 2;
+      var isolado = mapa.isolar === "todos" || mapa.isolar === f.area;
+
+      if (k % 2 === 1) {
+        svgSubsistema.appendChild(GRAFICO.el("rect",
+          { x: 0, y: y, width: LARG, height: f.altura, "class": "ax-faixa-alt" }));
+      }
+
+      var g = GRAFICO.el("g", isolado ? {} : { "class": "ax-recuado" });
+
+      var xs = f.pontos.map(function (p) { return p.margem_percentual; })
+        .sort(function (a, b) { return a - b; });
+      if (xs.length >= 4) {
+        var q1 = X(quantil(xs, 0.25)), q3 = X(quantil(xs, 0.75)), med = X(quantil(xs, 0.5));
+        var caixa = GRAFICO.el("rect", {
+          x: q1, y: meio - 9, width: Math.max(1, q3 - q1), height: 18, rx: 1
+        });
+        caixa.style.fill = "none";
+        caixa.style.stroke = "var(--wp-gray-medium)";
+        caixa.style.strokeWidth = "1";
+        g.appendChild(caixa);
+        var mediana = GRAFICO.el("line", { x1: med, y1: meio - 9, x2: med, y2: meio + 9 });
+        mediana.style.stroke = "var(--wp-gray-dark)";
+        mediana.style.strokeWidth = "1.6";
+        g.appendChild(mediana);
+      }
+
+      var acima = f.pontos.filter(function (p) { return p.estado === "acima_do_limite"; }).length;
+      g.appendChild(GRAFICO.texto(ML - 12, meio - 1, f.area,
+        isolado && mapa.isolar !== "todos" ? "ax-text ax-text--forte" : "ax-text", "end"));
+      g.appendChild(GRAFICO.texto(ML - 12, meio + 11,
+        acima + " acima de " + f.pontos.length, "ax-text ax-text--eixo", "end"));
+
+      f.pontos.forEach(function (p, i) {
+        g.appendChild(marcaDoPonto(p, X(p.margem_percentual), meio + f.desvios[i]));
+      });
+
+      svgSubsistema.appendChild(g);
+      y += f.altura;
+    });
+  }
+
+
+  function desenharVisuais() {
+    montarKpis();
+    desenharRanking();
+    desenharCriterio();
+    desenharSubsistema();
+  }
 
   /* ----- Mapa de calor ----- */
 
@@ -275,6 +692,7 @@
         mapa.isolar = linha[0];
         montarSubsistemas();
         redesenharCalor();
+        desenharVisuais();
       });
       caixa.appendChild(b);
     });
@@ -329,7 +747,7 @@
         linhaDetalhe("Folga", "—", true) +
         linhaDetalhe("Estado de risco", "não se aplica", true) + "</dl>" +
         "<p class=\"legend-note\">Ponto acompanhado sem limite declarado. Não recebe " +
-        "estado nem entra na escala (RN-03).</p>";
+        "estado nem entra na escala.</p>";
     } else {
       var tol = DADOS_TRIAGEM.tolerancia_fracao * p.limit_c;
       html += linhaDetalhe("Limite do componente", p.limit_c.toFixed(2) + " °C") +
@@ -355,6 +773,7 @@
     mapa.sel = p ? p.measurement_id : null;
     mostrarDetalhe(p);
     redesenharCalor();
+    desenharVisuais();
 
     Object.keys(linhaPorId).forEach(function (id) {
       linhaPorId[id].classList.toggle("row--selected", id === mapa.sel);
@@ -476,6 +895,7 @@
     document.getElementById("filter-clear").hidden = !ativo;
 
     redesenharCalor();
+    desenharVisuais();
   }
 
   function montarLegendaDoCampo(info) {
@@ -616,6 +1036,7 @@
       });
       if (chave === "escala") montarRampa();
       redesenharCalor();
+      desenharVisuais();
     });
   }
 
@@ -642,6 +1063,21 @@
     });
 
     document.getElementById("filter-clear").addEventListener("click", limparFiltros);
+
+    dicaViz = GRAFICO.balao(
+      document.querySelector("#visuais .chart__frame"),
+      document.getElementById("viz-tip"));
+
+    document.getElementById("viz-ranking-todos").addEventListener("click", function () {
+      rankingTodos = !rankingTodos;
+      desenharRanking();
+    });
+
+    document.getElementById("viz-mono-count").textContent = DADOS_TRIAGEM.total_monitoramento;
+    // A faixa de KPIs mora no topo da página, e não mais dentro de `visuais`.
+    document.getElementById("kpis").hidden = false;
+    document.getElementById("visuais").hidden = false;
+    desenharVisuais();
 
     orbita = FOGAO.orbita(svgCalor, function () {
       document.getElementById("heat-reset").hidden = !orbita.girado();
@@ -784,14 +1220,21 @@
   function renderConfiguracao(config, veioDaUrl) {
     var lista = document.getElementById("config-list");
 
+    // Cada fator num bloco próprio: a lista é grade, e não nove linhas
+    // empilhadas empurrando o mapa para fora da tela.
     linhasDaConfiguracao(config).forEach(function (linha) {
+      var item = document.createElement("div");
+      item.className = "cfg-item";
+
       var dt = document.createElement("dt");
       dt.textContent = linha[0];
-      lista.appendChild(dt);
+      item.appendChild(dt);
 
       var dd = document.createElement("dd");
       dd.textContent = linha[1];
-      lista.appendChild(dd);
+      item.appendChild(dd);
+
+      lista.appendChild(item);
     });
 
     document.getElementById("config-default-note").hidden = veioDaUrl;

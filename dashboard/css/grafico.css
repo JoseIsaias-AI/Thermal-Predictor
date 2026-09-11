@@ -1,0 +1,265 @@
+/* Primitivas dos desenhos em SVG, comuns à triagem e à comparação.
+ *
+ * Ficam aqui, e não na folha de cada tela, porque o eixo de folga é o mesmo
+ * nas duas: a fronteira do limite, a banda de incerteza e a escala precisam
+ * ter exatamente a mesma aparência, ou a leitura de uma tela não transfere
+ * para a outra. Cores e tipografia vêm de tokens.css.
+ */
+
+/* ----- Barra de alternância de vista ----- */
+
+.view-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+}
+
+/* ----- Moldura do desenho ----- */
+
+.chart[hidden] { display: none; }
+
+.chart__frame { position: relative; }
+
+.chart__scroll {
+  overflow-x: auto;
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+}
+
+.chart__svg { display: block; max-width: 100%; }
+
+.chart__note {
+  font-size: var(--size-kicker);
+  color: var(--color-text-muted);
+  margin: var(--space-2) 0 0;
+}
+
+/* ----- Eixos -----
+   O traço mais fino que ainda se lê: a moldura não pode competir com o dado.
+   O zero é a única linha que engrossa, porque é a fronteira que decide. */
+
+.ax-line { stroke: var(--color-border); stroke-width: 1; }
+.ax-zero { stroke: var(--wp-near-black); stroke-width: 1.2; }
+.ax-band { fill: var(--color-surface-accent); }
+
+.ax-text {
+  font-family: var(--font-body);
+  font-size: 10px;
+  fill: var(--color-text-muted);
+}
+
+.ax-text--forte { fill: var(--color-text); font-weight: var(--weight-semibold); }
+.ax-text--eixo { font-size: 9.5px; fill: var(--wp-gray-medium); }
+
+.ax-rotulo {
+  font-family: var(--font-display);
+  font-size: 9px;
+  font-weight: var(--weight-bold);
+  letter-spacing: var(--tracking-kicker);
+  fill: var(--color-text-muted);
+}
+
+/* Área sensível ao ponteiro: invisível, mas é ela que ancora o balão. */
+.ax-hit { fill: transparent; }
+
+/* ----- Marcas ----- */
+
+/* O segmento que liga dois valores do mesmo ponto de medição. */
+.desl-linha { stroke-width: 1.6; }
+.desl-faixa:hover .ax-hit { fill: var(--color-surface-sunken); }
+
+.malha-celula { cursor: default; }
+
+/* Marca clicável: na triagem o desenho é uma terceira porta para a mesma
+   seleção que a tabela e o modelo já abrem. */
+.ax-marca { cursor: pointer; }
+.ax-faixa-alt { fill: var(--color-surface-sunken); }
+
+/* Subsistema fora do isolamento: continua desenhado, e apenas recua. */
+.ax-recuado { opacity: 0.28; }
+
+/* ----- Cartões de leitura rápida -----
+   Um número grande e o que ele nomeia. Nada de velocímetro nem de rosca: se
+   a informação é um número, quem a comunica melhor é o próprio número. */
+
+.kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+  gap: var(--space-3);
+  margin-bottom: var(--space-5);
+}
+
+/* `display: grid` vence o atributo `hidden` sozinho. */
+.kpis[hidden] { display: none; }
+
+.kpi {
+  border: var(--border-width) solid var(--color-border);
+  border-top: 3px solid var(--color-border-strong);
+  border-radius: var(--radius);
+  padding: var(--space-3) var(--space-4) var(--space-4);
+  min-width: 0;
+}
+
+/* Contagem acima do limite é o único número desta faixa que muda a decisão
+   de hoje, e é o único que sai do neutro. */
+.kpi--alerta {
+  border-top-color: var(--color-critical);
+  background: var(--color-critical-bg);
+}
+
+.kpi--alerta .kpi__rotulo,
+.kpi--alerta .kpi__valor,
+.kpi--alerta .kpi__nota { color: var(--color-critical); }
+
+.kpi--atencao { border-top-color: var(--color-accent); }
+.kpi--atencao .kpi__valor { color: var(--color-accent); }
+
+.kpi__rotulo {
+  display: block;
+  font-family: var(--font-display);
+  font-weight: var(--weight-bold);
+  font-size: var(--size-kicker);
+  letter-spacing: var(--tracking-kicker);
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+  margin-bottom: var(--space-1);
+}
+
+.kpi__valor {
+  display: block;
+  font-family: var(--font-display);
+  font-weight: var(--weight-light);
+  font-size: var(--size-metric);
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+
+.kpi__valor small {
+  font-size: 0.9rem;
+  font-weight: var(--weight-regular);
+  color: var(--color-text-muted);
+  margin-left: var(--space-1);
+}
+
+.kpi__nota {
+  display: block;
+  font-size: var(--size-kicker);
+  color: var(--color-text-muted);
+  margin-top: var(--space-2);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ----- Pilha de desenhos ----- */
+
+.viz { margin-top: var(--space-5); }
+
+.viz__titulo {
+  font-family: var(--font-body);
+  font-weight: var(--weight-semibold);
+  font-size: var(--size-small);
+  letter-spacing: var(--tracking-subhead);
+  text-transform: uppercase;
+  color: var(--color-text);
+  margin: 0 0 var(--space-1);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-2) var(--space-3);
+}
+
+.viz__sub {
+  font-weight: var(--weight-regular);
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--color-text-muted);
+  font-size: var(--size-kicker);
+}
+
+.viz__acao {
+  margin-left: auto;
+  font-family: var(--font-body);
+  font-size: var(--size-kicker);
+  color: var(--color-accent);
+  background: none;
+  border: var(--border-width) solid var(--color-border-strong);
+  border-radius: var(--radius);
+  padding: 1px var(--space-2);
+  cursor: pointer;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.viz__acao:hover { background: var(--color-surface-accent); }
+.viz__acao:focus-visible { outline: 2px solid var(--color-focus-ring); outline-offset: 1px; }
+
+/* Dois desenhos lado a lado quando a tela permite: eles se leem juntos. */
+.viz-par {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(26rem, 1fr));
+  gap: var(--space-5);
+}
+
+/* ----- Entrada -----
+   O desenho aparece em vez de piscar. É a única animação da tela, e ela
+   existe para dar continuidade quando o filtro troca o conteúdo. */
+
+@keyframes viz-entra {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: none; }
+}
+
+.chart__svg { animation: viz-entra 260ms ease-out both; }
+
+@media (prefers-reduced-motion: reduce) {
+  .chart__svg { animation: none; }
+}
+
+/* ----- Realce ligado -----
+   O mesmo ponto sob o ponteiro acende em todos os desenhos ao mesmo tempo.
+   É o que transforma quatro figuras soltas em um instrumento só. */
+
+.ax-marca { transition: opacity 120ms ease-out; }
+.viz-apagando .ax-marca:not(.is-realce) { opacity: 0.25; }
+.ax-marca.is-realce { stroke: var(--wp-blue-accent) !important; stroke-width: 2.4 !important; }
+
+.ax-guia { stroke: var(--wp-blue-accent); stroke-width: 1; stroke-dasharray: 3 3; }
+.ax-anotacao { font-family: var(--font-body); font-size: 10px; fill: var(--color-text); }
+
+/* ----- Coordenadas paralelas ----- */
+
+.pc-linha { fill: none; stroke-width: 1.1; transition: opacity 140ms ease-out; }
+.pc-linha--fora { opacity: 0.06; }
+.pc-linha--contexto { stroke: var(--wp-gray-medium); opacity: 0.42; }
+.pc-linha--sel { stroke-width: 2.6; opacity: 1; }
+.pc-linha--alvo { cursor: pointer; stroke: transparent; stroke-width: 9; fill: none; }
+
+.pc-eixo { stroke: var(--color-border-strong); stroke-width: 1; }
+.pc-faixa { fill: var(--color-accent); opacity: 0.13; }
+.pc-pega { fill: transparent; cursor: crosshair; }
+/* Halo do fundo atrás do rótulo: o eixo passa por dentro do texto, e sem
+   isso a linha corta as letras. */
+.pc-nivel {
+  font-family: var(--font-body);
+  font-size: 9.5px;
+  fill: var(--color-text-muted);
+  paint-order: stroke;
+  stroke: var(--color-surface);
+  stroke-width: 3px;
+  stroke-linejoin: round;
+}
+
+.pc-cabeca {
+  font-family: var(--font-display);
+  font-size: 9px;
+  font-weight: var(--weight-bold);
+  letter-spacing: var(--tracking-kicker);
+  fill: var(--color-text);
+}
+
+.pc-cabeca--resposta { fill: var(--color-accent); }

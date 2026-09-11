@@ -1,0 +1,358 @@
+/* Tela de engenharia: memória de cálculo da triagem.
+ * Complementa app.css e triagem.css; cores e tipografia vêm de tokens.css.
+ *
+ * A tela é de leitura, não de operação: não há controle nem seleção aqui.
+ * Por isso o vocabulário é o de documento, e reaproveita `panel`,
+ * `panel__note` e `data-table` das outras telas em vez de criar equivalentes.
+ */
+
+/* ----- Abertura da tela -----
+ * Uma linha dizendo o que se decide aqui, e o estado do modelo à direita. */
+
+.page-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-5);
+  flex-wrap: wrap;
+  margin-bottom: var(--space-4);
+}
+
+.page-head__kicker {
+  font-family: var(--font-display);
+  font-weight: var(--weight-bold);
+  font-size: var(--size-kicker);
+  letter-spacing: var(--tracking-kicker);
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+  margin: 0 0 2px;
+}
+
+.page-head__lead {
+  margin: 0;
+  font-size: var(--size-small);
+  color: var(--color-text-muted);
+}
+
+.status-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex: none;
+  padding: var(--space-2) var(--space-3);
+  background: var(--color-surface-sunken);
+  border: var(--border-width) solid var(--color-border-strong);
+  border-radius: var(--radius);
+  font-size: var(--size-kicker);
+  font-weight: var(--weight-semibold);
+  color: var(--wp-charcoal);
+}
+
+/* ----- Critério de aceitação ----- */
+
+/* Duas exigências lado a lado, porque a leitura correta é justamente que são
+   independentes: uma coluna só sugeriria sequência ou hierarquia. */
+.criteria {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr));
+  gap: var(--space-4);
+  margin-bottom: var(--space-4);
+}
+
+.criterion {
+  border: var(--border-width) solid var(--color-border);
+  border-left: 3px solid var(--color-accent);
+  border-radius: var(--radius);
+  padding: var(--space-4);
+}
+
+.criterion__title {
+  font-family: var(--font-display);
+  font-weight: var(--weight-bold);
+  font-size: var(--size-kicker);
+  letter-spacing: var(--tracking-kicker);
+  text-transform: uppercase;
+  color: var(--color-accent);
+  margin: 0 0 var(--space-2);
+}
+
+.criterion__statement {
+  margin: 0 0 var(--space-3);
+  font-size: var(--size-small);
+  line-height: var(--leading-body);
+}
+
+.criterion__meta {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: var(--space-1) var(--space-3);
+  margin: 0;
+  font-size: var(--size-kicker);
+}
+
+.criterion__meta dt { color: var(--color-text-muted); }
+.criterion__meta dd { margin: 0; }
+
+/* Pendência é estado declarado, não falha: sem cor de alerta. */
+.criterion__meta dd.is-pending {
+  font-weight: var(--weight-semibold);
+  color: var(--wp-charcoal);
+}
+
+/* ----- Números de destaque ----- */
+
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+  gap: var(--space-4);
+  margin: 0 0 var(--space-4);
+  padding: 0;
+}
+
+/* Estes números são a leitura da tela, e não uma nota dentro dela: ficavam
+   no mesmo corpo dos parágrafos ao redor, e sumiam no meio da prosa. */
+.stat {
+  border: var(--border-width) solid var(--color-border);
+  border-top: 3px solid var(--color-accent);
+  border-radius: var(--radius);
+  padding: var(--space-3) var(--space-4) var(--space-4);
+}
+
+/* Cobertura abaixo do exigido é o número que trava a entrega. */
+.stat--gap {
+  border-top-color: var(--color-critical);
+}
+
+.stat--gap .stat__value { color: var(--color-critical); }
+
+.stat dt {
+  font-family: var(--font-display);
+  font-weight: var(--weight-bold);
+  font-size: var(--size-kicker);
+  letter-spacing: var(--tracking-kicker);
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+  margin-bottom: var(--space-2);
+}
+
+.stat__value {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: var(--weight-light);
+  font-size: var(--size-display);
+  line-height: 1;
+  letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-accent);
+}
+
+/* Unidade menor que o número: a grandeza é o que se compara. */
+.stat__value span {
+  font-size: var(--size-subhead);
+  color: var(--color-text-muted);
+  margin-left: var(--space-1);
+}
+
+.stat__note {
+  margin: var(--space-2) 0 0;
+  font-size: var(--size-kicker);
+  color: var(--color-text-muted);
+}
+
+.stat-grid {
+  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+}
+
+/* ----- Hipóteses ----- */
+
+.hyp {
+  border-top: var(--border-width) solid var(--color-border);
+  padding-top: var(--space-4);
+  margin-top: var(--space-4);
+}
+
+.hyp:first-of-type { border-top: 0; padding-top: 0; margin-top: 0; }
+
+.hyp__code {
+  font-family: var(--font-display);
+  font-weight: var(--weight-bold);
+  font-size: var(--size-subhead);
+  color: var(--color-accent);
+  margin: 0 0 var(--space-2);
+}
+
+.hyp__code span {
+  font-weight: var(--weight-regular);
+  font-size: var(--size-kicker);
+  letter-spacing: var(--tracking-kicker);
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+  margin-left: var(--space-2);
+}
+
+.hyp__claim {
+  margin: 0 0 var(--space-3);
+  font-size: var(--size-small);
+  line-height: var(--leading-body);
+}
+
+.hyp__stats {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: var(--space-1) var(--space-4);
+  margin: 0 0 var(--space-3);
+  padding: var(--space-3);
+  background: var(--color-surface-sunken);
+  border-radius: var(--radius);
+  font-size: var(--size-kicker);
+}
+
+.hyp__stats dt { color: var(--color-text-muted); }
+.hyp__stats dd { margin: 0; font-variant-numeric: tabular-nums; }
+
+.hyp__note,
+.hyp__impact {
+  margin: 0 0 var(--space-2);
+  font-size: var(--size-small);
+  color: var(--color-text-muted);
+  line-height: var(--leading-body);
+}
+
+/* A consequência para a modelagem é o que o engenheiro leva desta seção, e
+   por isso fica em tom de texto normal, não de nota. */
+.hyp__impact {
+  color: var(--color-text);
+  border-left: 3px solid var(--color-border-strong);
+  padding-left: var(--space-3);
+}
+
+.hyp .table-scroll { margin-bottom: var(--space-3); }
+
+/* ----- Painéis que aguardam o modelo ----- */
+
+/* Contorno tracejado: o mesmo recurso que a tela de triagem usa para o bloco
+   de monitoramento, e que aqui diz que o conteúdo ainda não existe. */
+.panel--pending { border-style: dashed; }
+
+.pending-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+  gap: var(--space-4);
+  margin-bottom: var(--space-4);
+}
+
+.pending {
+  border: var(--border-width) dashed var(--color-border-strong);
+  border-radius: var(--radius);
+  padding: var(--space-4);
+}
+
+.pending__title {
+  font-family: var(--font-body);
+  font-weight: var(--weight-semibold);
+  font-size: var(--size-small);
+  color: var(--color-text);
+  margin: 0;
+}
+
+/* O travessão ocupa o lugar do número e mantém a altura do cartão, para a
+   grade não pular quando os valores chegarem. */
+.pending__value {
+  font-family: var(--font-display);
+  font-weight: var(--weight-light);
+  font-size: 1.75rem;
+  line-height: 1.1;
+  color: var(--wp-gray-medium);
+  margin: var(--space-2) 0;
+}
+
+.pending__def {
+  margin: 0 0 var(--space-2);
+  font-size: var(--size-kicker);
+  color: var(--color-text-muted);
+  line-height: 1.5;
+}
+
+.pending__target {
+  margin: 0;
+  font-size: var(--size-kicker);
+  font-weight: var(--weight-semibold);
+  color: var(--wp-charcoal);
+}
+
+/* ----- Gráficos -----
+ *
+ * Desenhados em SVG por js/engenharia.js. Sem preenchimento decorativo, sem
+ * sombra e sem gradiente: cada traço do gráfico carrega um valor. As cores
+ * saem dos mesmos tokens do restante do painel, e a paleta do guia não admite
+ * amarelo, laranja nem verde em destaque.
+ */
+
+.chart-figure {
+  margin: 0 0 var(--space-4);
+}
+
+/* O viewBox tem proporção fixa e a largura acompanha a coluna: os gráficos
+   são pequenos e não ganham nada em esticar além da largura de leitura. */
+.chart {
+  display: block;
+  width: 100%;
+  max-width: 34rem;
+  height: auto;
+  overflow: visible;
+}
+
+.chart-figure figcaption {
+  margin-top: var(--space-2);
+  font-size: var(--size-kicker);
+  color: var(--color-text-muted);
+  line-height: 1.5;
+  max-width: 34rem;
+}
+
+/* Três papéis de texto dentro do gráfico: rótulo de eixo, rótulo de série e
+   valor. O valor é o único em peso semibold, para a leitura cair nele. */
+.chart__label {
+  font-family: var(--font-body);
+  font-size: 10px;
+  fill: var(--color-text-muted);
+}
+
+.chart__label--forte {
+  fill: var(--wp-near-black);
+  font-weight: var(--weight-semibold);
+}
+
+.chart__valor {
+  font-family: var(--font-body);
+  font-size: 11px;
+  font-weight: var(--weight-semibold);
+  fill: var(--color-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.chart__eixo {
+  font-family: var(--font-body);
+  font-size: 9.5px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  fill: var(--wp-gray-medium);
+}
+
+.chart__foot {
+  font-family: var(--font-body);
+  font-size: 10px;
+  fill: var(--color-text-muted);
+}
+
+/* ----- Código embutido no texto ----- */
+
+code {
+  font-family: var(--font-mono);
+  font-size: 0.92em;
+  background: var(--color-surface-sunken);
+  padding: 1px 4px;
+  border-radius: var(--radius);
+}
+
+.data-table code { background: none; padding: 0; }
