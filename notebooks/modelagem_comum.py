@@ -68,8 +68,15 @@ def configurar_graficos():
 
 
 def caminho_dado(nome):
-    """Procura um arquivo no diretório de trabalho e no diretório acima."""
-    for raiz in (".", ".."):
+    """Procura um arquivo perto do diretório de trabalho e da pasta `notebooks/`.
+
+    Os notebooks ficam em subpastas por fase do CRISP-DM, e os CSVs de dados ficam em
+    `notebooks/`. As raízes cobrem execução a partir da subpasta, de `notebooks/` ou da raiz do
+    repositório, além da própria pasta deste módulo, que é o caso do Colab.
+    """
+    aqui = os.path.dirname(os.path.abspath(__file__))
+
+    for raiz in (".", "..", os.path.join("..", ".."), "notebooks", aqui):
         destino = os.path.join(raiz, nome)
 
         if os.path.isfile(destino):
@@ -80,7 +87,7 @@ def caminho_dado(nome):
 
 def salvar_figura(fig, nome):
     """Grava a figura na pasta de imagens da documentação."""
-    for raiz in (".", ".."):
+    for raiz in (".", "..", os.path.join("..", ".."), os.path.join("..", "..", "..")):
         destino = os.path.join(raiz, "documents", "assets documentacao")
 
         if os.path.isdir(destino):
