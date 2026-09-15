@@ -14,7 +14,6 @@ from joblib import Parallel, delayed
 from sklearn.ensemble import GradientBoostingRegressor, RandomForestRegressor
 from sklearn.linear_model import Ridge
 from sklearn.metrics import confusion_matrix, mean_squared_error, r2_score
-from sklearn.model_selection import GroupKFold
 
 SEMENTE = 42
 
@@ -199,12 +198,29 @@ def resumo_divisao(base, treino, teste):
 
 
 def particoes_de_validacao(base, indices, n_particoes=PARTICOES_VALIDACAO):
-    """Validação cruzada dentro de `indices`, agrupada por configuração, em índices globais."""
-    grupos = base["configuracao"].to_numpy()[indices]
-    divisor = GroupKFold(n_splits=n_particoes)
+    """Validação cruzada dentro de `indices`, agrupada por configuração, em índices globais.
 
-    return [(indices[a], indices[b])
-            for a, b in divisor.split(np.zeros(len(indices)), groups=grupos)]
+    Segue a regra do `GroupKFold` do scikit-learn: as configurações entram da maior para a menor, e
+    cada uma vai para a partição com menos medições até ali. A regra fica escrita aqui porque as
+    versões recentes do scikit-learn trocaram a ordem de desempate entre configurações com o mesmo
+    número de medições, que são comuns nesta base, e passaram a montar outras partições, com outras
+    métricas de validação. O desempate abaixo é o da versão em que os notebooks foram executados, e
+    mantém as métricas publicadas na documentação iguais em qualquer versão instalada.
+    """
+    grupos = base["configuracao"].to_numpy()[indices]
+    configuracoes, grupo_de = np.unique(grupos, return_inverse=True)
+    tamanhos = np.bincount(grupo_de)
+    carga = np.zeros(n_particoes)
+    particao_da_configuracao = np.zeros(len(configuracoes), dtype=int)
+
+    for configuracao in np.argsort(tamanhos, kind="quicksort")[::-1]:
+        destino = int(np.argmin(carga))
+        carga[destino] += tamanhos[configuracao]
+        particao_da_configuracao[configuracao] = destino
+
+    particao = particao_da_configuracao[grupo_de]
+
+    return [(indices[particao != p], indices[particao == p]) for p in range(n_particoes)]
 
 
 # ------------------------------------------------------------------------------------------------
