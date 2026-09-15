@@ -200,12 +200,12 @@
     losses: null
   };
 
-  var svg = document.getElementById("fogao-svg");
+  var palco = document.getElementById("fogao-3d");
   var badge = document.getElementById("fogao-badge");
   var explodido = false;
   var destaque = null;
   var timerBadge = null;
-  var orbita = null;
+  var modelo = null;
 
   function rotuloDoNivel(fator, valor) {
     var achado = null;
@@ -280,12 +280,12 @@
     document.getElementById("form-fill").style.width = (n / 7 * 100) + "%";
     atualizarFaixa(input);
 
-    FOGAO.desenhar(svg, {
+    if (!modelo) return;
+    modelo.atualizar({
       nivel: nivel,
       modo: "montagem",
-      yaw: orbita ? orbita.valor() : 0,
-      elev: orbita ? orbita.elevacao() : null,
       explode: explodido,
+      defletor: input.deflector_hole === "Open" ? "open" : "closed",
       placa: input.board_position === "Right" ? "right" : "center",
       soprador: input.blower_direction === "To Back" ? "back" : input.blower_direction ? "front" : null,
       alojamento: input.housing && input.housing !== "Closed" ? "open" : "closed",
@@ -335,14 +335,18 @@
 
   buildForm();
 
-  // Arrastar o modelo gira; o botao so aparece quando ha o que reenquadrar.
-  orbita = FOGAO.orbita(svg, function () {
-    document.getElementById("reset-view").hidden = !orbita.girado();
-    redesenhar();
+  // Arrasto, roda, pinça, teclado e presets passam todos pela câmera do modelo 3D.
+  var presets = document.getElementById("view-preset");
+  modelo = FOGAO3D.criar(palco, {
+    aoMudarCamera: function (atual) {
+      Array.prototype.forEach.call(presets.querySelectorAll("button"), function (b) {
+        b.setAttribute("aria-pressed", String(b.dataset.preset === atual));
+      });
+    }
   });
-  document.getElementById("reset-view").addEventListener("click", function () {
-    orbita.zerar();
-    this.hidden = true;
+  presets.addEventListener("click", function (event) {
+    var botao = event.target.closest("button");
+    if (botao) modelo.preset(botao.dataset.preset);
   });
 
   redesenhar();

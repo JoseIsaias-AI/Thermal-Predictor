@@ -200,19 +200,32 @@
         </span>
         <span class="hint" id="occlusion-hint">Assentado oculta 48 dos 78 pontos</span>
         <button type="button" class="vbtn" id="heat-wide" hidden>Ver tudo</button>
-        <button type="button" class="vbtn" id="heat-reset" hidden>Reenquadrar</button>
         <span class="toggle" id="heat-view">
           <button type="button" data-view="pontos" aria-pressed="true">Pontos</button>
           <button type="button" data-view="campo" aria-pressed="false">Campo térmico</button>
         </span>
       </div>
 
+      <div class="viewport__bar viewport__bar--camera">
+        <span class="hint" style="flex:none">Câmera</span>
+        <span class="toggle" id="heat-preset" role="group" aria-label="Vistas de câmera">
+          <button type="button" data-preset="isometrica" aria-pressed="true">Isométrica</button>
+          <button type="button" data-preset="frontal" aria-pressed="false">Frontal</button>
+          <button type="button" data-preset="lateral" aria-pressed="false">Lateral</button>
+          <button type="button" data-preset="superior" aria-pressed="false">Superior</button>
+        </span>
+        <span class="hint">Roda ou pinça aproxima · setas giram</span>
+      </div>
+
       <!-- O palco recorta o desenho; o balão e o rodapé ficam fora do recorte
            para não serem cortados quando o modelo está aproximado. -->
       <div class="viewport__frame">
         <div class="viewport__stage">
-          <svg class="viewport__svg" id="heat-svg" role="img"
-               aria-label="Mapa de calor esquemático dos 78 pontos de medição sobre o fogão"></svg>
+          <div class="viewport__3d" id="heat-3d" role="application" tabindex="0"
+               aria-roledescription="modelo 3D navegável"
+               aria-label="Mapa de calor 3D dos 78 pontos de medição sobre o fogão"
+               aria-describedby="heat-teclas"></div>
+          <p class="sr-only" id="heat-teclas">Setas giram e inclinam o modelo, com Shift em passos maiores. Mais e menos aproximam e afastam. 1, 2, 3 e 4 escolhem as vistas isométrica, frontal, lateral e superior. Arrastar com Shift ou com o botão direito desloca.</p>
         </div>
         <div class="tip" id="heat-tip" role="status" aria-live="polite"></div>
         <p class="viewport__disclaimer">
@@ -368,7 +381,9 @@
      dados_triagem.js precisa vir antes de triagem.js. -->
 <script src="js/schema.js"></script>
 <script src="js/dados_triagem.js"></script>
+<script src="vendor/three.min.js"></script>
 <script src="js/fogao.js"></script>
+<script src="js/fogao3d.js"></script>
 <script src="js/grafico.js"></script>
 <script src="js/triagem.js"></script>
 </body>

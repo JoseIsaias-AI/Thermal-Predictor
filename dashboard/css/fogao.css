@@ -50,9 +50,34 @@
 
 .viewport__stage { position: relative; padding: var(--space-3); display: flex; justify-content: center; }
 
-/* O viewBox é 520x620; limitar a largura evita que o desenho estique e
-   empurre a página. */
-.viewport__svg { width: 100%; max-width: 30rem; height: auto; display: block; }
+/* Palco WebGL. Proporção fixa: o canvas acompanha a largura sem pular de
+   altura quando o modelo explode ou muda de foco. O fundo é um estúdio claro
+   em degradê, e a sombra do produto é desenhada pela própria cena. */
+.viewport__3d {
+  position: relative;
+  width: 100%;
+  max-width: 36rem;
+  aspect-ratio: 1 / 1.02;
+  border-radius: var(--radius);
+  background:
+    radial-gradient(120% 80% at 50% 28%, #ffffff 0%, #f1f3f5 48%, #e2e6ea 100%);
+  overflow: hidden;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+.viewport__3d canvas { display: block; width: 100%; height: 100%; }
+.viewport__3d.girando { cursor: grabbing; }
+.viewport__3d:focus { outline: none; }
+.viewport__3d:focus-visible { outline: 2px solid var(--color-focus-ring); outline-offset: -2px; }
+
+.viewport__sem3d {
+  margin: 0;
+  padding: var(--space-5);
+  color: var(--color-text-muted);
+  font-size: var(--size-small);
+  text-align: center;
+}
 
 /* O palco recorta o desenho, que com viewBox aproximado vazava por cima da
    pagina. O balao fica fora desse recorte, senao some ao subir. */
@@ -501,9 +526,22 @@ tr[hidden] { display: none; }
 
 .anel--eco { animation-delay: 60ms; }
 
-/* Girar: o cursor diz que da para arrastar. */
-.viewport__svg { cursor: grab; touch-action: none; }
-.viewport__svg.girando { cursor: grabbing; }
+
+/* Segunda barra, so da camera: na triagem a primeira ja nao comportava tres
+   botoes a mais sem quebrar. */
+.viewport__bar--camera { background: var(--color-surface-sunken); }
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
 
 @media (prefers-reduced-motion: reduce) {
   .peca-nova, .ponto, .fluxo, .anel { animation: none; }
@@ -544,11 +582,6 @@ tr[hidden] { display: none; }
 
 .subsys button[aria-pressed="true"]:first-child .subsys__name::after { content: ""; }
 
-/* Vista de componente: altura fixa, para o painel nao pular de tamanho quando
-   se troca uma peca larga por uma alta. */
-/* Com uma peça em foco o desenho ocupa mais largura; a altura do palco não
-   muda, para o painel não pular durante a transição. */
-.viewport__stage--comp .viewport__svg { max-width: 34rem; }
 
 /* Escala dentro da legenda: menor, para caber na coluna. */
 .toggle--mini { margin: -2px 0 var(--space-3); }

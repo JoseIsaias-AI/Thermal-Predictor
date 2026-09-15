@@ -571,12 +571,11 @@
 
   /* ----- Mapa de calor ----- */
 
-  var svgCalor = document.getElementById("heat-svg");
+  var palcoCalor = document.getElementById("heat-3d");
   var mapa = { explode: true, escala: "a", isolar: "todos", faixas: {}, sel: null,
                vista: "pontos", nome: "", estados: {}, mono: true };
-  var desenho = null;
   var linhaPorId = {};
-  var orbita = null;
+  var modelo = null;
 
 
   function todosOsPontos() {
@@ -920,71 +919,22 @@
     });
   }
 
-  /* Aproximar numa peça é uma transição contínua, não outra tela: `foco` diz
-     em qual peça, e `t` é o quanto a câmera já girou e aproximou. Sem isso o
-     salto lê como um desenho diferente, não como zoom. */
-  var foco = { area: null, t: 0, anim: null, fim: null };
-
-  function assentarFoco(ate) {
-    if (foco.anim) { cancelAnimationFrame(foco.anim); foco.anim = null; }
-    foco.t = ate;
-    if (ate === 0) foco.area = null;
-    redesenharProduto();
-  }
-
-  function animarFoco(area, ate) {
-    if (foco.anim) cancelAnimationFrame(foco.anim);
-    if (foco.fim) clearTimeout(foco.fim);
-    var de = foco.t, t0 = null;
-    if (area) foco.area = area;
-
-    function passo(tempo) {
-      if (t0 === null) t0 = tempo;
-      var k = Math.min(1, (tempo - t0) / 520);
-      k = k < 0.5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2;
-      foco.t = de + (ate - de) * k;
-      redesenharProduto();
-      if (k < 1) { foco.anim = requestAnimationFrame(passo); return; }
-      foco.anim = null;
-      assentarFoco(ate);
-    }
-
-    foco.anim = requestAnimationFrame(passo);
-    // Rede de segurança: se o quadro a quadro não rodar — aba em segundo
-    // plano, movimento reduzido — o estado final vale do mesmo jeito.
-    foco.fim = setTimeout(function () { assentarFoco(ate); }, 640);
-    redesenharProduto();
-  }
-
   function redesenharCalor() {
+    if (!modelo) return;
     // O campo cobre o produto inteiro; não há peça para aproximar.
-    var alvo = mapa.vista === "campo" ? null
+    var foco = mapa.vista === "campo" ? null
       : (mapa.isolar !== "todos" && FOGAO.PECA_DA_AREA[mapa.isolar] ? mapa.isolar : null);
 
-    if (alvo !== foco.area || (alvo === null && foco.t > 0)) {
-      animarFoco(alvo, alvo ? 1 : 0);
-      return;
-    }
-    redesenharProduto();
-  }
-
-  function redesenharProduto() {
     /* No campo térmico o desenho usa sempre os 78 pontos: a interpolação é
        do produto inteiro, e filtrar amostras deformaria o campo. Os filtros
        continuam valendo para os marcadores e para a tabela. */
-    var pontos = mapa.vista === "campo"
-      ? todosOsPontos()
-      : todosOsPontos().filter(passaNoFiltro);
+    var pontos = mapa.vista === "campo" ? todosOsPontos() : todosOsPontos().filter(passaNoFiltro);
 
-    desenho = FOGAO.desenhar(svgCalor, {
+    var saida = modelo.atualizar({
       nivel: 4,
       modo: "calor",
       vista: mapa.vista,
-      yaw: orbita ? orbita.valor() : 0,
-      elev: orbita ? orbita.elevacao() : null,
-      foco: foco.area,
-      t: foco.t,
-      semAnimacao: foco.anim !== null,
+      foco: foco,
       explode: mapa.vista === "campo" ? false : mapa.explode,
       placa: geometria.placa,
       alojamento: geometria.alojamento,
@@ -995,26 +945,28 @@
       pontos: pontos
     });
 
-    montarLegendaDoCampo(desenho.info);
+    montarLegendaDoCampo(saida.info);
 
-    var meta = foco.area && FOGAO.PECA_DA_AREA[foco.area];
+    var meta = foco && FOGAO.PECA_DA_AREA[foco];
     document.getElementById("heat-wide").hidden = !meta;
-    svgCalor.parentNode.classList.toggle("viewport__stage--comp", !!meta);
 
-    /* No campo a vista é sempre de planta, e com uma peça em foco a câmera
-       está travada de frente para ela: a alternância não se aplica. */
-    var travado = mapa.vista === 'campo' || !!meta;
+    // Com uma peça em foco a câmera está enquadrada nela: explodir e presets não se aplicam.
+    var travado = mapa.vista === "campo" || !!meta;
     Array.prototype.forEach.call(
-      document.querySelectorAll('#heat-explode button'),
+      document.querySelectorAll("#heat-explode button"),
       function (b) { b.disabled = travado; }
+    );
+    Array.prototype.forEach.call(
+      document.querySelectorAll("#heat-preset button"),
+      function (b) { b.disabled = !!meta; }
     );
 
     var campoAtivo = mapa.vista === "campo";
     document.getElementById("occlusion-hint").textContent =
       meta ? meta.nome
-      : campoAtivo ? "Campo no volume · arraste para girar e inclinar"
-      : mapa.explode ? "Explodido · arraste para girar e inclinar"
-      : "Assentado oculta pontos · arraste para girar e inclinar";
+      : campoAtivo ? "Campo no volume · arraste para girar"
+      : mapa.explode ? "Explodido · arraste para girar"
+      : "Assentado: pontos internos aparecem em transparência";
 
     document.getElementById("heat-view-name").textContent =
       meta ? "VISTA DE COMPONENTE"
@@ -1041,9 +993,9 @@
   }
 
   function montarMapa() {
+    criarModelo();
     montarRampa();
     montarSubsistemas();
-    redesenharCalor();
 
     montarChips();
     aplicarFiltros();
@@ -1079,80 +1031,65 @@
     document.getElementById("visuais").hidden = false;
     desenharVisuais();
 
-    orbita = FOGAO.orbita(svgCalor, function () {
-      document.getElementById("heat-reset").hidden = !orbita.girado();
-      redesenharCalor();
-    });
-    document.getElementById("heat-reset").addEventListener("click", function () {
-      orbita.zerar();
-      this.hidden = true;
-    });
     document.getElementById("heat-wide").addEventListener("click", function () {
       mapa.isolar = "todos";
       montarSubsistemas();
       redesenharCalor();
     });
 
-    svgCalor.addEventListener("click", function (evento) {
-      // Nao seleciona no fim de um arrasto, nem no campo, que nao tem marcador.
-      if (orbita.arrastou() || mapa.vista === "campo") return;
-      var c = FOGAO.noDesenho(svgCalor, evento);
-      if (!c || !desenho) return;
-      var achado = FOGAO.maisProximo(desenho, c.x, c.y, 14);
-      selecionar(achado ? achado.ponto : null);
-    });
-
-    var balao = document.getElementById("heat-tip");
-
-    /* Regra de tres sobre o tamanho do elemento errava: com preserveAspectRatio
-       o viewBox fica encaixotado dentro do SVG, e cada componente agora tem
-       proporcao propria. A matriz da tela da a posicao exata em qualquer caso.
-
-       Depois disso o balao e preso dentro do quadro, e vira para baixo quando
-       nao cabe acima — para nunca sair da area nem cobrir o ponto. */
-    function posicionarBalao(el, cx, cy) {
-      var ctm = svgCalor.getScreenCTM();
-      if (!ctm) { el.dataset.on = "0"; return; }
-
-      var q = svgCalor.createSVGPoint();
-      q.x = cx; q.y = cy;
-      var tela = q.matrixTransform(ctm);
-      var quadro = svgCalor.parentNode.parentNode.getBoundingClientRect();
-      var x = tela.x - quadro.left, y = tela.y - quadro.top;
-
-      /* O deslocamento vertical é feito por transform, e não por medida de
-         altura: medir logo depois de trocar o conteúdo devolvia a altura do
-         balão anterior, e ele acabava em cima do ponto. O transform não
-         precisa saber a altura. */
-      el.dataset.on = "1";
-      var acima = y > quadro.height * 0.34;
-      el.classList.toggle("tip--acima", acima);
-      el.classList.toggle("tip--abaixo", !acima);
-
-      el.style.top = y + "px";
-      // A largura só desloca de lado; errar nela não cobre o ponto.
-      var w = el.getBoundingClientRect().width;
-      el.style.left = Math.max(w / 2 + 6, Math.min(quadro.width - w / 2 - 6, x)) + "px";
-    }
-    svgCalor.addEventListener("pointermove", function (evento) {
-      if (mapa.vista === "campo" || !desenho) { balao.dataset.on = "0"; return; }
-      var c = FOGAO.noDesenho(svgCalor, evento);
-      var achado = c && FOGAO.maisProximo(desenho, c.x, c.y, 12);
-      if (!achado) { balao.dataset.on = "0"; return; }
-
-      var p = achado.ponto;
-      balao.innerHTML = "<b class=\"tip__name\">" + p.TC_Name + "</b>" +
-        "<span class=\"tip__num\">" + p.temperatura_prevista_c.toFixed(1) + " °C</span>" +
-        (p.is_monitor_only
-          ? " · <span class=\"tip__state\">sem limite</span>"
-          : " · <span class=\"tip__num\">folga " + p.margem_c.toFixed(1) + " °C</span>" +
-            "<span class=\"tip__state\"> · " + p.estado_rotulo + "</span>");
-
-      posicionarBalao(balao, achado.cx, achado.cy);
-    });
-    svgCalor.addEventListener("pointerleave", function () { balao.dataset.on = "0"; });
-
     document.getElementById("heat").hidden = false;
+    redesenharCalor();
+  }
+
+  var balao = document.getElementById("heat-tip");
+
+  /* O balão se ancora na posição de tela do marcador, que o viewport 3D
+     devolve já projetada. Fica preso ao quadro e vira para baixo quando não
+     cabe acima, para nunca sair da área nem cobrir o ponto. */
+  function posicionarBalao(el, x, y) {
+    var quadro = palcoCalor.parentNode.parentNode.getBoundingClientRect();
+    var palco = palcoCalor.getBoundingClientRect();
+    x += palco.left - quadro.left;
+    y += palco.top - quadro.top;
+
+    el.dataset.on = "1";
+    var acima = y > quadro.height * 0.3;
+    el.classList.toggle("tip--acima", acima);
+    el.classList.toggle("tip--abaixo", !acima);
+    el.style.top = y + "px";
+    var w = el.getBoundingClientRect().width;
+    el.style.left = Math.max(w / 2 + 6, Math.min(quadro.width - w / 2 - 6, x)) + "px";
+  }
+
+  function criarModelo() {
+    var presets = document.getElementById("heat-preset");
+    modelo = FOGAO3D.criar(palcoCalor, {
+      aoMudarCamera: function (atual) {
+        Array.prototype.forEach.call(presets.querySelectorAll("button"), function (b) {
+          b.setAttribute("aria-pressed", String(b.dataset.preset === atual));
+        });
+        balao.dataset.on = "0";
+      },
+      // Clique fora de marcador limpa a seleção; o fim de um arrasto não conta.
+      aoClicar: function (p) {
+        if (mapa.vista === "campo") return;
+        selecionar(p);
+      },
+      aoPairar: function (p, x, y) {
+        if (!p || mapa.vista === "campo") { balao.dataset.on = "0"; return; }
+        balao.innerHTML = "<b class=\"tip__name\">" + p.TC_Name + "</b>" +
+          "<span class=\"tip__num\">" + p.temperatura_prevista_c.toFixed(1) + " °C</span>" +
+          (p.is_monitor_only
+            ? " · <span class=\"tip__state\">sem limite</span>"
+            : " · <span class=\"tip__num\">folga " + p.margem_c.toFixed(1) + " °C</span>" +
+              "<span class=\"tip__state\"> · " + p.estado_rotulo + "</span>");
+        posicionarBalao(balao, x, y);
+      }
+    });
+    presets.addEventListener("click", function (evento) {
+      var botao = evento.target.closest("button");
+      if (botao) modelo.preset(botao.dataset.preset);
+    });
   }
 
   function mostrarErro(mensagem) {
