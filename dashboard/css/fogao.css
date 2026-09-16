@@ -1,37 +1,32 @@
-/* Viewport axonométrico e mapa de calor. Complementa app.css e triagem.css. */
+/* Viewport 3D e mapa de calor. Complementa app.css e triagem.css. */
 
 .split {
   display: flex;
-  gap: var(--space-5);
+  gap: var(--space-4);
   align-items: flex-start;
 }
 
 .split__form { flex: 0 0 22rem; min-width: 0; }
-.split__view { flex: 1; min-width: 0; position: sticky; top: var(--space-4); }
+.split__view { flex: 1; min-width: 0; position: sticky; top: calc(56px + var(--space-4)); }
 
 @media (max-width: 62rem) {
   .split { display: block; }
-  .split__view { position: static; margin-top: var(--space-5); }
+  .split__view { position: static; margin-top: var(--space-4); }
 }
 
 /* ----- Viewport ----- */
 
 .viewport {
+  background: var(--color-surface);
   border: var(--border-width) solid var(--color-border);
-  border-radius: var(--radius);
-  background: var(--color-surface-sunken);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 
-/* O hint e quem encolhe: o texto dele muda de tamanho entre modos, e sem isso
-   os botoes pulavam de lugar a cada clique.
-
-   A quebra de linha e valvula de escape, nao layout normal. Ela so entra em
-   acao quando os quatro controles fixos ja nao cabem na coluna — situacao em
-   que, sem wrap, o ultimo toggle vazava para fora da coluna do meio e era
-   pintado por cima do painel do ponto selecionado. Como o hint encolhe antes
-   de qualquer botao quebrar, os botoes seguem parados no uso normal. */
+/* Controles fixos; só quebra linha quando nem os botões cabem. */
 .viewport__bar {
   background: var(--color-surface);
   border-bottom: var(--border-width) solid var(--color-border);
@@ -39,20 +34,29 @@
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: var(--space-2) var(--space-3);
-  font-size: var(--size-kicker);
-  min-height: 2.25rem;
+  gap: var(--space-2);
+  font-size: var(--size-small);
+  min-height: 48px;
   min-width: 0;
 }
+
+.viewport__bar[hidden] { display: none; }
 
 .viewport__bar > .toggle,
 .viewport__bar > .vbtn { flex: none; }
 
+.bar-label {
+  flex: none;
+  font-size: var(--size-kicker);
+  font-weight: var(--weight-semibold);
+  color: var(--color-text-subtle);
+  margin-right: var(--space-1);
+}
+
 .viewport__stage { position: relative; padding: var(--space-3); display: flex; justify-content: center; }
 
 /* Palco WebGL. Proporção fixa: o canvas acompanha a largura sem pular de
-   altura quando o modelo explode ou muda de foco. O fundo é um estúdio claro
-   em degradê, e a sombra do produto é desenhada pela própria cena. */
+   altura quando o modelo explode ou muda de foco. */
 .viewport__3d {
   position: relative;
   width: 100%;
@@ -79,29 +83,70 @@
   text-align: center;
 }
 
-/* O palco recorta o desenho, que com viewBox aproximado vazava por cima da
-   pagina. O balao fica fora desse recorte, senao some ao subir. */
+/* O palco recorta o desenho; o balão fica fora do recorte. */
 .viewport__stage { overflow: hidden; }
 .viewport__frame { position: relative; }
+.heat__main > .viewport__frame { flex: 1; display: flex; flex-direction: column; justify-content: center; }
 
-/* O desenho é esquemático e a tela precisa dizer isso.
+/* Dica de interação sobre o palco, sem capturar o ponteiro. */
+.stage-hint {
+  position: absolute;
+  left: 50%;
+  top: calc(var(--space-3) + 10px);
+  transform: translateX(-50%);
+  max-width: calc(100% - 3rem);
+  margin: 0;
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.86);
+  border: var(--border-width) solid var(--color-border);
+  backdrop-filter: blur(6px);
+  font-size: var(--size-kicker);
+  color: var(--color-text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  pointer-events: none;
+}
 
-   Fica no fluxo, abaixo do palco, e nao em posicao absoluta sobre ele: o
-   modelo girado encostava no texto e chegava a cobri-lo. Continua fora do
-   recorte do palco, entao segue visivel com o modelo aproximado. */
+.stage-hint:empty { display: none; }
+
+/* O desenho é esquemático e a tela precisa dizer isso. */
 .viewport__disclaimer {
   margin: 0;
   padding: 0 var(--space-4) var(--space-3);
   text-align: right;
   font-size: var(--size-kicker);
-  color: var(--color-text-muted);
+  color: var(--color-text-subtle);
   line-height: 1.4;
 }
 
 .viewport__disclaimer strong {
   display: block;
-  color: var(--wp-charcoal);
-  letter-spacing: var(--tracking-kicker);
+  font-weight: var(--weight-semibold);
+  color: var(--color-text-muted);
+  letter-spacing: 0.04em;
+}
+
+/* Rodapé do palco: câmera à esquerda, natureza do desenho à direita. */
+.viewport__foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-4);
+  padding: var(--space-2) var(--space-3);
+  border-top: var(--border-width) solid var(--color-border);
+  background: var(--color-surface);
+}
+
+.viewport__foot .viewport__disclaimer { padding: 0; min-width: 0; flex: 1 1 14rem; }
+
+.viewport__foot .viewport__disclaimer span {
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* Etiqueta da peça recém-adicionada; some sozinha. */
@@ -109,15 +154,15 @@
   position: absolute;
   left: var(--space-4);
   top: var(--space-4);
-  background: var(--wp-blue-accent);
+  background: var(--color-accent);
   color: var(--color-text-inverse);
   padding: 3px var(--space-2);
   font-family: var(--font-body);
-  font-weight: var(--weight-bold);
-  font-size: 9.5px;
-  letter-spacing: 0.09em;
+  font-weight: var(--weight-semibold);
+  font-size: var(--size-kicker);
   border-radius: var(--radius);
   white-space: nowrap;
+  margin: 0;
 }
 
 .viewport__badge[hidden] { display: none; }
@@ -128,6 +173,7 @@
   border-top: var(--border-width) solid var(--color-border);
   display: flex;
   flex-wrap: wrap;
+  margin: 0;
 }
 
 .state-item {
@@ -139,11 +185,8 @@
 }
 
 .state-item dt {
-  font-size: 9.5px;
-  font-weight: var(--weight-semibold);
-  letter-spacing: 0.1em;
-  color: var(--wp-gray-medium);
-  text-transform: uppercase;
+  font-size: var(--size-kicker);
+  color: var(--color-text-subtle);
 }
 
 .state-item dd {
@@ -154,42 +197,61 @@
 }
 
 .state-item dd.is-flow { color: var(--wp-blue-accent); }
-.state-item dd.is-none { color: var(--color-text-muted); font-weight: var(--weight-regular); }
+.state-item dd.is-none { color: var(--color-text-subtle); font-weight: var(--weight-regular); }
 
-/* ----- Alternâncias ----- */
+/* ----- Alternâncias -----
+ * Controle segmentado: trilho cinza, opção ativa em superfície branca. */
 
 .toggle {
   display: inline-flex;
-  border: var(--border-width) solid var(--color-border-strong);
+  padding: 2px;
+  gap: 2px;
+  background: #eceff3;
   border-radius: var(--radius);
-  overflow: hidden;
 }
 
 .toggle button {
   font-family: var(--font-body);
-  font-size: var(--size-kicker);
+  font-size: var(--size-small);
+  font-weight: var(--weight-semibold);
   color: var(--color-text-muted);
-  background: var(--color-surface);
+  background: transparent;
   border: 0;
-  padding: var(--space-1) var(--space-3);
+  border-radius: 4px;
+  padding: 5px 12px;
   cursor: pointer;
+  line-height: 1.2;
+  white-space: nowrap;
 }
 
+.toggle button:hover { color: var(--color-text); }
+
 .toggle button[aria-pressed="true"] {
-  background: var(--wp-charcoal);
-  color: var(--color-text-inverse);
-  font-weight: var(--weight-semibold);
+  background: var(--color-surface);
+  color: var(--color-text);
+  box-shadow: 0 1px 2px rgba(16, 21, 31, 0.12), 0 0 0 1px rgba(16, 21, 31, 0.04);
 }
 
 .toggle button:focus-visible { outline: 2px solid var(--color-focus-ring); outline-offset: -2px; }
+.toggle button[disabled] { opacity: 0.4; cursor: not-allowed; }
 
-/* Base zero, e nao auto: com wrap ligado na barra, um item de base automatica
-   reivindica a largura do proprio texto na hora de decidir a quebra, e a
-   barra ia para duas linhas mesmo quando os botoes cabiam em uma. Com base
-   zero o hint so ocupa a sobra, encolhe com reticencias, e a quebra fica
-   reservada ao caso em que nem os botoes cabem. */
+/* Câmera: secundária, sem trilho. */
+.toggle--quiet { background: none; padding: 0; }
+.toggle--quiet button { padding: 4px 8px; font-weight: var(--weight-regular); }
+.toggle--quiet button[aria-pressed="true"] {
+  background: var(--color-surface-accent);
+  color: var(--color-accent);
+  box-shadow: none;
+  font-weight: var(--weight-semibold);
+}
+
+/* Na legenda e nas camadas: menor. Camadas ligadas são independentes. */
+.toggle--mini button { font-size: var(--size-kicker); padding: 3px 9px; }
+
+#heat-layers button[aria-pressed="true"] { color: var(--color-accent); }
+
 .hint {
-  color: var(--wp-gray-medium);
+  color: var(--color-text-subtle);
   font-size: var(--size-kicker);
   flex: 1 1 0;
   min-width: 0;
@@ -201,40 +263,56 @@
 
 /* ----- Mapa de calor: três colunas ----- */
 
-/* Sai da largura de leitura da pagina: 78 pontos num viewport estreito nao
-   se distinguem. */
 .heat {
   display: grid;
-  grid-template-columns: 15rem 1fr 18rem;
-  width: calc(100% + 12rem);
-  margin-left: -6rem;
+  grid-template-columns: 16.5rem minmax(0, 1fr) 19rem;
+  background: var(--color-surface);
   border: var(--border-width) solid var(--color-border);
-  border-radius: var(--radius);
-  margin-bottom: var(--space-5);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+  margin-bottom: var(--space-4);
+  overflow: hidden;
 }
+
+.heat[hidden] { display: none; }
 
 .heat__side { border-right: var(--border-width) solid var(--color-border); min-width: 0; }
 .heat__side--right { border-right: 0; border-left: var(--border-width) solid var(--color-border); }
 .heat__main { background: var(--color-surface-sunken); min-width: 0; display: flex; flex-direction: column; }
 
-@media (max-width: 88rem) {
-  .heat { width: 100%; margin-left: 0; }
+@media (max-width: 72rem) {
+  .heat { grid-template-columns: 16rem minmax(0, 1fr); }
+  .heat__side--right { grid-column: 1 / -1; border-left: 0; border-top: var(--border-width) solid var(--color-border); display: grid; grid-template-columns: 1fr 1fr; }
+  .heat__side--right .heat__block { border-bottom: 0; }
+  .heat__side--right .heat__block + .heat__block { border-left: var(--border-width) solid var(--color-border); }
 }
 
-@media (max-width: 66rem) {
+@media (max-width: 52rem) {
   .heat { grid-template-columns: 1fr; }
-  .heat__side, .heat__side--right { border: 0; border-bottom: var(--border-width) solid var(--color-border); }
+  .heat__side { border-right: 0; border-bottom: var(--border-width) solid var(--color-border); }
+  .heat__side--right { grid-template-columns: 1fr; }
+  .heat__side--right .heat__block + .heat__block { border-left: 0; border-top: var(--border-width) solid var(--color-border); }
 }
 
 .heat__block { padding: var(--space-4); border-bottom: var(--border-width) solid var(--color-border); }
 .heat__block:last-child { border-bottom: 0; }
+#heat[data-vista="campo"] .heat__block--folga { display: none; }
+
+.heat__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  margin-bottom: var(--space-3);
+}
+
+.heat__head .heat__label { margin: 0; }
 
 .heat__label {
-  font-family: var(--font-body);
-  font-weight: var(--weight-bold);
-  font-size: var(--size-kicker);
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 0.875rem;
+  letter-spacing: 0;
   color: var(--color-text);
   margin: 0 0 var(--space-3);
   display: flex;
@@ -243,23 +321,37 @@
   gap: var(--space-2);
 }
 
-.heat__label span { font-weight: var(--weight-regular); color: var(--wp-gray-medium); letter-spacing: 0; }
+.heat__label span { font-family: var(--font-body); font-weight: var(--weight-regular); color: var(--color-text-subtle); font-size: var(--size-kicker); }
+
+.heat__cols {
+  display: flex;
+  gap: var(--space-2);
+  font-size: var(--size-kicker);
+  color: var(--color-text-subtle);
+  padding-right: var(--space-2);
+}
+
+.heat__cols span { min-width: 2rem; text-align: right; }
 
 /* ----- Legenda da rampa ----- */
 
-.ramp { border: var(--border-width) solid var(--color-border); }
+.ramp {
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
 
 .ramp__row {
   display: flex;
   align-items: center;
   gap: var(--space-2);
-  padding: 4px var(--space-2);
+  padding: 5px var(--space-2);
   width: 100%;
   background: var(--color-surface);
   border: 0;
-  border-bottom: 1px solid var(--color-surface-sunken);
+  border-bottom: 1px solid #f0f2f5;
   font-family: var(--font-body);
-  font-size: var(--size-kicker);
+  font-size: var(--size-small);
   color: var(--color-text);
   cursor: pointer;
   text-align: left;
@@ -267,42 +359,43 @@
 
 .ramp__row:last-child { border-bottom: 0; }
 .ramp__row:hover { background: var(--color-surface-sunken); }
-.ramp__row[aria-pressed="true"] { background: var(--color-surface-accent); box-shadow: inset 2px 0 0 var(--color-accent); }
+.ramp__row[aria-pressed="true"] { background: var(--color-surface-accent); box-shadow: inset 3px 0 0 var(--color-accent); }
 .ramp__row:focus-visible { outline: 2px solid var(--color-focus-ring); outline-offset: -2px; }
 
 /* A fronteira do limite é marcada na própria legenda. */
-.ramp__row--boundary { border-top: 1px solid var(--color-border); border-bottom: 1px solid var(--color-border); background: var(--color-surface-sunken); }
+.ramp__row--boundary { border-bottom: 1px solid var(--color-border-strong); }
 
-.ramp__chip { width: 16px; height: 16px; flex: none; }
+.ramp__chip { width: 14px; height: 14px; flex: none; border-radius: 3px; box-shadow: inset 0 0 0 1px rgba(16, 21, 31, 0.08); }
 .ramp__range { flex: 1; font-variant-numeric: tabular-nums; }
 .ramp__count { font-variant-numeric: tabular-nums; font-weight: var(--weight-semibold); color: var(--color-text-muted); min-width: 1.4rem; text-align: right; }
 
-.legend-note { font-size: var(--size-kicker); color: var(--color-text-muted); line-height: 1.5; margin: var(--space-3) 0 0; }
+.legend-note { font-size: var(--size-kicker); color: var(--color-text-subtle); line-height: 1.5; margin: var(--space-3) 0 0; }
 
 .mono-key {
   display: flex;
   align-items: center;
   gap: var(--space-2);
-  border: var(--border-width) solid var(--color-border);
-  padding: var(--space-2);
-  margin-top: var(--space-3);
-  font-size: var(--size-kicker);
+  border: var(--border-width) dashed var(--color-border-strong);
+  border-radius: var(--radius);
+  padding: 5px var(--space-2);
+  margin-top: var(--space-2);
+  font-size: var(--size-small);
 }
 
-.mono-key span { flex: 1; }
-.mono-key b { display: block; font-weight: var(--weight-regular); color: var(--color-text-muted); }
+.mono-key span { flex: 1; color: var(--color-text-muted); }
+.mono-key strong { font-weight: var(--weight-semibold); color: var(--color-text-muted); }
 
 /* ----- Isolar subsistema ----- */
 
-.subsys { display: flex; flex-direction: column; }
+.subsys { display: flex; flex-direction: column; gap: 1px; }
 
 .subsys button {
   display: flex;
   align-items: center;
   gap: var(--space-2);
-  padding: var(--space-2);
+  padding: 6px var(--space-2);
   background: none;
-  border: var(--border-width) solid transparent;
+  border: 0;
   border-radius: var(--radius);
   font-family: var(--font-body);
   font-size: var(--size-small);
@@ -312,47 +405,197 @@
 }
 
 .subsys button:hover { background: var(--color-surface-sunken); }
-.subsys button[aria-pressed="true"] { background: var(--color-surface-accent); border-color: var(--wp-blue-accent); color: var(--color-accent); font-weight: var(--weight-semibold); }
+.subsys button[aria-pressed="true"] { background: var(--color-surface-accent); color: var(--color-accent); font-weight: var(--weight-semibold); }
 .subsys button:focus-visible { outline: 2px solid var(--color-focus-ring); outline-offset: -2px; }
 
-.subsys__name { flex: 1; }
-.subsys__over { font-variant-numeric: tabular-nums; font-weight: var(--weight-semibold); min-width: 1.2rem; text-align: right; }
-.subsys__total { font-variant-numeric: tabular-nums; color: var(--color-text-muted); min-width: 1.6rem; text-align: right; }
+.subsys__name { flex: 1; min-width: 0; }
+.subsys__over { font-variant-numeric: tabular-nums; font-weight: var(--weight-semibold); min-width: 2rem; text-align: right; }
+.subsys__total { font-variant-numeric: tabular-nums; color: var(--color-text-subtle); min-width: 2rem; text-align: right; }
 
 /* ----- Painel do ponto ----- */
 
-.detail__name { font-family: var(--font-display); font-weight: var(--weight-bold); font-size: 1rem; line-height: 1.3; color: var(--color-accent); margin: 0; }
-.detail__area { font-size: var(--size-kicker); color: var(--color-text-muted); }
+.detail__name { font-family: var(--font-display); font-weight: 600; font-size: 1rem; line-height: 1.3; color: var(--color-text); margin: 0; }
+.detail__area { font-size: var(--size-kicker); color: var(--color-text-subtle); }
 
 .detail__state {
   display: flex;
   align-items: center;
   gap: var(--space-2);
-  border: var(--border-width) solid var(--color-border-strong);
-  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius);
+  background: #eef1f5;
+  color: var(--color-text-muted);
+  padding: 6px var(--space-3);
   margin: var(--space-3) 0;
-  font-weight: var(--weight-bold);
+  font-weight: var(--weight-semibold);
   font-size: var(--size-small);
-  letter-spacing: 0.02em;
 }
 
-.detail__swatch { width: 10px; height: 10px; flex: none; }
+.detail__state--acima_do_limite { background: var(--color-critical-bg); color: var(--color-critical); box-shadow: inset 0 0 0 1px var(--color-critical-line); }
+.detail__state--banda_de_incerteza { background: var(--color-surface-accent); color: var(--color-accent); box-shadow: inset 0 0 0 1px #c9dcec; }
+.detail__state--dentro_do_limite { background: #eef1f5; color: var(--color-text); }
+.detail__state--mono { background: none; box-shadow: inset 0 0 0 1px var(--color-border-strong); }
+
+.detail__swatch { width: 10px; height: 10px; flex: none; border-radius: 2px; }
 
 .detail__rows { display: grid; grid-template-columns: 1fr max-content; gap: 0; margin: 0; font-size: var(--size-small); }
-.detail__rows dt { color: var(--color-text-muted); padding: var(--space-2) 0; border-bottom: 1px solid var(--color-border); }
-.detail__rows dd { margin: 0; padding: var(--space-2) 0; border-bottom: 1px solid var(--color-border); text-align: right; font-variant-numeric: tabular-nums; font-weight: var(--weight-semibold); }
-.detail__rows .is-empty { color: var(--wp-gray-medium); font-weight: var(--weight-regular); }
+.detail__rows dt { color: var(--color-text-muted); padding: 6px 0; border-bottom: 1px solid #f0f2f5; }
+.detail__rows dd { margin: 0; padding: 6px 0; border-bottom: 1px solid #f0f2f5; text-align: right; font-variant-numeric: tabular-nums; font-weight: var(--weight-semibold); }
+.detail__rows .is-empty { color: var(--color-text-subtle); font-weight: var(--weight-regular); }
 
-.detail__empty { color: var(--color-text-muted); font-size: var(--size-small); margin: 0; }
+.detail__empty { color: var(--color-text-subtle); font-size: var(--size-small); margin: 0; }
 
-/* Barra que situa a previsão contra o limite. */
-.gauge { height: 22px; position: relative; background: var(--color-surface-sunken); border: var(--border-width) solid var(--color-border); margin-top: var(--space-3); }
-.gauge__fill { position: absolute; left: 0; top: 0; bottom: 0; }
-.gauge__mark { position: absolute; top: -3px; bottom: -3px; width: 1.5px; background: var(--color-accent); }
-.gauge__tag { position: absolute; top: 4px; font-size: 9.5px; font-weight: var(--weight-semibold); color: var(--color-accent); }
+/* Barra que situa a previsão contra o limite. O rótulo fica acima da barra,
+   e não dentro: sobre a cor escura da faixa ele sumia. */
+.gauge {
+  height: 10px;
+  position: relative;
+  background: #eceff3;
+  border-radius: 999px;
+  margin: calc(var(--space-4) + 12px) 0 var(--space-2);
+}
+.gauge__fill { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 999px; }
+.gauge__mark {
+  position: absolute;
+  top: -5px;
+  bottom: -5px;
+  width: 2px;
+  margin-left: -1px;
+  background: var(--color-text);
+  box-shadow: 0 0 0 1.5px var(--color-surface);
+  border-radius: 1px;
+}
+.gauge__tag {
+  position: absolute;
+  top: -22px;
+  transform: translateX(calc(-50% - 5px));
+  font-size: var(--size-kicker);
+  font-weight: var(--weight-semibold);
+  color: var(--color-text);
+  white-space: nowrap;
+  line-height: 1;
+}
+
+/* ----- Painel da peça ----- */
+
+.part__pick { margin-bottom: var(--space-3); }
+
+.part__pick select {
+  font-family: inherit;
+  font-size: var(--size-small);
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: var(--border-width) solid var(--color-border-strong);
+  border-radius: var(--radius);
+  padding: 0 var(--space-2);
+  height: 34px;
+  width: 100%;
+}
+
+.part__pick select:focus-visible { outline: 2px solid var(--color-focus-ring); outline-offset: 1px; }
+
+.part__head { display: flex; align-items: flex-start; gap: var(--space-2); }
+.part__titles { flex: 1; min-width: 0; }
+
+.part__close {
+  flex: none;
+  width: 1.75rem;
+  height: 1.75rem;
+  line-height: 1;
+  font-size: 1.1rem;
+  color: var(--color-text-muted);
+  background: none;
+  border: 0;
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+
+.part__close:hover { color: var(--color-text); background: #eef1f5; }
+.part__close:focus-visible { outline: 2px solid var(--color-focus-ring); outline-offset: 1px; }
+
+.part__state { margin-bottom: var(--space-1); }
+.part__state--acima_do_limite { background: var(--color-critical-bg); color: var(--color-critical); box-shadow: inset 0 0 0 1px var(--color-critical-line); }
+.part__state--banda_de_incerteza { background: var(--color-surface-accent); color: var(--color-accent); box-shadow: inset 0 0 0 1px #c9dcec; }
+.part__state--dentro_do_limite { color: var(--color-text); }
+.part__state--mono { background: none; box-shadow: inset 0 0 0 1px var(--color-border-strong); color: var(--wp-charcoal); }
+.part__state svg { flex: none; }
+
+.part__ref { margin: 0 0 var(--space-2); font-size: var(--size-kicker); color: var(--color-text-subtle); }
+.part__ref b { color: var(--color-text); font-weight: var(--weight-semibold); }
+
+.part__notice {
+  margin: var(--space-3) 0 0;
+  padding: var(--space-2) var(--space-3);
+  background: var(--color-surface-sunken);
+  border: var(--border-width) dashed var(--color-border-strong);
+  border-radius: var(--radius);
+  font-size: var(--size-small);
+  color: var(--color-text-muted);
+  line-height: 1.5;
+}
+
+.part__dismiss { margin-top: var(--space-3); }
+
+.part__sub {
+  font-family: var(--font-body);
+  font-size: var(--size-kicker);
+  font-weight: var(--weight-semibold);
+  color: var(--color-text-subtle);
+  margin: var(--space-4) 0 var(--space-2);
+}
+
+/* Composição por estado. Mesmas cores da tabela; o número vai escrito embaixo. */
+.part__bar { display: flex; height: 8px; gap: 2px; border-radius: 999px; overflow: hidden; }
+.part__seg { flex-basis: 0; min-width: 3px; }
+.part__seg--acima_do_limite { background: var(--color-critical); }
+.part__seg--banda_de_incerteza { background: var(--color-accent); }
+.part__seg--dentro_do_limite { background: var(--wp-gray); }
+.part__seg--monitoramento {
+  background: repeating-linear-gradient(135deg, var(--color-surface) 0 3px, var(--wp-gray-medium) 3px 4px);
+}
+
+.part__legend { margin: var(--space-1) 0 0; font-size: var(--size-kicker); color: var(--color-text-muted); font-variant-numeric: tabular-nums; }
+
+.part__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 15rem;
+  overflow-y: auto;
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius);
+}
+
+.part__item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  width: 100%;
+  padding: 6px var(--space-2);
+  background: var(--color-surface);
+  border: 0;
+  border-bottom: 1px solid #f0f2f5;
+  font-family: var(--font-body);
+  font-size: var(--size-small);
+  color: var(--color-text);
+  text-align: left;
+  cursor: pointer;
+}
+
+.part__list li:last-child .part__item { border-bottom: 0; }
+.part__item:hover { background: var(--color-surface-sunken); }
+.part__item[aria-current="true"] { background: var(--color-surface-accent); box-shadow: inset 3px 0 0 var(--color-accent); font-weight: var(--weight-semibold); }
+.part__item:focus-visible { outline: 2px solid var(--color-focus-ring); outline-offset: -2px; }
+.part__item svg { flex: none; }
+
+.part__item-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.part__item-num { flex: none; text-align: right; font-variant-numeric: tabular-nums; line-height: 1.25; }
+.part__item-num small { display: block; font-size: var(--size-kicker); color: var(--color-text-subtle); font-weight: var(--weight-regular); }
+.part__item-num small.is-neg { color: var(--color-critical); font-weight: var(--weight-semibold); }
 
 /* Linha da tabela vinculada ao ponto selecionado no modelo. */
-.row--selected { background: var(--color-surface-accent) !important; box-shadow: inset 2px 0 0 var(--color-accent); }
+.row--selected { background: var(--color-surface-accent) !important; }
+.row--selected td:first-child { box-shadow: inset 3px 0 0 var(--color-accent) !important; }
 
 /* ----- Campo térmico ----- */
 
@@ -360,8 +603,8 @@
 
 .field-scale__bar {
   display: block;
-  height: 14px;
-  border: var(--border-width) solid var(--color-border-strong);
+  height: 12px;
+  border-radius: 999px;
 }
 
 .field-scale__ends {
@@ -371,8 +614,10 @@
   font-size: var(--size-kicker);
   font-variant-numeric: tabular-nums;
   color: var(--color-text-muted);
-  margin-top: 2px;
+  margin-top: 4px;
 }
+
+.field-scale__ends b { font-weight: var(--weight-regular); }
 
 /* ----- Filtros ----- */
 
@@ -388,33 +633,46 @@
   font-family: inherit;
   font-size: var(--size-small);
   color: var(--color-text);
-  background: var(--color-surface);
+  background: var(--color-surface) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' fill='none' stroke='%238b93a1' stroke-width='1.6'%3E%3Ccircle cx='6' cy='6' r='4.5'/%3E%3Cpath d='M9.5 9.5 13 13'/%3E%3C/svg%3E") no-repeat 10px 50%;
   border: var(--border-width) solid var(--color-border-strong);
   border-radius: var(--radius);
-  padding: var(--space-2);
+  padding: 0 var(--space-2) 0 32px;
+  height: 34px;
   width: 100%;
 }
 
+.filter input::placeholder { color: var(--color-text-subtle); }
 .filter input:focus-visible { outline: 2px solid var(--color-focus-ring); outline-offset: 1px; }
 
-.chips { display: flex; flex-wrap: wrap; gap: var(--space-1); margin-top: var(--space-3); }
+.filter__foot {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.filter__foot .legend-note { margin-top: var(--space-2); }
+
+.chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: var(--space-3); }
 
 .chips button {
   font-family: var(--font-body);
   font-size: var(--size-kicker);
+  font-weight: var(--weight-semibold);
   color: var(--color-text-muted);
   background: var(--color-surface);
   border: var(--border-width) solid var(--color-border-strong);
-  border-radius: var(--radius);
-  padding: 3px var(--space-2);
+  border-radius: 999px;
+  padding: 3px 10px;
   cursor: pointer;
 }
+
+.chips button:hover { border-color: var(--color-text-subtle); color: var(--color-text); }
 
 .chips button[aria-pressed="true"] {
   background: var(--color-accent);
   border-color: var(--color-accent);
   color: var(--color-text-inverse);
-  font-weight: var(--weight-semibold);
 }
 
 .chips button:focus-visible { outline: 2px solid var(--color-focus-ring); outline-offset: 1px; }
@@ -424,36 +682,35 @@
   align-items: center;
   gap: var(--space-2);
   margin-top: var(--space-3);
-  font-size: var(--size-kicker);
+  font-size: var(--size-small);
   color: var(--color-text-muted);
   cursor: pointer;
 }
 
-.check input { accent-color: var(--color-accent); margin: 0; }
+.check input { accent-color: var(--color-accent); margin: 0; width: 15px; height: 15px; }
 .check input:focus-visible { outline: 2px solid var(--color-focus-ring); outline-offset: 1px; }
 
-/* Eco de um filtro cujo controle esta em outro bloco: marcado como ativo, e
-   clicavel para desfazer. */
+/* Eco de um filtro cujo controle está em outro bloco. */
 .chips--echo { margin-top: var(--space-2); }
 .chips--echo:empty { display: none; }
 
 .chip-echo {
   display: inline-flex;
   align-items: center;
-  gap: var(--space-2);
+  gap: 6px;
   font-family: var(--font-body);
   font-size: var(--size-kicker);
   font-variant-numeric: tabular-nums;
-  color: var(--color-text);
+  color: var(--color-accent);
   background: var(--color-surface-accent);
-  border: var(--border-width) solid var(--color-accent);
-  border-radius: var(--radius);
-  padding: 3px var(--space-2);
+  border: var(--border-width) solid #c9dcec;
+  border-radius: 999px;
+  padding: 3px 10px;
   cursor: pointer;
 }
 
-.chip-echo b { font-weight: var(--weight-bold); color: var(--color-accent); }
-.chip-echo:hover { background: var(--color-surface); }
+.chip-echo b { font-weight: var(--weight-bold); }
+.chip-echo:hover { border-color: var(--color-accent); }
 .chip-echo:focus-visible { outline: 2px solid var(--color-focus-ring); outline-offset: 1px; }
 
 .vbtn--clear { margin-top: var(--space-3); }
@@ -461,30 +718,26 @@
 /* Linha que o filtro escondeu. */
 tr[hidden] { display: none; }
 
-.toggle button[disabled] { opacity: 0.4; cursor: not-allowed; }
-
-/* ----- Botao de barra ----- */
+/* ----- Botão de barra ----- */
 
 .vbtn {
   font-family: var(--font-body);
-  font-size: var(--size-kicker);
-  color: var(--color-text-muted);
+  font-size: var(--size-small);
+  font-weight: var(--weight-semibold);
+  color: var(--color-text);
   background: var(--color-surface);
   border: var(--border-width) solid var(--color-border-strong);
   border-radius: var(--radius);
-  padding: var(--space-1) var(--space-3);
+  padding: 5px 12px;
   cursor: pointer;
 }
 
-.vbtn:hover { color: var(--color-accent); border-color: var(--color-accent); }
+.vbtn:hover { border-color: var(--color-text-subtle); }
 .vbtn:focus-visible { outline: 2px solid var(--color-focus-ring); outline-offset: 1px; }
 .vbtn[hidden] { display: none; }
 
 /* ----- Movimento -----
- *
- * Curto e sem quique: o painel e instrumento de trabalho. Tudo respeita
- * prefers-reduced-motion.
- */
+ * Curto e sem quique; tudo respeita prefers-reduced-motion. */
 
 @keyframes fogao-peca {
   from { opacity: 0; transform: translateY(-14px); }
@@ -514,8 +767,6 @@ tr[hidden] { display: none; }
 
 .ponto:hover { filter: brightness(1.15); }
 
-/* Fluxo de ar em movimento: e a unica coisa animada em regime permanente, e
-   representa algo que de fato escoa. */
 .fluxo { animation: fogao-fluxo 1.6s linear infinite; }
 
 .anel {
@@ -526,14 +777,8 @@ tr[hidden] { display: none; }
 
 .anel--eco { animation-delay: 60ms; }
 
-
-/* Segunda barra, so da camera: na triagem a primeira ja nao comportava tres
-   botoes a mais sem quebrar. */
-.viewport__bar--camera { background: var(--color-surface-sunken); }
-
-/* Barra das camadas do campo: mesma família da barra de câmera. O toggle
-   mini aqui não carrega a margem que ele usa embaixo da legenda. */
-.viewport__bar--camadas { background: var(--color-surface-sunken); }
+.viewport__bar--camera { background: var(--color-surface); }
+.viewport__bar--camadas { background: var(--color-surface); min-height: 42px; }
 .viewport__bar--camadas .toggle--mini { margin: 0; }
 
 .sr-only {
@@ -552,17 +797,18 @@ tr[hidden] { display: none; }
   .peca-nova, .ponto, .fluxo, .anel { animation: none; }
 }
 
-/* ----- Balao do ponto ----- */
+/* ----- Balão do ponto ----- */
 
 .tip {
   position: absolute;
   z-index: 3;
   pointer-events: none;
-  background: var(--wp-near-black);
+  background: var(--wp-black);
   color: var(--color-text-inverse);
   border-radius: var(--radius);
+  box-shadow: 0 8px 24px rgba(16, 21, 31, 0.24);
   padding: var(--space-2) var(--space-3);
-  font-size: var(--size-kicker);
+  font-size: var(--size-small);
   line-height: 1.45;
   white-space: nowrap;
   opacity: 0;
@@ -572,14 +818,13 @@ tr[hidden] { display: none; }
 
 .tip[data-on="1"] { opacity: 1; }
 
-.tip__name { display: block; font-weight: var(--weight-bold); }
+.tip__name { display: block; font-weight: var(--weight-semibold); }
 .tip__num { font-variant-numeric: tabular-nums; }
-.tip__state { color: var(--wp-gray); }
+.tip__state { color: #b8c0cc; }
 
-/* Subsistema aproximado ganha uma marca, para o estado ficar claro sem
-   depender de lembrar o que foi clicado. */
+/* Subsistema aproximado ganha uma marca. */
 .subsys button[aria-pressed="true"] .subsys__name::after {
-  content: " ·  aproximado";
+  content: " · em foco";
   font-weight: var(--weight-regular);
   font-size: var(--size-kicker);
   color: var(--wp-blue-accent);
@@ -587,12 +832,6 @@ tr[hidden] { display: none; }
 
 .subsys button[aria-pressed="true"]:first-child .subsys__name::after { content: ""; }
 
-
-/* Escala dentro da legenda: menor, para caber na coluna. */
-.toggle--mini { margin: -2px 0 var(--space-3); }
-.toggle--mini button { font-size: 9.5px; padding: 2px var(--space-2); }
-
-/* O balao se ancora no ponto e se desloca por transform, sem depender de
-   medir a propria altura. */
+/* O balão se ancora no ponto e se desloca por transform. */
 .tip--acima  { transform: translate(-50%, -100%) translateY(-14px); }
 .tip--abaixo { transform: translate(-50%, 0) translateY(14px); }

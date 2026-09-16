@@ -101,7 +101,7 @@
 
     tr.appendChild(celulaPonto(ponto));
     tr.appendChild(celula(grausC(ponto.temperatura_prevista_c), "num"));
-    tr.appendChild(celula("Sem limite declarado — monitoramento"));
+    tr.appendChild(celula("Monitoramento", "cell-muted"));
 
     return tr;
   }
@@ -288,11 +288,11 @@
     }
 
     caixa.appendChild(cartao("Acima do limite", String(acima.length),
-      "de " + pts.length, "pontos com previsão acima do próprio limite",
+      "de " + pts.length, "previsão acima do próprio limite",
       acima.length ? "kpi--alerta" : null));
 
     caixa.appendChild(cartao("Inconclusivos", String(banda.length),
-      "na banda", "folga menor que a tolerância de exibição",
+      "na banda", "folga menor que a tolerância",
       banda.length ? "kpi--atencao" : null));
 
     caixa.appendChild(cartao("Pior folga",
@@ -358,7 +358,7 @@
       topo: MT - 12, base: H - MB, yRotulo: MT - 18,
       tolerancia: DADOS_TRIAGEM.tolerancia_fracao
     });
-    svgRanking.appendChild(GRAFICO.texto(ML, 14, "FOLGA RELATIVA AO LIMITE", "ax-rotulo"));
+    svgRanking.appendChild(GRAFICO.texto(ML, 10, "FOLGA RELATIVA AO LIMITE", "ax-rotulo"));
 
     var zero = X(0);
     mostrados.forEach(function (p, k) {
@@ -508,7 +508,7 @@
       topo: MT - 12, base: H - MB, yRotulo: MT - 18,
       tolerancia: DADOS_TRIAGEM.tolerancia_fracao
     });
-    svgSubsistema.appendChild(GRAFICO.texto(ML, 14, "FOLGA RELATIVA AO LIMITE", "ax-rotulo"));
+    svgSubsistema.appendChild(GRAFICO.texto(ML, 10, "FOLGA RELATIVA AO LIMITE", "ax-rotulo"));
 
     function quantil(ordenados, q) {
       var i = (ordenados.length - 1) * q, b = Math.floor(i), r = i - b;
@@ -572,7 +572,10 @@
   /* ----- Mapa de calor ----- */
 
   var palcoCalor = document.getElementById("heat-3d");
+  /* `zona` é a peça selecionada (id em FOGAO.ZONAS) e `semDado` a última peça
+     clicada que não tem termopar, só para o painel dizer por quê. */
   var mapa = { explode: true, escala: "a", isolar: "todos", faixas: {}, sel: null,
+               zona: null, semDado: null,
                vista: "pontos", nome: "", estados: {}, mono: true,
                camadas: { volume: true, fluxo: true, iso: true, focos: true } };
   var linhaPorId = {};
@@ -678,7 +681,7 @@
       if (linha[3] !== null) {
         var over = document.createElement("span");
         over.className = "subsys__over";
-        over.style.color = linha[3] > 0 ? "#8f2419" : "#9fa0a1";
+        over.style.color = linha[3] > 0 ? "var(--color-critical)" : "var(--color-text-subtle)";
         over.textContent = linha[3];
         b.appendChild(over);
       }
@@ -717,8 +720,7 @@
   var geometria = geometriaDaConfig(null);
 
   function corDoPonto(p) {
-    if (p.is_monitor_only) return "#ffffff";
-    return (mapa.escala === "b" ? FOGAO.RAMPA_B : FOGAO.RAMPA_A)[FOGAO.faixaDaRampa(p.margem_percentual)];
+    return PAINEL_PECA.corDoPonto(p, rampaAtual());
   }
 
   function linhaDetalhe(rotulo, valor, vazio) {
@@ -735,10 +737,9 @@
     var cor = corDoPonto(p);
     var html = "<p class=\"detail__name\">" + p.TC_Name + "</p>" +
       "<span class=\"detail__area\">" + p.Key_Area + "</span>" +
-      "<p class=\"detail__state\" style=\"border-color:" + (p.is_monitor_only ? "#d1d3d4" : cor) + "\">" +
-      "<span class=\"detail__swatch\" style=\"background:" + cor + ";border:1px solid #767777\"></span>" +
-      "<span style=\"color:" + (p.is_monitor_only ? "#505863" : cor) + "\">" +
-      (p.is_monitor_only ? "LIMITE NÃO DECLARADO" : p.estado_rotulo.toUpperCase()) + "</span></p>" +
+      "<p class=\"detail__state detail__state--" + (p.is_monitor_only ? "mono" : p.estado) + "\">" +
+      "<span class=\"detail__swatch\" style=\"background:" + cor + ";box-shadow:inset 0 0 0 1px rgba(16,21,31,.35)\"></span>" +
+      "<span>" + (p.is_monitor_only ? "Limite não declarado" : p.estado_rotulo) + "</span></p>" +
       "<dl class=\"detail__rows\">" +
       linhaDetalhe("Temperatura prevista", p.temperatura_prevista_c.toFixed(2) + " °C");
 
@@ -746,8 +747,7 @@
       html += linhaDetalhe("Limite do componente", "—", true) +
         linhaDetalhe("Folga", "—", true) +
         linhaDetalhe("Estado de risco", "não se aplica", true) + "</dl>" +
-        "<p class=\"legend-note\">Ponto acompanhado sem limite declarado. Não recebe " +
-        "estado nem entra na escala.</p>";
+        "<p class=\"legend-note\">Sem limite, não recebe estado nem entra na escala.</p>";
     } else {
       var tol = DADOS_TRIAGEM.tolerancia_fracao * p.limit_c;
       html += linhaDetalhe("Limite do componente", p.limit_c.toFixed(2) + " °C") +
@@ -762,16 +762,80 @@
         "<div class=\"gauge__fill\" style=\"width:" + (frac * 100).toFixed(1) + "%;background:" + cor + "\"></div>" +
         "<div class=\"gauge__mark\" style=\"left:" + (marca * 100).toFixed(1) + "%\"></div>" +
         "<span class=\"gauge__tag\" style=\"left:calc(" + (marca * 100).toFixed(1) + "% + 5px)\">limite</span></div>" +
-        "<p class=\"legend-note\">Valor de triagem produzido por modelo substituto. " +
-        "Confirmar por simulação CFD antes de qualquer decisão de projeto.</p>";
+        "<p class=\"legend-note\">Valor de triagem. Confirmar por CFD antes de decidir.</p>";
     }
 
     caixa.innerHTML = html;
   }
 
+  /* Seleção de ponto e de peça andam amarradas por uma regra só: havendo
+     ponto selecionado, a peça selecionada é a dele. Escolher um ponto — no
+     modelo, na tabela, nos gráficos ou na lista da peça — leva a peça junto;
+     trocar ou soltar a peça solta o ponto que não mora nela. Assim os dois
+     painéis nunca descrevem coisas diferentes. */
   function selecionar(p) {
     mapa.sel = p ? p.measurement_id : null;
+    if (p) {
+      var zona = FOGAO.zonaDoPonto(p);
+      mapa.zona = zona ? zona.id : null;
+      mapa.semDado = null;
+    }
+    atualizarSelecao(p);
+  }
+
+  function pontoSelecionado() {
+    if (!mapa.sel) return null;
+    return todosOsPontos().filter(function (p) { return p.measurement_id === mapa.sel; })[0] || null;
+  }
+
+  function selecionarZona(id) {
+    mapa.zona = id;
+    mapa.semDado = null;
+    var p = pontoSelecionado();
+    if (p && (!id || FOGAO.zonaDoPonto(p).id !== id)) mapa.sel = null;
+    atualizarSelecao(pontoSelecionado());
+  }
+
+  function limparSelecao() {
+    mapa.sel = null;
+    mapa.zona = null;
+    mapa.semDado = null;
+    atualizarSelecao(null);
+  }
+
+  /* Clique no modelo fora de marcador. Fundo e Esc limpam tudo; peça sem
+     termopar também solta a seleção, mas o painel diz que o clique pegou e
+     por que não há resumo; clicar de novo na peça já selecionada a solta. */
+  function clicarPeca(alvo) {
+    if (!alvo) { limparSelecao(); return; }
+    if (!alvo.zona) {
+      mapa.sel = null;
+      mapa.zona = null;
+      mapa.semDado = { id: alvo.id, nome: alvo.nome, casca: alvo.casca };
+      atualizarSelecao(null);
+      return;
+    }
+    selecionarZona(alvo.zona.id === mapa.zona ? null : alvo.zona.id);
+  }
+
+  function desenharPainelPeca() {
+    var zona = mapa.zona && FOGAO.ZONA_POR_ID[mapa.zona];
+    var sel = zona ? { resumo: PAINEL_PECA.resumir(zona, DADOS_TRIAGEM) }
+      : mapa.semDado ? { semDado: mapa.semDado } : null;
+    PAINEL_PECA.desenhar(document.getElementById("part-detail"), sel, {
+      rampa: rampaAtual(),
+      dados: DADOS_TRIAGEM,
+      pontoSel: mapa.sel,
+      aoEscolherPonto: selecionar,
+      aoLimpar: limparSelecao
+    });
+    var escolha = document.getElementById("part-select");
+    if (escolha) escolha.value = mapa.zona || "";
+  }
+
+  function atualizarSelecao(p) {
     mostrarDetalhe(p);
+    desenharPainelPeca();
     redesenharCalor();
     desenharVisuais();
 
@@ -780,6 +844,25 @@
     });
     /* A linha fica destacada, mas a página não se move: quem clicou no modelo
        quer ler o painel ao lado, e só desce até a tabela se quiser detalhe. */
+  }
+
+  // Caminho de teclado e leitor de tela para a mesma seleção que o clique faz.
+  function montarEscolhaDePeca() {
+    var escolha = document.getElementById("part-select");
+    var areas = {};
+    FOGAO.ZONAS.forEach(function (z) { (areas[z.area] = areas[z.area] || []).push(z); });
+    Object.keys(areas).forEach(function (area) {
+      var grupo = document.createElement("optgroup");
+      grupo.label = area;
+      areas[area].forEach(function (z) {
+        var o = document.createElement("option");
+        o.value = z.id;
+        o.textContent = z.nome;
+        grupo.appendChild(o);
+      });
+      escolha.appendChild(grupo);
+    });
+    escolha.addEventListener("change", function () { selecionarZona(this.value || null); });
   }
 
   /* Só os três estados de RN-01. Monitoramento não entra: por RN-03 esses
@@ -888,8 +971,8 @@
       Object.keys(mapa.faixas).length || Object.keys(mapa.estados).length;
 
     document.getElementById("filter-count").textContent = ativo
-      ? comLimite + " de " + total + " com limite · " + monitorados + " de " + mono + " monitorados"
-      : "Sem filtro: os " + total + " pontos com limite e os " + mono + " monitorados.";
+      ? comLimite + "/" + total + " com limite · " + monitorados + "/" + mono + " sem limite"
+      : total + " com limite · " + mono + " sem limite";
 
     montarFaixasAtivas();
     document.getElementById("filter-clear").hidden = !ativo;
@@ -944,6 +1027,7 @@
       escala: mapa.escala,
       isolar: mapa.isolar,
       sel: mapa.sel,
+      zonaSel: mapa.zona,
       pontos: pontos
     });
 
@@ -964,24 +1048,25 @@
     );
 
     var campoAtivo = mapa.vista === "campo";
+    // No campo a cor é temperatura: a legenda de folga sai para não haver duas escalas.
+    document.getElementById("heat").dataset.vista = mapa.vista;
     document.getElementById("heat-layers-bar").hidden = !campoAtivo;
 
     document.getElementById("occlusion-hint").textContent =
       meta ? meta.nome
-      : campoAtivo && mapa.explode ? "Campo por componente · o cursor sonda a temperatura"
-      : campoAtivo ? "Campo no volume · o cursor sonda a temperatura, o arrasto gira sem parada"
-      : mapa.explode ? "Explodido · arraste para girar"
-      : "Assentado: pontos internos aparecem em transparência";
+      : campoAtivo ? "Passe o cursor para sondar · clique numa peça para o resumo"
+      : mapa.explode ? "Arraste para girar · clique numa peça para o resumo"
+      : "Pontos internos em transparência · clique numa peça";
 
     document.getElementById("heat-view-name").textContent =
-      meta ? "VISTA DE COMPONENTE"
-      : campoAtivo && mapa.explode ? "CAMPO TÉRMICO EXPLODIDO"
-      : campoAtivo ? "CAMPO TÉRMICO ESQUEMÁTICO"
-      : mapa.explode ? "VISTA EXPLODIDA ESQUEMÁTICA" : "VISTA ESQUEMÁTICA";
+      meta ? "Vista de componente"
+      : campoAtivo && mapa.explode ? "Campo térmico explodido"
+      : campoAtivo ? "Campo térmico esquemático"
+      : mapa.explode ? "Vista explodida esquemática" : "Vista esquemática";
     document.getElementById("heat-view-note").textContent =
       meta ? "Sem CAD · termopares deste subsistema"
-      : campoAtivo ? "Sem CAD · interpolado entre termopares, não é resultado de simulação de CFD"
-      : "Sem CAD · a posição indica o subsistema, não a coordenada real";
+      : campoAtivo ? "Sem CAD · interpolado entre termopares, não é CFD"
+      : "Sem CAD · posição indica o subsistema, não a coordenada";
   }
 
   function ligarAlternancia(id, chave, valores) {
@@ -992,7 +1077,8 @@
       Array.prototype.forEach.call(this.querySelectorAll("button"), function (b) {
         b.setAttribute("aria-pressed", String(b === botao));
       });
-      if (chave === "escala") montarRampa();
+      // A escala pinta também os glifos dos dois painéis de seleção.
+      if (chave === "escala") { montarRampa(); mostrarDetalhe(pontoSelecionado()); desenharPainelPeca(); }
       redesenharCalor();
       desenharVisuais();
     });
@@ -1000,6 +1086,8 @@
 
   function montarMapa() {
     criarModelo();
+    montarEscolhaDePeca();
+    desenharPainelPeca();
     montarRampa();
     montarSubsistemas();
 
@@ -1087,10 +1175,20 @@
         });
         balao.dataset.on = "0";
       },
-      // Clique fora de marcador limpa a seleção; o fim de um arrasto não conta.
+      // Só chega clique de verdade: o fim de um arrasto de câmera não conta.
       aoClicar: function (p) {
         if (mapa.vista === "campo") return;
         selecionar(p);
+      },
+      aoClicarPeca: clicarPeca,
+      aoPairarPeca: function (alvo, x, y) {
+        if (!alvo) { balao.dataset.on = "0"; return; }
+        var n = FOGAO.pontosDaZona(alvo.zona, todosOsPontos()).length;
+        var selecionada = alvo.zona.id === mapa.zona;
+        balao.innerHTML = "<b class=\"tip__name\">" + alvo.zona.nome + "</b>" +
+          "<span class=\"tip__state\">" + alvo.zona.area + " · " + n + (n === 1 ? " ponto" : " pontos") +
+          " · " + (selecionada ? "clique para soltar" : "clique para o resumo") + "</span>";
+        posicionarBalao(balao, x, y);
       },
       /* No campo o balão vira sonda: mostra a temperatura interpolada sob o
          cursor, que é o que substitui o marcador desta vista. */
@@ -1191,6 +1289,7 @@
 
       var dt = document.createElement("dt");
       dt.textContent = linha[0];
+      dt.title = linha[0];
       item.appendChild(dt);
 
       var dd = document.createElement("dd");

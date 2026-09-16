@@ -50,11 +50,9 @@
 }
 
 .lead-card__kicker {
-  font-family: var(--font-display);
-  font-weight: var(--weight-bold);
-  font-size: var(--size-kicker);
-  letter-spacing: var(--tracking-kicker);
-  text-transform: uppercase;
+  font-family: var(--font-body);
+  font-weight: var(--weight-semibold);
+  font-size: var(--size-small);
   color: var(--color-accent);
 }
 
@@ -286,7 +284,7 @@
   display: block;
   height: 9px;
   border: var(--border-width) solid var(--color-border-strong);
-  border-radius: 1px;
+  border-radius: 4px;
 }
 
 /* O eixo abaixo da grade substitui o parágrafo que explicava a faixa: a
@@ -338,7 +336,7 @@
   color: var(--color-text-muted);
   background: var(--color-surface-sunken);
   border: 1px solid var(--color-border);
-  border-radius: 1px;
+  border-radius: 4px;
   padding: 0 4px;
   white-space: nowrap;
 }
@@ -373,11 +371,9 @@
 .cmp-tray[hidden] { display: none; }
 
 .cmp-tray__label {
-  font-family: var(--font-display);
-  font-weight: var(--weight-bold);
-  font-size: var(--size-kicker);
-  letter-spacing: var(--tracking-kicker);
-  text-transform: uppercase;
+  font-family: var(--font-body);
+  font-weight: var(--weight-semibold);
+  font-size: var(--size-small);
   color: var(--color-text-muted);
 }
 
@@ -529,7 +525,7 @@
   background: var(--color-surface);
 }
 
-.cmp-factor__val .slot { width: 0.95rem; height: 0.95rem; font-size: 9px; }
+.cmp-factor__val .slot { width: 0.95rem; height: 0.95rem; font-size: 10px; }
 
 /* Os fatores idênticos não somem — colapsam. Cinco linhas repetindo "igual em
    todas" custavam mais atenção do que o fato que carregavam. */
@@ -629,7 +625,7 @@
   display: block;
   font-family: var(--font-body);
   font-weight: var(--weight-regular);
-  font-size: 9.5px;
+  font-size: var(--size-kicker);
   letter-spacing: 0;
   text-transform: none;
   color: var(--wp-gray-medium);
@@ -687,13 +683,13 @@
   display: inline-block;
   font-family: var(--font-display);
   font-weight: var(--weight-bold);
-  font-size: 9.5px;
+  font-size: var(--size-kicker);
   letter-spacing: var(--tracking-kicker);
   text-transform: uppercase;
   color: var(--wp-near-black);
   background: none;
   border: 1px solid var(--color-border-strong);
-  border-radius: 1px;
+  border-radius: 4px;
   padding: 0 4px;
   margin-top: 3px;
   white-space: nowrap;
@@ -703,10 +699,10 @@
 .rank {
   display: inline-block;
   font-family: var(--font-mono);
-  font-size: 9.5px;
+  font-size: var(--size-kicker);
   color: var(--color-accent);
   border: 1px solid var(--wp-blue-accent);
-  border-radius: 1px;
+  border-radius: 4px;
   padding: 0 3px;
   margin-left: var(--space-2);
   vertical-align: 1px;
