@@ -1,129 +1,116 @@
-/* Tokens de design, extraídos do style guide da Whirlpool Corporation.
+/* Tokens de design do painel.
  *
- * Cor core: Accomplished Blue, designada pelo guia às comunicações de
- * technology. O guia proíbe misturar paletas, e proíbe amarelo, laranja e
- * verde em texto de destaque — por isso nenhum deles aparece aqui.
- *
- * Branco é a base e ocupa a maior parte da tela; cor é acento.
+ * Base no style guide da Whirlpool: azul core como acento, branco e neutros
+ * frios como superfície, sem amarelo, laranja ou verde em destaque. Vermelho
+ * só para o que está acima do limite.
  */
 
-/* Nunito Sans e Open Sans, hospedadas localmente em vez de carregadas do
- * Google Fonts (RNF-02 e RNF-04, Tabela 48 da documentação): o painel roda
- * sem depender de conexão externa, e nenhum identificador de quem o executa
- * chega a um servidor de terceiro. Cada arquivo é uma fonte variável e
- * cobre os dois pesos usados por sua família; só o subconjunto latino foi
- * baixado, suficiente para português.
- */
+/* Work Sans nos títulos e números; Source Sans 3 no texto e nas tabelas.
+ * Hospedadas localmente (RNF-02 e RNF-04), subconjunto latino, licença OFL. */
 @font-face {
-  font-family: "Nunito Sans";
-  font-style: normal;
-  font-weight: 300;
+  font-family: "Work Sans";
+  font-weight: 500;
   font-display: swap;
-  src: url("../fonts/nunito-sans.woff2") format("woff2");
-  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+20AC, U+2122;
+  src: url("../fonts/work-sans-medium.woff2") format("woff2");
 }
 
 @font-face {
-  font-family: "Nunito Sans";
-  font-style: normal;
-  font-weight: 700;
-  font-display: swap;
-  src: url("../fonts/nunito-sans.woff2") format("woff2");
-  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+20AC, U+2122;
-}
-
-@font-face {
-  font-family: "Open Sans";
-  font-style: normal;
-  font-weight: 400;
-  font-display: swap;
-  src: url("../fonts/open-sans.woff2") format("woff2");
-  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+20AC, U+2122;
-}
-
-@font-face {
-  font-family: "Open Sans";
-  font-style: normal;
+  font-family: "Work Sans";
   font-weight: 600;
   font-display: swap;
-  src: url("../fonts/open-sans.woff2") format("woff2");
-  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+20AC, U+2122;
+  src: url("../fonts/work-sans-semibold.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Source Sans 3";
+  font-weight: 400;
+  font-display: swap;
+  src: url("../fonts/source-sans-3-regular.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Source Sans 3";
+  font-weight: 600;
+  font-display: swap;
+  src: url("../fonts/source-sans-3-semibold.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Source Sans 3";
+  font-weight: 700;
+  font-display: swap;
+  src: url("../fonts/source-sans-3-bold.woff2") format("woff2");
 }
 
 :root {
-  /* Neutros — escolha primária para texto */
-  --wp-gray-extra-light: #f5f6f7;
-  --wp-gray-light:       #dee0e3;
-  --wp-gray:             #d1d3d4;
-  --wp-gray-medium:      #9fa0a1;
-  --wp-gray-dark:        #767777;
-  --wp-near-black:       #484949;
-  --wp-black:            #484948;
-  --wp-charcoal:         #505863;
+  /* Neutros frios, com um fio de azul para conversar com a marca. */
+  --wp-gray-extra-light: #f4f6f9;
+  --wp-gray-light:       #e3e7ed;
+  --wp-gray:             #cfd5dd;
+  --wp-gray-medium:      #8b93a1;
+  --wp-gray-dark:        #5d6675;
+  --wp-near-black:       #1b2230;
+  --wp-black:            #10151f;
+  --wp-charcoal:         #2c3645;
   --wp-white:            #ffffff;
 
   /* Core e acentos */
-  --wp-blue-core:   #0d436b;
-  --wp-blue-accent: #00a0dd;
-  --wp-blue-light:  #edf4fc;
+  --wp-blue-core:   #0b4a77;
+  --wp-blue-accent: #1f7fc0;
+  --wp-blue-light:  #eaf2f9;
 
-  /* Extremos da rampa de folga desenhada em fogao.js. Reusar as mesmas
-     paradas mantém tabela, legenda e modelo falando a mesma língua, e não
-     introduz paleta nova: são as cores que o painel já pinta. */
+  /* Mesmas paradas da rampa de folga de fogao.js. */
   --wp-red:      #c04b3d;
-  --wp-red-deep: #8f2419;
-  --wp-red-tint: #fbf1ef;
+  --wp-red-deep: #a0261a;
+  --wp-red-tint: #fdf2f0;
   --wp-blue-mid: #3f7aa3;
 
-  /* Papéis semânticos: é o que o app.css referencia. Trocar a cor core é
-     editar só este bloco. */
+  /* Papéis semânticos */
+  --color-canvas:         #f4f6f9;
   --color-surface:        var(--wp-white);
-  --color-surface-sunken: var(--wp-gray-extra-light);
+  --color-surface-sunken: #f7f9fb;
   --color-surface-accent: var(--wp-blue-light);
   --color-border:         var(--wp-gray-light);
   --color-border-strong:  var(--wp-gray);
   --color-text:           var(--wp-near-black);
   --color-text-muted:     var(--wp-gray-dark);
+  --color-text-subtle:    #6f7887;
   --color-text-inverse:   var(--wp-white);
   --color-accent:         var(--wp-blue-core);
-  --color-accent-hover:   #0a3554;
+  --color-accent-hover:   #083a5e;
   --color-focus-ring:     var(--wp-blue-accent);
 
-  /* Papéis de risco. Só o que está acima do limite pede cor: o resto do
-     painel continua em neutro, e a cor segue redundante com o rótulo. */
   --color-critical:       var(--wp-red-deep);
   --color-critical-soft:  var(--wp-red);
   --color-critical-bg:    var(--wp-red-tint);
+  --color-critical-line:  #f1cdc7;
   --color-positive:       var(--wp-blue-mid);
 
-  /* Tipografia. É Nunito Sans, não Nunito — são fontes diferentes.
-     Hospedadas localmente pelas declarações @font-face acima. */
-  --font-display: "Nunito Sans", "Segoe UI", Arial, sans-serif;
-  --font-body:    "Open Sans", "Segoe UI", Arial, sans-serif;
+  /* Tipografia */
+  --font-display: "Work Sans", "Segoe UI", Arial, sans-serif;
+  --font-body:    "Source Sans 3", "Segoe UI", Arial, sans-serif;
   --font-mono:    ui-monospace, "Cascadia Mono", Consolas, monospace;
 
-  --weight-light:    300;
+  --weight-light:    500;
   --weight-regular:  400;
   --weight-semibold: 600;
-  --weight-bold:     700;
+  --weight-bold:     600;
 
+  /* Escala curta: 12 · 13 · 15 · 16 · 20 · 30. Nada abaixo de 12px. */
   --size-kicker:  0.75rem;
   --size-small:   0.8125rem;
   --size-body:    0.9375rem;
   --size-subhead: 1rem;
-  --size-title:   1.5rem;
-  /* Um número que decide a leitura da tela não pode sair do mesmo corpo do
-     parágrafo ao lado. */
-  --size-metric:  2.6rem;
-  --size-display: 3.5rem;
+  --size-title:   1.25rem;
+  --size-metric:  1.875rem;
+  --size-display: 2.25rem;
 
-  --tracking-kicker:  0.05em;
-  --tracking-subhead: 0.03em;
+  --tracking-kicker:  0.06em;
+  --tracking-subhead: 0;
 
   --leading-tight: 1.25;
-  --leading-body:  1.55;
+  --leading-body:  1.5;
 
-  /* Escala de 4px */
   --space-1: 0.25rem;
   --space-2: 0.5rem;
   --space-3: 0.75rem;
@@ -132,9 +119,10 @@
   --space-6: 2rem;
   --space-7: 3rem;
 
-  /* Cantos levemente arredondados no máximo; sem sombra e sem gradiente. */
-  --radius: 2px;
+  --radius:    6px;
+  --radius-lg: 10px;
   --border-width: 1px;
+  --shadow-card: 0 1px 2px rgba(16, 21, 31, 0.04), 0 1px 1px rgba(16, 21, 31, 0.02);
 
-  --content-max: 68rem;
+  --content-max: 84rem;
 }

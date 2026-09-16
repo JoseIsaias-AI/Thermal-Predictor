@@ -27,9 +27,10 @@
   border: var(--border-width) solid var(--color-border);
   border-radius: var(--radius);
   background: var(--color-surface);
+  padding: var(--space-2);
 }
 
-.chart__svg { display: block; max-width: 100%; }
+.chart__svg { display: block; width: 100%; height: auto; }
 
 .chart__note {
   font-size: var(--size-kicker);
@@ -41,23 +42,23 @@
    O traço mais fino que ainda se lê: a moldura não pode competir com o dado.
    O zero é a única linha que engrossa, porque é a fronteira que decide. */
 
-.ax-line { stroke: var(--color-border); stroke-width: 1; }
-.ax-zero { stroke: var(--wp-near-black); stroke-width: 1.2; }
+.ax-line { stroke: #edf0f3; stroke-width: 1; }
+.ax-zero { stroke: var(--color-text); stroke-width: 1.4; }
 .ax-band { fill: var(--color-surface-accent); }
 
 .ax-text {
   font-family: var(--font-body);
-  font-size: 10px;
+  font-size: 11px;
   fill: var(--color-text-muted);
 }
 
 .ax-text--forte { fill: var(--color-text); font-weight: var(--weight-semibold); }
-.ax-text--eixo { font-size: 9.5px; fill: var(--wp-gray-medium); }
+.ax-text--eixo { font-size: 10.5px; fill: var(--color-text-subtle); }
 
 .ax-rotulo {
-  font-family: var(--font-display);
-  font-size: 9px;
-  font-weight: var(--weight-bold);
+  font-family: var(--font-body);
+  font-size: 9.5px;
+  font-weight: var(--weight-semibold);
   letter-spacing: var(--tracking-kicker);
   fill: var(--color-text-muted);
 }
@@ -76,79 +77,74 @@
 /* Marca clicável: na triagem o desenho é uma terceira porta para a mesma
    seleção que a tabela e o modelo já abrem. */
 .ax-marca { cursor: pointer; }
-.ax-faixa-alt { fill: var(--color-surface-sunken); }
+.ax-faixa-alt { fill: #fafbfc; }
 
 /* Subsistema fora do isolamento: continua desenhado, e apenas recua. */
 .ax-recuado { opacity: 0.28; }
 
 /* ----- Cartões de leitura rápida -----
-   Um número grande e o que ele nomeia. Nada de velocímetro nem de rosca: se
-   a informação é um número, quem a comunica melhor é o próprio número. */
+   Um número grande e o que ele nomeia. */
 
 .kpis {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
   gap: var(--space-3);
-  margin-bottom: var(--space-5);
+  margin-bottom: var(--space-4);
 }
 
-/* `display: grid` vence o atributo `hidden` sozinho. */
 .kpis[hidden] { display: none; }
 
 .kpi {
+  position: relative;
+  background: var(--color-surface);
   border: var(--border-width) solid var(--color-border);
-  border-top: 3px solid var(--color-border-strong);
-  border-radius: var(--radius);
-  padding: var(--space-3) var(--space-4) var(--space-4);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+  padding: var(--space-4) var(--space-4) var(--space-3);
   min-width: 0;
+  overflow: hidden;
 }
 
-/* Contagem acima do limite é o único número desta faixa que muda a decisão
-   de hoje, e é o único que sai do neutro. */
-.kpi--alerta {
-  border-top-color: var(--color-critical);
-  background: var(--color-critical-bg);
-}
+/* Só o que muda a decisão de hoje sai do neutro. */
+.kpi--alerta { box-shadow: var(--shadow-card), inset 3px 0 0 var(--color-critical); }
+.kpi--alerta .kpi__valor { color: var(--color-critical); }
 
-.kpi--alerta .kpi__rotulo,
-.kpi--alerta .kpi__valor,
-.kpi--alerta .kpi__nota { color: var(--color-critical); }
-
-.kpi--atencao { border-top-color: var(--color-accent); }
+.kpi--atencao { box-shadow: var(--shadow-card), inset 3px 0 0 var(--color-accent); }
 .kpi--atencao .kpi__valor { color: var(--color-accent); }
 
 .kpi__rotulo {
   display: block;
-  font-family: var(--font-display);
-  font-weight: var(--weight-bold);
-  font-size: var(--size-kicker);
-  letter-spacing: var(--tracking-kicker);
-  text-transform: uppercase;
+  font-family: var(--font-body);
+  font-weight: var(--weight-semibold);
+  font-size: var(--size-small);
   color: var(--color-text-muted);
-  margin-bottom: var(--space-1);
+  margin-bottom: var(--space-2);
 }
 
 .kpi__valor {
   display: block;
   font-family: var(--font-display);
-  font-weight: var(--weight-light);
+  font-weight: 600;
   font-size: var(--size-metric);
   line-height: 1;
   font-variant-numeric: tabular-nums;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.03em;
+  color: var(--color-text);
 }
 
 .kpi__valor small {
-  font-size: 0.9rem;
+  font-family: var(--font-body);
+  font-size: 0.9375rem;
   font-weight: var(--weight-regular);
-  color: var(--color-text-muted);
-  margin-left: var(--space-1);
+  letter-spacing: 0;
+  color: var(--color-text-subtle);
+  margin-left: 6px;
 }
 
 .kpi__nota {
   display: block;
-  font-size: var(--size-kicker);
-  color: var(--color-text-muted);
+  font-size: var(--size-small);
+  color: var(--color-text-subtle);
   margin-top: var(--space-2);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -157,53 +153,55 @@
 
 /* ----- Pilha de desenhos ----- */
 
-.viz { margin-top: var(--space-5); }
+.viz { margin-top: 0; min-width: 0; }
+.viz + .viz, .viz + .viz-par { margin-top: var(--space-5); }
 
 .viz__titulo {
-  font-family: var(--font-body);
-  font-weight: var(--weight-semibold);
-  font-size: var(--size-small);
-  letter-spacing: var(--tracking-subhead);
-  text-transform: uppercase;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 0.875rem;
+  letter-spacing: 0;
   color: var(--color-text);
-  margin: 0 0 var(--space-1);
+  margin: 0 0 var(--space-2);
   display: flex;
   flex-wrap: wrap;
   align-items: baseline;
-  gap: var(--space-2) var(--space-3);
+  gap: var(--space-1) var(--space-2);
 }
 
 .viz__sub {
+  font-family: var(--font-body);
   font-weight: var(--weight-regular);
-  letter-spacing: 0;
-  text-transform: none;
-  color: var(--color-text-muted);
-  font-size: var(--size-kicker);
+  color: var(--color-text-subtle);
+  font-size: var(--size-small);
 }
 
 .viz__acao {
   margin-left: auto;
   font-family: var(--font-body);
-  font-size: var(--size-kicker);
+  font-size: var(--size-small);
+  font-weight: var(--weight-semibold);
   color: var(--color-accent);
   background: none;
-  border: var(--border-width) solid var(--color-border-strong);
-  border-radius: var(--radius);
-  padding: 1px var(--space-2);
+  border: 0;
+  padding: 0;
   cursor: pointer;
-  text-transform: none;
-  letter-spacing: 0;
 }
 
-.viz__acao:hover { background: var(--color-surface-accent); }
-.viz__acao:focus-visible { outline: 2px solid var(--color-focus-ring); outline-offset: 1px; }
+.viz__acao:hover { text-decoration: underline; }
+.viz__acao:focus-visible { outline: 2px solid var(--color-focus-ring); outline-offset: 2px; }
 
-/* Dois desenhos lado a lado quando a tela permite: eles se leem juntos. */
+/* Empilhados: lado a lado o texto dos eixos encolhia abaixo do legível. */
 .viz-par {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(26rem, 1fr));
+  display: flex;
+  flex-direction: column;
   gap: var(--space-5);
 }
+
+/* A dispersão é quadrada: na largura toda ficaria mais alta que a tela. */
+#visuais .viz-par .viz:last-child .chart__scroll { max-width: 40rem; }
+
+#visuais > .more { margin-top: var(--space-4); }
 
 /* ----- Entrada -----
    O desenho aparece em vez de piscar. É a única animação da tela, e ela

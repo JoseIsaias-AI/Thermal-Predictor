@@ -19,11 +19,9 @@
 }
 
 .page-head__kicker {
-  font-family: var(--font-display);
-  font-weight: var(--weight-bold);
-  font-size: var(--size-kicker);
-  letter-spacing: var(--tracking-kicker);
-  text-transform: uppercase;
+  font-family: var(--font-body);
+  font-weight: var(--weight-semibold);
+  font-size: var(--size-small);
   color: var(--color-text-muted);
   margin: 0 0 2px;
 }
@@ -67,11 +65,9 @@
 }
 
 .criterion__title {
-  font-family: var(--font-display);
-  font-weight: var(--weight-bold);
-  font-size: var(--size-kicker);
-  letter-spacing: var(--tracking-kicker);
-  text-transform: uppercase;
+  font-family: var(--font-body);
+  font-weight: var(--weight-semibold);
+  font-size: var(--size-small);
   color: var(--color-accent);
   margin: 0 0 var(--space-2);
 }
@@ -126,11 +122,9 @@
 .stat--gap .stat__value { color: var(--color-critical); }
 
 .stat dt {
-  font-family: var(--font-display);
-  font-weight: var(--weight-bold);
-  font-size: var(--size-kicker);
-  letter-spacing: var(--tracking-kicker);
-  text-transform: uppercase;
+  font-family: var(--font-body);
+  font-weight: var(--weight-semibold);
+  font-size: var(--size-small);
   color: var(--color-text-muted);
   margin-bottom: var(--space-2);
 }
@@ -184,9 +178,7 @@
 .hyp__code span {
   font-weight: var(--weight-regular);
   font-size: var(--size-kicker);
-  letter-spacing: var(--tracking-kicker);
-  text-transform: uppercase;
-  color: var(--color-text-muted);
+    color: var(--color-text-muted);
   margin-left: var(--space-2);
 }
 
@@ -333,9 +325,7 @@
 
 .chart__eixo {
   font-family: var(--font-body);
-  font-size: 9.5px;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  font-size: 10.5px;
   fill: var(--wp-gray-medium);
 }
 

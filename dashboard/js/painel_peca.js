@@ -122,7 +122,7 @@ var PAINEL_PECA = (function () {
 
   function vazio(caixa) {
     caixa.appendChild(el("p", "detail__empty",
-      "Clique numa peça do modelo para ver o resumo dela. Clicar de novo na mesma peça, no fundo do palco ou Esc desfaz a seleção."));
+      "Clique numa peça do modelo para ver o resumo. Esc desfaz."));
   }
 
   // Clique registrado numa peça que o dado não cobre: diz qual foi, e por que não há resumo.
@@ -149,7 +149,7 @@ var PAINEL_PECA = (function () {
     var mono = ref.is_monitor_only;
     var bloco = el("p", "detail__state part__state" + (mono ? " part__state--mono" : " part__state--" + ref.estado));
     bloco.appendChild(glifo(ref, rampa, 14));
-    bloco.appendChild(el("span", null, mono ? "LIMITE NÃO DECLARADO" : ref.estado_rotulo.toUpperCase()));
+    bloco.appendChild(el("span", null, mono ? "Limite não declarado" : ref.estado_rotulo));
     caixa.appendChild(bloco);
 
     if (r.total > 1) {
@@ -266,7 +266,7 @@ var PAINEL_PECA = (function () {
     composicao(caixa, r);
     listaDePontos(caixa, r, op);
     caixa.appendChild(el("p", "legend-note",
-      "Estado, folga e ordem vêm prontos da triagem, os mesmos da tabela; o resumo só escolhe o ponto que ela já pôs primeiro. Os filtros não recortam a peça."));
+      "Mesmos valores da tabela. Os filtros não recortam a peça."));
   }
 
   return {

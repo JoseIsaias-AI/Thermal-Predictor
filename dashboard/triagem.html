@@ -5,13 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Triagem térmica — Thermal Predictor</title>
 
-  <!-- Fontes hospedadas localmente em css/tokens.css (@font-face), sem
-       dependência de rede (RNF-02 e RNF-04, Tabela 48 da documentação). -->
-  <link rel="stylesheet" href="css/tokens.css">
-  <link rel="stylesheet" href="css/app.css">
-  <link rel="stylesheet" href="css/triagem.css">
-  <link rel="stylesheet" href="css/fogao.css">
-  <link rel="stylesheet" href="css/grafico.css">
+  <link rel="stylesheet" href="css/tokens.css?v=3">
+  <link rel="stylesheet" href="css/app.css?v=3">
+  <link rel="stylesheet" href="css/triagem.css?v=3">
+  <link rel="stylesheet" href="css/fogao.css?v=3">
+  <link rel="stylesheet" href="css/grafico.css?v=3">
 </head>
 <body>
 
@@ -48,49 +46,43 @@
 
 <main class="page">
 
-  <!-- RF-15 e RN-07: continua fixo nesta tela e continua inteiro. Fechado por
-       padrão, para a tela abrir nos números da triagem. -->
-  <details class="scope-notice">
-    <summary>Como ler esta triagem</summary>
-    <div class="scope-notice__body">
-      <p>
-        Esta tela é uma <strong>triagem pré-CFD</strong>. Ela ordena pontos de
-        medição por risco térmico estimado para ajudar a decidir o que enviar
-        para simulação primeiro. Ela <strong>não substitui a simulação</strong>
-        e não emite parecer de conformidade.
-      </p>
-      <p>
-        Nenhum estado exibido é aprovação. <em>Dentro do limite</em> significa
-        que a folga prevista supera a tolerância de exibição, não que o
-        componente esteja verificado. A confirmação continua sendo a simulação.
-      </p>
-      <p>
-        A tolerância que define a <em>banda de incerteza</em> é
-        <span id="tolerance-fraction">10%</span> do limite declarado de cada
-        ponto. Uma folga menor que isso é apresentada como inconclusiva: a
-        configuração vai para verificação, e não é descartada.
-      </p>
+  <div class="page-head">
+    <div class="page-head__text">
+      <h2 class="page-head__title">Triagem térmica</h2>
+      <p class="page-head__sub">Pontos de medição ordenados por risco estimado · apoio à fila de simulação, não substitui CFD</p>
     </div>
-  </details>
+    <div class="page-head__actions">
+      <!-- RF-15 e RN-07: o enquadramento continua inteiro, a um clique. -->
+      <details class="scope-notice">
+        <summary>Como ler</summary>
+        <div class="scope-notice__body">
+          <p>
+            Triagem <strong>pré-CFD</strong>: ordena os pontos por risco térmico
+            estimado para decidir o que simular primeiro. <strong>Não substitui
+            a simulação</strong> e não emite parecer de conformidade.
+          </p>
+          <p>
+            Nenhum estado é aprovação. <em>Dentro do limite</em> significa folga
+            maior que a tolerância, não componente verificado.
+          </p>
+          <p>
+            <em>Banda de incerteza</em>: folga menor que
+            <span id="tolerance-fraction">10%</span> do limite. O ponto vai para
+            verificação, não é descartado.
+          </p>
+        </div>
+      </details>
+      <a class="btn btn--ghost" href="index.html">Alterar configuração</a>
+    </div>
+  </div>
 
-  <!-- Os quatro números que decidem o que fazer com esta configuração. Eram
-       calculados desde sempre, mas ficavam abaixo do mapa e da tabela: quem
-       abria a tela via prosa antes de ver quantos pontos estouram. -->
   <div class="kpis" id="kpis" hidden></div>
 
-  <!-- Sem o eco da configuração, a tabela fica solta. -->
-  <section class="panel" id="config-panel" hidden>
-    <h2 class="panel__title">Configuração avaliada</h2>
-    <dl class="meta-list" id="config-list"></dl>
-    <p class="panel__note">
-      A posição da placa e o estado do alojamento deslocam termopares no
-      modelo. Os outros cinco fatores não movem geometria.
-    </p>
-    <p class="panel__note" id="config-default-note" hidden>
-      Nenhuma configuração foi informada. Estes são os fatores de referência
-      do conjunto de dados de exemplo.
-      <a href="index.html">Montar uma configuração</a>.
-    </p>
+  <section class="config" id="config-panel" hidden>
+    <h2 class="config__title">Configuração avaliada
+      <span class="config__tag" id="config-default-note" hidden title="Nenhuma configuração foi informada. Estes são os fatores de referência do conjunto de dados de exemplo.">referência do dataset</span>
+    </h2>
+    <dl class="config__list" id="config-list"></dl>
   </section>
 
   <p class="status-line" id="loading">Carregando triagem…</p>
@@ -100,123 +92,95 @@
     <span id="error-message"></span>
   </section>
 
-  <!-- Nasce explodido: com o produto assentado, 48 dos 78 pontos ficam
-       ocultos sob o cooktop e na face traseira. -->
+  <!-- Nasce explodido: assentado, 48 dos 78 pontos ficam ocultos. -->
   <section class="heat" id="heat" hidden>
 
-    <div class="heat__side">
-      <div class="heat__block">
-        <h3 class="heat__label">Folga prevista</h3>
-        <!-- A escala mora com a legenda que ela colore, não na barra do
-             viewport, que já estava estourando de controles. -->
-        <span class="toggle toggle--mini" id="heat-scale"
-              role="group" aria-label="Paleta da escala de folga">
-          <button type="button" data-scale="a" aria-pressed="true">Cor</button>
-          <button type="button" data-scale="b" aria-pressed="false">Tons de cinza</button>
-        </span>
+    <aside class="heat__side">
+      <div class="heat__block heat__block--folga">
+        <div class="heat__head">
+          <h3 class="heat__label">Folga prevista</h3>
+          <span class="toggle toggle--mini" id="heat-scale"
+                role="group" aria-label="Paleta da escala de folga">
+            <button type="button" data-scale="a" aria-pressed="true">Cor</button>
+            <button type="button" data-scale="b" aria-pressed="false">Cinza</button>
+          </span>
+        </div>
         <div class="ramp" id="ramp"></div>
         <div class="mono-key">
-          <svg width="14" height="14" aria-hidden="true"><rect x="2" y="2" width="10" height="10" fill="#fff" stroke="#767777" stroke-width="1.2" stroke-dasharray="2.5 2"></rect></svg>
-          <span>Monitoramento<b>limite não declarado</b></span>
+          <svg width="14" height="14" aria-hidden="true"><rect x="2" y="2" width="10" height="10" fill="#fff" stroke="#5d6675" stroke-width="1.2" stroke-dasharray="2.5 2"></rect></svg>
+          <span>Sem limite declarado</span>
           <strong id="mono-count">—</strong>
         </div>
-        <p class="legend-note">Clique numa faixa para filtrar.</p>
         <details class="more">
           <summary>Sobre a escala</summary>
-          <p>
-            Forma e faixa carregam a mesma informação que a cor. Várias faixas
-            somam, e as duas vizinhas de zero recompõem a banda de incerteza.
-            <em>Dentro do limite</em> não é aprovação — é ausência de problema
-            neste ponto.
-          </p>
-          <p>
-            <strong>Tons de cinza</strong> troca a rampa azul–vermelha por uma
-            escala clara–escura. A ordem das faixas é a mesma; o que sai é a
-            matiz, para que nenhuma cor possa ser lida como aprovação.
-          </p>
+          <p>Clique numa faixa para filtrar; várias faixas somam. Forma e cor
+            carregam a mesma informação. <em>Dentro do limite</em> não é
+            aprovação.</p>
+          <p><strong>Cinza</strong> troca a matiz por uma escala clara–escura,
+            para nenhuma cor ser lida como aprovação.</p>
         </details>
       </div>
 
-      <!-- Visível só no campo térmico: aí a cor é temperatura, não risco. -->
+      <!-- Só no campo térmico: aí a cor é temperatura, não risco. -->
       <div class="heat__block" id="field-legend" hidden>
         <h3 class="heat__label">Temperatura prevista <span>°C</span></h3>
         <div class="field-scale"><span class="field-scale__bar" id="field-bar"></span>
           <span class="field-scale__ends" id="field-ticks"></span>
         </div>
-        <p class="legend-note">Frio azul, quente vermelho.</p>
         <details class="more">
           <summary>Sobre o campo</summary>
-          <p>
-            Campo interpolado no volume a partir dos 78 termopares e lido em
-            três camadas: a pele de cada peça, as fatias de volume e as linhas
-            de fluxo. A escala é equalizada por quantil — os rótulos acima
-            marcam os quartis em °C, e por isso não são igualmente espaçados.
-          </p>
-          <p>
-            Aqui a cor representa temperatura, e não estado de risco: nenhuma
-            faixa significa aprovação. Os 10 pontos sem limite entram no campo
-            — não têm folga, mas têm temperatura.
-          </p>
-          <p>
-            A animação desloca a leitura do campo e faz as isotermas andarem;
-            o campo em si é estacionário. As linhas de fluxo saem de um modelo
-            simplificado de escoamento — soprador, empuxo e giro sobre as
-            bobinas — e servem para situar por onde o calor caminha, não para
-            substituir simulação.
-          </p>
+          <p>Campo interpolado a partir dos 78 termopares, com escala equalizada
+            por quantil: os rótulos marcam quartis em °C. A cor é temperatura,
+            não estado de risco.</p>
+          <p>As linhas de fluxo vêm de um modelo simplificado de escoamento e
+            situam o caminho do calor; não substituem simulação.</p>
         </details>
       </div>
 
       <div class="heat__block">
-        <h3 class="heat__label">Filtrar</h3>
+        <h3 class="heat__label">Filtros</h3>
         <label class="filter">
-          <span class="filter__label">Componente</span>
+          <span class="sr-only">Buscar componente</span>
           <input type="search" id="filter-name" placeholder="Buscar componente…" autocomplete="off">
         </label>
         <div class="chips" id="filter-state"></div>
-        <!-- Eco das faixas marcadas na rampa, que fica no bloco de cima. -->
         <div class="chips chips--echo" id="filter-bands"></div>
-        <!-- RN-03: monitorado nao e um quarto estado, e um universo a parte. -->
+        <!-- RN-03: monitorado não é um quarto estado. -->
         <label class="check">
           <input type="checkbox" id="filter-mono" checked>
-          <span>Incluir os pontos monitorados</span>
+          <span>Incluir pontos sem limite</span>
         </label>
-        <p class="legend-note" id="filter-count"></p>
-        <button type="button" class="vbtn vbtn--clear" id="filter-clear" hidden>
-          Limpar filtros
-        </button>
-        <p class="legend-note">
-          Estado e faixa filtram só os pontos com limite.
-        </p>
+        <div class="filter__foot">
+          <p class="legend-note" id="filter-count"></p>
+          <button type="button" class="link-btn" id="filter-clear" hidden>Limpar</button>
+        </div>
       </div>
 
       <div class="heat__block">
-        <h3 class="heat__label">Isolar subsistema</h3>
+        <div class="heat__head">
+          <h3 class="heat__label">Subsistemas</h3>
+          <span class="heat__cols" aria-hidden="true"><span>acima</span><span>total</span></span>
+        </div>
         <div class="subsys" id="subsys"></div>
-        <p class="legend-note">
-          Colunas: acima do limite · total.
-        </p>
       </div>
-    </div>
+    </aside>
 
     <div class="heat__main">
       <div class="viewport__bar">
-        <span class="toggle" id="heat-explode">
+        <span class="toggle" id="heat-explode" role="group" aria-label="Montagem">
           <button type="button" data-explode="0" aria-pressed="false">Assentado</button>
           <button type="button" data-explode="1" aria-pressed="true">Explodido</button>
         </span>
-        <span class="hint" id="occlusion-hint">Assentado oculta 48 dos 78 pontos</span>
-        <button type="button" class="vbtn" id="heat-wide" hidden>Ver tudo</button>
-        <span class="toggle" id="heat-view">
+        <span class="toggle" id="heat-view" role="group" aria-label="Leitura">
           <button type="button" data-view="pontos" aria-pressed="true">Pontos</button>
           <button type="button" data-view="campo" aria-pressed="false">Campo térmico</button>
         </span>
+        <span class="push"></span>
+        <button type="button" class="vbtn" id="heat-wide" hidden>← Produto inteiro</button>
       </div>
 
-      <!-- Camadas do campo: cada uma liga e desliga sozinha, porque servem a
-           leituras diferentes do mesmo campo e se sobrepõem na tela. -->
       <div class="viewport__bar viewport__bar--camadas" id="heat-layers-bar" hidden>
-        <span class="hint" style="flex:none">Camadas</span>
+        <span class="bar-label">Camadas</span>
         <span class="toggle toggle--mini" id="heat-layers"
               role="group" aria-label="Camadas do campo térmico">
           <button type="button" data-layer="volume" aria-pressed="true">Volume</button>
@@ -224,48 +188,43 @@
           <button type="button" data-layer="iso" aria-pressed="true">Isotermas</button>
           <button type="button" data-layer="focos" aria-pressed="true">Focos</button>
         </span>
-        <span class="hint">Pele por peça sempre ligada · explodido abre o campo componente a componente</span>
       </div>
 
-      <div class="viewport__bar viewport__bar--camera">
-        <span class="hint" style="flex:none">Câmera</span>
-        <span class="toggle" id="heat-preset" role="group" aria-label="Vistas de câmera">
-          <button type="button" data-preset="isometrica" aria-pressed="true">Isométrica</button>
-          <button type="button" data-preset="frontal" aria-pressed="false">Frontal</button>
-          <button type="button" data-preset="lateral" aria-pressed="false">Lateral</button>
-          <button type="button" data-preset="superior" aria-pressed="false">Superior</button>
-          <button type="button" data-preset="inferior" aria-pressed="false">Inferior</button>
-        </span>
-        <span class="hint">Roda ou pinça aproxima · a órbita dá a volta inteira</span>
-      </div>
-
-      <!-- O palco recorta o desenho; o balão e o rodapé ficam fora do recorte
-           para não serem cortados quando o modelo está aproximado. -->
       <div class="viewport__frame">
         <div class="viewport__stage">
           <div class="viewport__3d" id="heat-3d" role="application" tabindex="0"
                aria-roledescription="modelo 3D navegável"
                aria-label="Mapa de calor 3D dos 78 pontos de medição sobre o fogão"
                aria-describedby="heat-teclas"></div>
-          <p class="sr-only" id="heat-teclas">Setas giram e inclinam o modelo em volta completa, com Shift em passos maiores. Mais e menos aproximam e afastam. 1, 2, 3, 4 e 5 escolhem as vistas isométrica, frontal, lateral, superior e inferior. Arrastar com Shift ou com o botão direito desloca. Clicar numa peça abre o resumo dela ao lado; Esc desfaz a seleção. A lista Escolher sem o modelo faz a mesma seleção pelo teclado.</p>
+          <p class="sr-only" id="heat-teclas">Setas giram e inclinam o modelo em volta completa, com Shift em passos maiores. Mais e menos aproximam e afastam. 1, 2, 3, 4 e 5 escolhem as vistas isométrica, frontal, lateral, superior e inferior. Arrastar com Shift ou com o botão direito desloca. Clicar numa peça abre o resumo dela ao lado; Esc desfaz a seleção. A lista Escolher peça faz a mesma seleção pelo teclado.</p>
+          <p class="stage-hint" id="occlusion-hint">Assentado oculta 48 dos 78 pontos</p>
         </div>
         <div class="tip" id="heat-tip" role="status" aria-live="polite"></div>
-        <p class="viewport__disclaimer">
+      </div>
+
+      <div class="viewport__foot">
+        <span class="toggle toggle--quiet" id="heat-preset" role="group" aria-label="Vistas de câmera">
+          <button type="button" data-preset="isometrica" aria-pressed="true">Isométrica</button>
+          <button type="button" data-preset="frontal" aria-pressed="false">Frontal</button>
+          <button type="button" data-preset="lateral" aria-pressed="false">Lateral</button>
+          <button type="button" data-preset="superior" aria-pressed="false">Superior</button>
+          <button type="button" data-preset="inferior" aria-pressed="false">Inferior</button>
+        </span>
+        <p class="viewport__disclaimer" title="Arraste para girar · roda ou pinça aproxima · Shift ou botão direito desloca">
           <strong id="heat-view-name">VISTA EXPLODIDA ESQUEMÁTICA</strong>
           <span id="heat-view-note">Sem CAD · a posição indica o subsistema, não a coordenada real</span>
         </p>
       </div>
     </div>
 
-    <div class="heat__side heat__side--right">
-      <!-- Resumo da peça clicada no modelo. Só lê o que a tabela já mostra:
-           estado, folga e ordem vêm prontos em dados_triagem.js. -->
+    <aside class="heat__side heat__side--right">
+      <!-- Resumo da peça clicada no modelo; só lê o que a tabela já mostra. -->
       <div class="heat__block">
         <h3 class="heat__label">Peça selecionada</h3>
         <label class="filter part__pick">
-          <span class="filter__label">Escolher sem o modelo</span>
+          <span class="sr-only">Escolher peça sem o modelo</span>
           <select id="part-select">
-            <option value="">— nenhuma peça —</option>
+            <option value="">Escolher peça…</option>
           </select>
         </label>
         <div id="part-detail" role="region" aria-live="polite" aria-label="Resumo da peça selecionada"></div>
@@ -275,26 +234,88 @@
         <h3 class="heat__label">Ponto selecionado</h3>
         <div id="detail"><p class="detail__empty">Clique num ponto do modelo ou numa linha da tabela.</p></div>
       </div>
-    </div>
+    </aside>
 
   </section>
 
-  <section class="panel" id="screening-panel" hidden>
-    <h2 class="panel__title">Pontos com limite declarado</h2>
+  <!-- Leem o mesmo recorte da tabela e apontam para a mesma seleção. -->
+  <section class="panel" id="visuais" hidden>
+    <div class="panel__head">
+      <h2 class="panel__title">Onde está o risco</h2>
+      <p class="panel__meta">Segue os filtros · passe o ponteiro para cruzar os gráficos</p>
+    </div>
 
-    <ul class="tally" id="tally"></ul>
+    <div class="chart__frame">
+
+      <div class="viz viz--ranking">
+        <h3 class="viz__titulo">
+          Folga por ponto
+          <span class="viz__sub">do mais crítico ao menos crítico</span>
+          <button type="button" class="viz__acao" id="viz-ranking-todos" hidden></button>
+        </h3>
+        <div class="chart__scroll">
+          <svg class="chart__svg" id="viz-ranking" role="img"
+               aria-label="Folga prevista de cada ponto de medição, ordenada do mais crítico ao menos crítico"></svg>
+        </div>
+      </div>
+
+      <div class="viz-par">
+        <div class="viz">
+          <h3 class="viz__titulo">
+            Folga por subsistema
+            <span class="viz__sub">quartis e pontos</span>
+          </h3>
+          <div class="chart__scroll">
+            <svg class="chart__svg" id="viz-subsistema" role="img"
+                 aria-label="Distribuição da folga prevista por subsistema, com caixa de quartis e cada ponto sobreposto"></svg>
+          </div>
+        </div>
+        <div class="viz">
+          <h3 class="viz__titulo">
+            Previsão contra limite
+            <span class="viz__sub">acima da reta ultrapassa</span>
+          </h3>
+          <div class="chart__scroll">
+            <svg class="chart__svg" id="viz-criterio" role="img"
+                 aria-label="Dispersão da temperatura prevista contra o limite declarado de cada ponto, com a reta onde os dois se igualam"></svg>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="tip" id="viz-tip" role="status" aria-live="polite"></div>
+    </div>
+
+    <details class="more">
+      <summary>Como ler os gráficos</summary>
+      <p>Folga, e não temperatura absoluta: uma temperatura alta numa bobina não diz nada
+        sozinha, estar acima do próprio limite diz tudo. Por isso uma escala só
+        serve a limites muito diferentes entre si.</p>
+      <p>Na dispersão, a faixa logo abaixo da reta é a banda de incerteza. Na
+        distribuição, a caixa marca quartis e mediana; isolar um subsistema
+        recua os demais.</p>
+      <p>Os <span id="viz-mono-count">—</span> pontos sem limite não entram.
+        Não há barra de erro: ela depende de um erro por ponto que só existe
+        depois do treino.</p>
+    </details>
+  </section>
+
+  <section class="panel" id="screening-panel" hidden>
+    <div class="panel__head">
+      <h2 class="panel__title">Pontos com limite declarado</h2>
+      <ul class="tally" id="tally"></ul>
+    </div>
 
     <div class="table-scroll" id="screening-table">
       <table class="data-table">
         <caption>
-          Ordem: estado de risco mais crítico primeiro; dentro de um mesmo
-          estado, folga crescente. Folga é limite menos temperatura prevista;
-          folga negativa indica previsão acima do limite.
+          Mais crítico primeiro; no mesmo estado, menor folga primeiro.
+          Folga = limite − temperatura prevista.
         </caption>
         <thead>
           <tr>
             <th scope="col">Ponto de medição</th>
-            <th scope="col" class="num">Temp. prevista (°C)</th>
+            <th scope="col" class="num">Prevista (°C)</th>
             <th scope="col" class="num">Limite (°C)</th>
             <th scope="col" class="num">Folga (°C)</th>
             <th scope="col" class="num">Folga (%)</th>
@@ -306,102 +327,19 @@
     </div>
   </section>
 
-  <!-- Os desenhos leem o mesmo recorte da tabela acima e apontam para a mesma
-       seleção: um ponto sob o ponteiro acende nos quatro ao mesmo tempo. -->
-  <section class="panel" id="visuais" hidden>
-    <h2 class="panel__title">Leitura visual</h2>
-
-    <div class="chart__frame">
-
-      <div class="viz">
-        <h3 class="viz__titulo">
-          Onde estou apertado
-          <span class="viz__sub">folga por ponto, do mais crítico ao menos</span>
-          <button type="button" class="viz__acao" id="viz-ranking-todos" hidden></button>
-        </h3>
-        <div class="chart__scroll">
-          <svg class="chart__svg" id="viz-ranking" role="img"
-               aria-label="Folga prevista de cada ponto de medição, ordenada do mais crítico ao menos crítico"></svg>
-        </div>
-        <p class="chart__note">
-          Folga, e não temperatura absoluta: uma temperatura alta numa bobina não diz nada
-          sozinha, estar acima do próprio limite diz tudo. Como a folga já traz
-          o limite embutido, uma escala só serve a pontos cujos limites são muito diferentes entre si. A haste mede a distância até a fronteira.
-        </p>
-      </div>
-
-      <div class="viz">
-        <div>
-          <h3 class="viz__titulo">
-            O conjunto passa no critério
-            <span class="viz__sub">previsão contra limite</span>
-          </h3>
-          <div class="chart__scroll">
-            <svg class="chart__svg" id="viz-criterio" role="img"
-                 aria-label="Dispersão da temperatura prevista contra o limite declarado de cada ponto, com a reta onde os dois se igualam"></svg>
-          </div>
-          <p class="chart__note">
-            Mesma figura da análise exploratória, agora com a previsão no lugar
-            da medição. Todo ponto acima da reta ultrapassa o próprio limite; a
-            faixa logo abaixo dela é a banda de incerteza.
-          </p>
-        </div>
-
-      </div>
-
-      <div class="viz">
-        <div>
-          <h3 class="viz__titulo">
-            Onde o risco se concentra
-            <span class="viz__sub">folga por subsistema</span>
-          </h3>
-          <div class="chart__scroll">
-            <svg class="chart__svg" id="viz-subsistema" role="img"
-                 aria-label="Distribuição da folga prevista por subsistema, com caixa de quartis e cada ponto sobreposto"></svg>
-          </div>
-          <p class="chart__note">
-            A caixa marca o intervalo entre quartis e a mediana; os pontos
-            ficam por cima porque com 68 observações esconder cada uma atrás de
-            um resumo custa mais do que ganha. Isolar um subsistema recua os
-            demais, não os apaga.
-          </p>
-        </div>
-      </div>
-
-      <div class="tip" id="viz-tip" role="status" aria-live="polite"></div>
-    </div>
-
-    <p class="legend-note">
-      As quatro leituras respeitam os filtros da tabela. Passe o ponteiro num
-      ponto para acendê-lo nas quatro; clique para abrir o mesmo detalhe que a
-      linha da tabela e o modelo abrem. Os
-      <span id="viz-mono-count">—</span> pontos monitorados não entram: sem
-      limite declarado, não há folga a desenhar.
-    </p>
-    <p class="legend-note">
-      Não há barra de erro do modelo. Ela depende de um erro por ponto que só
-      existe depois do treino, e desenhar uma faixa sem esse número seria
-      inventar precisão que a ferramenta não tem.
-    </p>
-  </section>
-
   <!-- RN-03: sem colunas de limite, folga ou estado. -->
   <section class="panel panel--monitoring" id="monitoring-panel" hidden>
-    <h2 class="panel__title">Pontos apenas monitorados</h2>
-
-    <p class="panel__note">
-      <span id="monitoring-count">—</span> dos 78 pontos de medição não
-      possuem limite térmico declarado. Eles não recebem estado de risco e
-      não entram na ordenação acima: sem limite, não há folga a calcular. O
-      painel exibe apenas a temperatura prevista, para acompanhamento.
-    </p>
+    <div class="panel__head">
+      <h2 class="panel__title">Pontos só monitorados</h2>
+      <p class="panel__meta"><span id="monitoring-count">—</span> de 78 · sem limite declarado, sem estado de risco</p>
+    </div>
 
     <div class="table-scroll">
       <table class="data-table">
         <thead>
           <tr>
             <th scope="col">Ponto de medição</th>
-            <th scope="col" class="num">Temp. prevista (°C)</th>
+            <th scope="col" class="num">Prevista (°C)</th>
             <th scope="col">Leitura</th>
           </tr>
         </thead>
@@ -414,13 +352,13 @@
 
 <!-- schema.js traduz a configuração da URL em rótulos legíveis.
      dados_triagem.js precisa vir antes de triagem.js. -->
-<script src="js/schema.js"></script>
-<script src="js/dados_triagem.js"></script>
+<script src="js/schema.js?v=3"></script>
+<script src="js/dados_triagem.js?v=3"></script>
 <script src="vendor/three.min.js"></script>
-<script src="js/fogao.js"></script>
-<script src="js/fogao3d.js"></script>
-<script src="js/painel_peca.js"></script>
-<script src="js/grafico.js"></script>
-<script src="js/triagem.js"></script>
+<script src="js/fogao.js?v=3"></script>
+<script src="js/fogao3d.js?v=3"></script>
+<script src="js/painel_peca.js?v=3"></script>
+<script src="js/grafico.js?v=3"></script>
+<script src="js/triagem.js?v=3"></script>
 </body>
 </html>

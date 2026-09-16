@@ -79,7 +79,7 @@
   var coil = fonte("Bobina FL"), l = linhas();
   checar("Bobina FL: realce na zona", sel() === "coil-FL", sel());
   checar("Bobina FL: nome no painel", nome() === "Bobina FL", nome());
-  checar("Bobina FL: status do dado", faixa() === coil.estado_rotulo.toUpperCase(), faixa());
+  checar("Bobina FL: status do dado", faixa() === coil.estado_rotulo, faixa());
   checar("Bobina FL: temperatura", l["Temperatura prevista"] === coil.temperatura_prevista_c.toFixed(2) + " °C", l["Temperatura prevista"]);
   checar("Bobina FL: limite", l["Limite do componente"] === coil.limit_c.toFixed(2) + " °C", l["Limite do componente"]);
   checar("Bobina FL: folga", l["Folga"] === "−" + Math.abs(coil.margem_c).toFixed(2) + " °C", l["Folga"]);
@@ -95,7 +95,7 @@
   var knobs = DADOS_TRIAGEM.pontos.filter(function (p) { return p.Key_Area === "CT Knobs"; });
   l = linhas();
   checar("Manípulos: realce", sel() === "knobBar", sel());
-  checar("Manípulos: status do primeiro da triagem", faixa() === knobs[0].estado_rotulo.toUpperCase(), faixa());
+  checar("Manípulos: status do primeiro da triagem", faixa() === knobs[0].estado_rotulo, faixa());
   checar("Manípulos: temperatura da referência", l["Temperatura prevista"] === knobs[0].temperatura_prevista_c.toFixed(2) + " °C", l["Temperatura prevista"]);
   checar("Manípulos: seis pontos listados", painel.querySelectorAll(".part__item").length === 6);
 
@@ -106,7 +106,7 @@
   await clicar(t.x, t.y);
   l = linhas();
   checar("Duto: realce", sel() === "duct", sel());
-  checar("Duto: limite não declarado", faixa() === "LIMITE NÃO DECLARADO", faixa());
+  checar("Duto: limite não declarado", faixa() === "Limite não declarado", faixa());
   checar("Duto: is_monitor_only", l["Só monitoramento"] === "Sim · todos os 2 pontos", l["Só monitoramento"]);
   checar("Duto: limite e folga vazios", l["Limite do componente"] === "—" && l["Folga"] === "—");
   mono.checked = true; mono.dispatchEvent(new Event("change"));

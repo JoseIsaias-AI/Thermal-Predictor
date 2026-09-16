@@ -101,7 +101,7 @@
 
     tr.appendChild(celulaPonto(ponto));
     tr.appendChild(celula(grausC(ponto.temperatura_prevista_c), "num"));
-    tr.appendChild(celula("Sem limite declarado — monitoramento"));
+    tr.appendChild(celula("Monitoramento", "cell-muted"));
 
     return tr;
   }
@@ -288,11 +288,11 @@
     }
 
     caixa.appendChild(cartao("Acima do limite", String(acima.length),
-      "de " + pts.length, "pontos com previsão acima do próprio limite",
+      "de " + pts.length, "previsão acima do próprio limite",
       acima.length ? "kpi--alerta" : null));
 
     caixa.appendChild(cartao("Inconclusivos", String(banda.length),
-      "na banda", "folga menor que a tolerância de exibição",
+      "na banda", "folga menor que a tolerância",
       banda.length ? "kpi--atencao" : null));
 
     caixa.appendChild(cartao("Pior folga",
@@ -358,7 +358,7 @@
       topo: MT - 12, base: H - MB, yRotulo: MT - 18,
       tolerancia: DADOS_TRIAGEM.tolerancia_fracao
     });
-    svgRanking.appendChild(GRAFICO.texto(ML, 14, "FOLGA RELATIVA AO LIMITE", "ax-rotulo"));
+    svgRanking.appendChild(GRAFICO.texto(ML, 10, "FOLGA RELATIVA AO LIMITE", "ax-rotulo"));
 
     var zero = X(0);
     mostrados.forEach(function (p, k) {
@@ -508,7 +508,7 @@
       topo: MT - 12, base: H - MB, yRotulo: MT - 18,
       tolerancia: DADOS_TRIAGEM.tolerancia_fracao
     });
-    svgSubsistema.appendChild(GRAFICO.texto(ML, 14, "FOLGA RELATIVA AO LIMITE", "ax-rotulo"));
+    svgSubsistema.appendChild(GRAFICO.texto(ML, 10, "FOLGA RELATIVA AO LIMITE", "ax-rotulo"));
 
     function quantil(ordenados, q) {
       var i = (ordenados.length - 1) * q, b = Math.floor(i), r = i - b;
@@ -681,7 +681,7 @@
       if (linha[3] !== null) {
         var over = document.createElement("span");
         over.className = "subsys__over";
-        over.style.color = linha[3] > 0 ? "#8f2419" : "#9fa0a1";
+        over.style.color = linha[3] > 0 ? "var(--color-critical)" : "var(--color-text-subtle)";
         over.textContent = linha[3];
         b.appendChild(over);
       }
@@ -737,10 +737,9 @@
     var cor = corDoPonto(p);
     var html = "<p class=\"detail__name\">" + p.TC_Name + "</p>" +
       "<span class=\"detail__area\">" + p.Key_Area + "</span>" +
-      "<p class=\"detail__state\" style=\"border-color:" + (p.is_monitor_only ? "#d1d3d4" : cor) + "\">" +
-      "<span class=\"detail__swatch\" style=\"background:" + cor + ";border:1px solid #767777\"></span>" +
-      "<span style=\"color:" + (p.is_monitor_only ? "#505863" : cor) + "\">" +
-      (p.is_monitor_only ? "LIMITE NÃO DECLARADO" : p.estado_rotulo.toUpperCase()) + "</span></p>" +
+      "<p class=\"detail__state detail__state--" + (p.is_monitor_only ? "mono" : p.estado) + "\">" +
+      "<span class=\"detail__swatch\" style=\"background:" + cor + ";box-shadow:inset 0 0 0 1px rgba(16,21,31,.35)\"></span>" +
+      "<span>" + (p.is_monitor_only ? "Limite não declarado" : p.estado_rotulo) + "</span></p>" +
       "<dl class=\"detail__rows\">" +
       linhaDetalhe("Temperatura prevista", p.temperatura_prevista_c.toFixed(2) + " °C");
 
@@ -748,8 +747,7 @@
       html += linhaDetalhe("Limite do componente", "—", true) +
         linhaDetalhe("Folga", "—", true) +
         linhaDetalhe("Estado de risco", "não se aplica", true) + "</dl>" +
-        "<p class=\"legend-note\">Ponto acompanhado sem limite declarado. Não recebe " +
-        "estado nem entra na escala.</p>";
+        "<p class=\"legend-note\">Sem limite, não recebe estado nem entra na escala.</p>";
     } else {
       var tol = DADOS_TRIAGEM.tolerancia_fracao * p.limit_c;
       html += linhaDetalhe("Limite do componente", p.limit_c.toFixed(2) + " °C") +
@@ -764,8 +762,7 @@
         "<div class=\"gauge__fill\" style=\"width:" + (frac * 100).toFixed(1) + "%;background:" + cor + "\"></div>" +
         "<div class=\"gauge__mark\" style=\"left:" + (marca * 100).toFixed(1) + "%\"></div>" +
         "<span class=\"gauge__tag\" style=\"left:calc(" + (marca * 100).toFixed(1) + "% + 5px)\">limite</span></div>" +
-        "<p class=\"legend-note\">Valor de triagem produzido por modelo substituto. " +
-        "Confirmar por simulação CFD antes de qualquer decisão de projeto.</p>";
+        "<p class=\"legend-note\">Valor de triagem. Confirmar por CFD antes de decidir.</p>";
     }
 
     caixa.innerHTML = html;
@@ -974,8 +971,8 @@
       Object.keys(mapa.faixas).length || Object.keys(mapa.estados).length;
 
     document.getElementById("filter-count").textContent = ativo
-      ? comLimite + " de " + total + " com limite · " + monitorados + " de " + mono + " monitorados"
-      : "Sem filtro: os " + total + " pontos com limite e os " + mono + " monitorados.";
+      ? comLimite + "/" + total + " com limite · " + monitorados + "/" + mono + " sem limite"
+      : total + " com limite · " + mono + " sem limite";
 
     montarFaixasAtivas();
     document.getElementById("filter-clear").hidden = !ativo;
@@ -1051,24 +1048,25 @@
     );
 
     var campoAtivo = mapa.vista === "campo";
+    // No campo a cor é temperatura: a legenda de folga sai para não haver duas escalas.
+    document.getElementById("heat").dataset.vista = mapa.vista;
     document.getElementById("heat-layers-bar").hidden = !campoAtivo;
 
     document.getElementById("occlusion-hint").textContent =
       meta ? meta.nome
-      : campoAtivo && mapa.explode ? "Campo por componente · o cursor sonda, o clique resume a peça"
-      : campoAtivo ? "Campo no volume · o cursor sonda, o clique resume a peça"
-      : mapa.explode ? "Explodido · arraste para girar, clique numa peça para o resumo"
-      : "Assentado: pontos internos em transparência · clique numa peça para o resumo";
+      : campoAtivo ? "Passe o cursor para sondar · clique numa peça para o resumo"
+      : mapa.explode ? "Arraste para girar · clique numa peça para o resumo"
+      : "Pontos internos em transparência · clique numa peça";
 
     document.getElementById("heat-view-name").textContent =
-      meta ? "VISTA DE COMPONENTE"
-      : campoAtivo && mapa.explode ? "CAMPO TÉRMICO EXPLODIDO"
-      : campoAtivo ? "CAMPO TÉRMICO ESQUEMÁTICO"
-      : mapa.explode ? "VISTA EXPLODIDA ESQUEMÁTICA" : "VISTA ESQUEMÁTICA";
+      meta ? "Vista de componente"
+      : campoAtivo && mapa.explode ? "Campo térmico explodido"
+      : campoAtivo ? "Campo térmico esquemático"
+      : mapa.explode ? "Vista explodida esquemática" : "Vista esquemática";
     document.getElementById("heat-view-note").textContent =
       meta ? "Sem CAD · termopares deste subsistema"
-      : campoAtivo ? "Sem CAD · interpolado entre termopares, não é resultado de simulação de CFD"
-      : "Sem CAD · a posição indica o subsistema, não a coordenada real";
+      : campoAtivo ? "Sem CAD · interpolado entre termopares, não é CFD"
+      : "Sem CAD · posição indica o subsistema, não a coordenada";
   }
 
   function ligarAlternancia(id, chave, valores) {
@@ -1291,6 +1289,7 @@
 
       var dt = document.createElement("dt");
       dt.textContent = linha[0];
+      dt.title = linha[0];
       item.appendChild(dt);
 
       var dd = document.createElement("dd");
