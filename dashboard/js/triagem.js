@@ -573,7 +573,8 @@
 
   var palcoCalor = document.getElementById("heat-3d");
   var mapa = { explode: true, escala: "a", isolar: "todos", faixas: {}, sel: null,
-               vista: "pontos", nome: "", estados: {}, mono: true };
+               vista: "pontos", nome: "", estados: {}, mono: true,
+               camadas: { volume: true, fluxo: true, iso: true, focos: true } };
   var linhaPorId = {};
   var modelo = null;
 
@@ -921,9 +922,9 @@
 
   function redesenharCalor() {
     if (!modelo) return;
-    // O campo cobre o produto inteiro; não há peça para aproximar.
-    var foco = mapa.vista === "campo" ? null
-      : (mapa.isolar !== "todos" && FOGAO.PECA_DA_AREA[mapa.isolar] ? mapa.isolar : null);
+    /* Isolar vale também no campo: ali a peça em foco é justamente onde o
+       campo tem detalhe por componente, e o resto esmaece em vez de tapar. */
+    var foco = mapa.isolar !== "todos" && FOGAO.PECA_DA_AREA[mapa.isolar] ? mapa.isolar : null;
 
     /* No campo térmico o desenho usa sempre os 78 pontos: a interpolação é
        do produto inteiro, e filtrar amostras deformaria o campo. Os filtros
@@ -935,7 +936,8 @@
       modo: "calor",
       vista: mapa.vista,
       foco: foco,
-      explode: mapa.vista === "campo" ? false : mapa.explode,
+      explode: mapa.explode,
+      camadas: mapa.camadas,
       placa: geometria.placa,
       alojamento: geometria.alojamento,
       material: geometria.material,
@@ -951,7 +953,7 @@
     document.getElementById("heat-wide").hidden = !meta;
 
     // Com uma peça em foco a câmera está enquadrada nela: explodir e presets não se aplicam.
-    var travado = mapa.vista === "campo" || !!meta;
+    var travado = !!meta;
     Array.prototype.forEach.call(
       document.querySelectorAll("#heat-explode button"),
       function (b) { b.disabled = travado; }
@@ -962,19 +964,23 @@
     );
 
     var campoAtivo = mapa.vista === "campo";
+    document.getElementById("heat-layers-bar").hidden = !campoAtivo;
+
     document.getElementById("occlusion-hint").textContent =
       meta ? meta.nome
-      : campoAtivo ? "Campo no volume · arraste para girar"
+      : campoAtivo && mapa.explode ? "Campo por componente · o cursor sonda a temperatura"
+      : campoAtivo ? "Campo no volume · o cursor sonda a temperatura, o arrasto gira sem parada"
       : mapa.explode ? "Explodido · arraste para girar"
       : "Assentado: pontos internos aparecem em transparência";
 
     document.getElementById("heat-view-name").textContent =
       meta ? "VISTA DE COMPONENTE"
+      : campoAtivo && mapa.explode ? "CAMPO TÉRMICO EXPLODIDO"
       : campoAtivo ? "CAMPO TÉRMICO ESQUEMÁTICO"
       : mapa.explode ? "VISTA EXPLODIDA ESQUEMÁTICA" : "VISTA ESQUEMÁTICA";
     document.getElementById("heat-view-note").textContent =
       meta ? "Sem CAD · termopares deste subsistema"
-      : campoAtivo ? "Sem CAD · interpolado entre termopares, não é resultado de simulação"
+      : campoAtivo ? "Sem CAD · interpolado entre termopares, não é resultado de simulação de CFD"
       : "Sem CAD · a posição indica o subsistema, não a coordenada real";
   }
 
@@ -1003,6 +1009,17 @@
     ligarAlternancia("heat-explode", "explode", function (b) { return b.dataset.explode === "1"; });
     ligarAlternancia("heat-scale", "escala", function (b) { return b.dataset.scale; });
     ligarAlternancia("heat-view", "vista", function (b) { return b.dataset.view; });
+
+    /* As camadas não são exclusivas entre si: cada botão guarda o próprio
+       estado, em vez de um só da fila ficar marcado. */
+    document.getElementById("heat-layers").addEventListener("click", function (evento) {
+      var botao = evento.target.closest("button");
+      if (!botao) return;
+      var chave = botao.dataset.layer;
+      mapa.camadas[chave] = !mapa.camadas[chave];
+      botao.setAttribute("aria-pressed", String(mapa.camadas[chave]));
+      redesenharCalor();
+    });
 
     document.getElementById("filter-name").addEventListener("input", function () {
       mapa.nome = this.value.trim().toLowerCase();
@@ -1074,6 +1091,15 @@
       aoClicar: function (p) {
         if (mapa.vista === "campo") return;
         selecionar(p);
+      },
+      /* No campo o balão vira sonda: mostra a temperatura interpolada sob o
+         cursor, que é o que substitui o marcador desta vista. */
+      aoSondar: function (s, x, y) {
+        if (!s) { balao.dataset.on = "0"; return; }
+        balao.innerHTML = "<b class=\"tip__name\">" + (s.peca || "Campo térmico") + "</b>" +
+          "<span class=\"tip__num\">" + s.c.toFixed(1) + " °C</span>" +
+          "<span class=\"tip__state\"> · interpolado entre termopares</span>";
+        posicionarBalao(balao, x, y);
       },
       aoPairar: function (p, x, y) {
         if (!p || mapa.vista === "campo") { balao.dataset.on = "0"; return; }

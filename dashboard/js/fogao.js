@@ -222,6 +222,30 @@ var FOGAO = (function () {
     return soma / peso;
   }
 
+  /* Amostra o campo numa grade regular da caixa inteira, já normalizado em
+     0-255 pelo equalizador. O 3D sobe isso como textura de volume: em vez de
+     refazer a soma de 78 termos a cada pixel, cada superfície lê o valor por
+     interpolação trilinear, e a mesma grade serve à pele das peças, aos cortes
+     e às linhas de fluxo.
+
+     Aqui a distância não é comprimida em eixo nenhum: a compressão do
+     `valorEm` das faces existe para a amostragem rasante de uma casca, e num
+     volume ela deformaria o campo. */
+  function grade3D(amostras, eq, nx, ny, nz) {
+    var dados = new Uint8Array(nx * ny * nz), i = 0;
+    for (var iz = 0; iz < nz; iz++) {
+      var z = (iz + 0.5) / nz * CAIXA.z;
+      for (var iy = 0; iy < ny; iy++) {
+        var y = (iy + 0.5) / ny * CAIXA.y;
+        for (var ix = 0; ix < nx; ix++) {
+          var t = eq.normalizar(valorEm(amostras, (ix + 0.5) / nx * CAIXA.x, y, z));
+          dados[i++] = Math.round(Math.max(0, Math.min(1, t)) * 255);
+        }
+      }
+    }
+    return { dados: dados, nx: nx, ny: ny, nz: nz };
+  }
+
   /* Equaliza por quantil: a base é assimétrica (a mediana fica bem abaixo
      do máximo), e numa rampa linear três quartos dos pontos cairiam no primeiro
      quarto da escala. A legenda rotula os quartis em graus. */
@@ -248,6 +272,7 @@ var FOGAO = (function () {
     posicionarPontos: posicionarPontos,
     PECA_DA_AREA: PECA_DA_AREA,
     valorEm: valorEm,
+    grade3D: grade3D,
     equalizador: equalizador,
     faixaDaRampa: faixaDaRampa,
     formaDoPonto: formaDoPonto,

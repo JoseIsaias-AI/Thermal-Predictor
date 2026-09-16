@@ -556,7 +556,6 @@ var FOGAO3D = (function () {
     var M = criarMateriais();
     var produto = new T.Group();
     cena.add(produto);
-    var grupoCampo = null;
 
     var estado = {
       op: {}, chaveGeo: null, pecas: {}, lista: [],
@@ -580,12 +579,16 @@ var FOGAO3D = (function () {
       estado.lista.forEach(function (pc) {
         var origem = centroDe(pc.b);
         var g = new T.Group();
+        g.userData.pecaId = pc.id;
         g.position.copy(origem);
         var k = new Kit(g, origem);
         CONSTRUTORES[pc.id](k, pc, M, op);
         fundirEstaticos(g);
 
         var mats = [];
+        // Deslocamento do explodido, lido pela pele termica para descontar o
+        // afastamento: a peca leva a temperatura de onde ela mora montada.
+        var uDesloc = { value: new T.Vector3() };
         g.traverse(function (o) {
           if (!o.isMesh) return;
           o.castShadow = true;
@@ -608,8 +611,14 @@ var FOGAO3D = (function () {
             mats.push(a);
             return a;
           });
+          var termico = reais.map(function (m) {
+            var t = materialTermico(m, uDesloc);
+            mats.push(t);
+            return t;
+          });
           o.userData.real = Array.isArray(o.material) ? reais : reais[0];
           o.userData.argila = Array.isArray(o.material) ? argila : argila[0];
+          o.userData.termico = Array.isArray(o.material) ? termico : termico[0];
           o.material = o.userData.real;
         });
 
@@ -629,6 +638,7 @@ var FOGAO3D = (function () {
         var ant = anteriores[pc.id];
         estado.pecas[pc.id] = {
           pc: pc, raiz: raiz, corpo: g, fantasma: fantasma, origem: origem, mats: mats,
+          uDesloc: uDesloc,
           opacidade: ant ? ant.opacidade : 1, opacidadeAlvo: 1,
           aparecer: ant ? ant.aparecer : (pc.present ? 1 : 0), marcas: new T.Group()
         };
@@ -662,75 +672,428 @@ var FOGAO3D = (function () {
     }
 
     function aplicarModo() {
-      var argila = estado.op.modo === "calor";
-    // Argila sob luz mais dirigida: o volume lê por sombra, e as cores ficam só nos marcadores.
-    cena.environmentIntensity = argila ? 0.45 : 0.85;
-    sol.intensity = argila ? 2.8 : 2.1;
+      var campo = estado.campo;
+      var argila = estado.op.modo === "calor" && !campo;
+      /* Argila sob luz mais dirigida: o volume lê por sombra, e as cores ficam
+         só nos marcadores. No campo a luz recua ainda mais — ali a cor é o
+         dado, e sombra demais falseia a leitura da escala. */
+      cena.environmentIntensity = campo ? 0.38 : argila ? 0.45 : 0.85;
+      sol.intensity = campo ? 1.15 : argila ? 2.8 : 2.1;
       estado.lista.forEach(function (pc) {
         estado.pecas[pc.id].corpo.traverse(function (o) {
-          if (o.isMesh && o.userData.real) o.material = argila ? o.userData.argila : o.userData.real;
+          if (!o.isMesh || !o.userData.real) return;
+          o.material = campo ? o.userData.termico : argila ? o.userData.argila : o.userData.real;
         });
       });
     }
 
     /* ----- Campo térmico -----
-       Cor por vértice numa caixa subdividida. A interpolação é a mesma do
-       painel 2D, feita uma vez: girar só muda a câmera. */
 
-    function construirCampo(colocados) {
-      if (grupoCampo) { cena.remove(grupoCampo); grupoCampo = null; }
-      var amostras = colocados.map(function (c) { return { x: c.g[0], y: c.g[1], z: c.g[2], v: c.ponto.temperatura_prevista_c }; });
+       O campo é interpolado por distância inversa nos 78 termopares e
+       amostrado uma vez numa grade regular da caixa do produto, que sobe para
+       a GPU como textura de volume. Daí saem três camadas, todas lendo a mesma
+       grade e por isso sempre coerentes entre si:
+
+       - a pele, que pinta cada peça pela temperatura do lugar que ela ocupa
+         montada — no explodido cada componente leva a sua consigo, e o campo
+         abre por peça em vez de fechar numa caixa;
+       - o volume, fatias horizontais transparentes que ondulam e deixam ver as
+         plumas de ar quente entre as peças e acima do cooktop;
+       - o fluxo, linhas de corrente integradas num campo de velocidade feito
+         do jato do soprador, do empuxo e do giro em volta das bobinas,
+         coloridas pela temperatura por onde passam.
+
+       A animação não inventa dado: o tempo desloca a leitura dentro do volume
+       e faz as isotermas andarem, como um pós-processamento de CFD anima um
+       campo estacionário. O dado continua sendo a interpolação dos termopares. */
+
+    var DOM = FOGAO.CAIXA;
+    /* Resolução da grade. Custa ~160 ms para montar, uma vez por troca de
+       previsão, e é o que mantém as isotermas curvas: numa grade mais grossa a
+       interpolação trilinear quebra o gradiente na borda da célula e as linhas
+       saem facetadas. */
+    var GRADE = { x: 64, y: 48, z: 60 };
+
+    function texturaVolume(grade) {
+      var t = new T.Data3DTexture(grade.dados, grade.nx, grade.ny, grade.nz);
+      t.format = T.RedFormat;
+      t.type = T.UnsignedByteType;
+      t.minFilter = T.LinearFilter;
+      t.magFilter = T.LinearFilter;
+      t.wrapS = t.wrapT = t.wrapR = T.ClampToEdgeWrapping;
+      t.unpackAlignment = 1;
+      t.needsUpdate = true;
+      return t;
+    }
+
+    function texturaRampa(rampa) {
+      var n = 256, px = new Uint8Array(n * 4);
+      for (var i = 0; i < n; i++) {
+        var c = FOGAO.corDaRampa(rampa, i / (n - 1));
+        px[i * 4] = c[0]; px[i * 4 + 1] = c[1]; px[i * 4 + 2] = c[2]; px[i * 4 + 3] = 255;
+      }
+      var t = new T.DataTexture(px, n, 1, T.RGBAFormat);
+      t.colorSpace = T.SRGBColorSpace;
+      t.minFilter = T.LinearFilter;
+      t.magFilter = T.LinearFilter;
+      t.needsUpdate = true;
+      return t;
+    }
+
+    /* Uniformes compartilhados por referência: trocar a grade, o tempo ou a
+       força das isotermas atinge as três camadas numa atribuição só. */
+    var UC = {
+      uCampo: { value: texturaVolume({ dados: new Uint8Array([128]), nx: 1, ny: 1, nz: 1 }) },
+      uRampa: { value: texturaRampa(FOGAO.RAMPA_CAMPO) },
+      uTempo: { value: 0 },
+      uOnda: { value: 1 },
+      uIso: { value: 11 },
+      uForcaIso: { value: 0.55 }
+    };
+
+    function comUC(extra) {
+      var u = {};
+      Object.keys(UC).forEach(function (k) { u[k] = UC[k]; });
+      Object.keys(extra || {}).forEach(function (k) { u[k] = extra[k]; });
+      return u;
+    }
+
+    var INV_U = (1 / U).toFixed(1);
+
+    /* Trecho comum aos três shaders: leitura do volume, cor e isotermas.
+       `campoUVW` desfaz `mundo()` — da cena para as coordenadas do modelo, e
+       daí para 0–1 na caixa. */
+    var GLSL_CAMPO = [
+      "uniform highp sampler3D uCampo;",
+      "uniform sampler2D uRampa;",
+      "uniform float uTempo;",
+      "uniform float uOnda;",
+      "uniform float uIso;",
+      "uniform float uForcaIso;",
+      "vec3 campoNorm(vec3 p) {",
+      "  vec3 m = vec3(p.x * " + INV_U + " + 160.0, 120.0 - p.z * " + INV_U + ", p.y * " + INV_U + ");",
+      "  return m / vec3(" + DOM.x.toFixed(1) + ", " + DOM.y.toFixed(1) + ", " + DOM.z.toFixed(1) + ");",
+      "}",
+      "vec3 campoUVW(vec3 p) { return clamp(campoNorm(p), vec3(0.004), vec3(0.996)); }",
+      // A onda desloca a leitura dentro do volume: o campo parece mexido, e
+      // nenhum valor é criado fora do que a grade já contém.
+      "float campoEm(vec3 p) {",
+      "  vec3 q = campoUVW(p);",
+      "  vec3 d = vec3(sin(uTempo * 0.90 + q.y * 19.0 + q.z * 11.0),",
+      "                sin(uTempo * 0.74 + q.z * 17.0 + q.x * 13.0),",
+      "                sin(uTempo * 1.13 + q.x * 15.0 + q.y *  9.0));",
+      "  q = clamp(q + d * uOnda * 0.012, vec3(0.004), vec3(0.996));",
+      "  return texture(uCampo, q).r;",
+      "}",
+      "vec3 corCampo(float v) { return texture(uRampa, vec2(clamp(v, 0.0, 1.0), 0.5)).rgb; }",
+      // Isotermas: uma franja escura a cada degrau da escala, deslizando.
+      "float isoFranja(float v) {",
+      "  float f = fract(v * uIso - uTempo * 0.33);",
+      "  return 1.0 - smoothstep(0.0, 0.06, min(f, 1.0 - f));",
+      "}"
+    ].join("\n");
+
+    /* Pele térmica: o material da peça com a cor trocada pela do campo no
+       ponto que a peça ocupa montada. `uDesloc` desconta o explodido — a peça
+       afastada leva a temperatura de onde ela mora, não a do ar em que flutua. */
+    function materialTermico(base, uDesloc) {
+      var m = new T.MeshStandardMaterial({
+        color: 0xffffff, roughness: 0.62, metalness: 0,
+        alphaMap: base.alphaMap || null,
+        alphaTest: base.alphaTest || 0,
+        side: base.side,
+        emissive: 0xffffff,
+        transparent: base.transparent,
+        opacity: base.opacity
+      });
+      m.userData.opacidade = base.userData.opacidade == null ? 1 : base.userData.opacidade;
+      m.userData.transparente = base.userData.transparente;
+      m.onBeforeCompile = function (sh) {
+        Object.keys(UC).forEach(function (k) { sh.uniforms[k] = UC[k]; });
+        sh.uniforms.uDesloc = uDesloc;
+        sh.vertexShader = sh.vertexShader
+          .replace("#include <common>", "#include <common>\nvarying vec3 vCampoP;")
+          .replace("#include <begin_vertex>",
+            "#include <begin_vertex>\nvCampoP = (modelMatrix * vec4(transformed, 1.0)).xyz;");
+        sh.fragmentShader = sh.fragmentShader
+          .replace("#include <common>",
+            "#include <common>\nvarying vec3 vCampoP;\nuniform vec3 uDesloc;\n" + GLSL_CAMPO)
+          .replace("#include <map_fragment>", [
+            "#include <map_fragment>",
+            "float campoV = campoEm(vCampoP - uDesloc);",
+            "vec3 campoCor = corCampo(campoV);",
+            "campoCor = mix(campoCor, campoCor * 0.32, isoFranja(campoV) * uForcaIso);",
+            "diffuseColor.rgb = campoCor;"
+          ].join("\n"))
+          .replace("#include <emissivemap_fragment>", [
+            "#include <emissivemap_fragment>",
+            // Borda acesa: a silhueta da peça segue legível quando ela e a
+            // vizinha caem na mesma isoterma.
+            "float campoRim = pow(1.0 - abs(dot(normalize(normal), normalize(vViewPosition))), 2.2);",
+            "totalEmissiveRadiance = campoCor * (0.26 + 0.50 * campoRim);"
+          ].join("\n"));
+      };
+      // Todos compilam o mesmo programa; o que muda são os uniformes.
+      m.customProgramCacheKey = function () { return "campo-termico"; };
+      return m;
+    }
+
+    /* ----- Camada de volume -----
+       Vinte fatias horizontais empilhadas da base do produto até acima do
+       cooktop. A fatia ondula na própria geometria e a leitura acompanha o
+       relevo: é o que dá campo mexido em vez de textura deslizando por cima.
+       Só o quente aparece — no frio a fatia some, e o que sobra são as plumas. */
+    var grupoVolume = new T.Group();
+    (function () {
+      var geo = new T.PlaneGeometry(DOM.x * U * 1.02, DOM.y * U * 1.02, 48, 36);
+      geo.rotateX(-Math.PI / 2);
+      var mat = new T.ShaderMaterial({
+        uniforms: comUC({ uAlfa: { value: 0.17 } }),
+        transparent: true, depthWrite: false, side: T.DoubleSide,
+        vertexShader: [
+          "varying vec3 vP;",
+          "uniform float uTempo;",
+          "uniform float uOnda;",
+          "void main() {",
+          "  vec3 p = position;",
+          "  float w = sin(p.x * 8.5 + uTempo * 1.5 + p.z * 4.0) + sin(p.z * 11.0 - uTempo * 1.05);",
+          "  p.y += w * uOnda * 0.018;",
+          "  vec4 mp = modelMatrix * vec4(p, 1.0);",
+          "  vP = mp.xyz;",
+          "  gl_Position = projectionMatrix * viewMatrix * mp;",
+          "}"
+        ].join("\n"),
+        fragmentShader: [
+          "varying vec3 vP;",
+          "uniform float uAlfa;",
+          GLSL_CAMPO,
+          "void main() {",
+          "  float v = campoEm(vP);",
+          "  vec3 q = campoNorm(vP);",
+          // Desvanece na borda do domínio: senão o retângulo da fatia aparece
+          // como se fosse uma parede, e ali não há produto nenhum.
+          "  float borda = smoothstep(0.0, 0.11, q.x) * smoothstep(1.0, 0.89, q.x)",
+          "              * smoothstep(0.0, 0.11, q.y) * smoothstep(1.0, 0.89, q.y);",
+          "  float a = uAlfa * borda * smoothstep(0.34, 0.95, v);",
+          "  if (a < 0.004) discard;",
+          "  vec3 c = corCampo(v);",
+          "  c = mix(c, c * 0.45, isoFranja(v) * uForcaIso);",
+          "  gl_FragColor = vec4(c, a);",
+          "  #include <tonemapping_fragment>",
+          "  #include <colorspace_fragment>",
+          "}"
+        ].join("\n")
+      });
+      for (var i = 0; i < 20; i++) {
+        var fatia = new T.Mesh(geo, mat);
+        fatia.position.set(0, (8 + i * 17) * U, 0);
+        fatia.renderOrder = 3;
+        grupoVolume.add(fatia);
+      }
+      // Arame do domínio: a caixa em que o campo foi interpolado fica declarada.
+      var fio = new T.LineSegments(
+        new T.EdgesGeometry(new T.BoxGeometry(DOM.x * U, DOM.z * U, DOM.y * U)),
+        new T.LineBasicMaterial({ color: 0x2b3038, transparent: true, opacity: 0.35 }));
+      fio.position.y = DOM.z / 2 * U;
+      grupoVolume.add(fio);
+      grupoVolume.visible = false;
+      cena.add(grupoVolume);
+    })();
+
+    /* ----- Camada de fluxo -----
+       Campo de velocidade sintético, sem pretensão de resolver Navier-Stokes:
+       o jato do soprador, o empuxo proporcional à temperatura local, o giro em
+       torno de cada bobina e a sucção pelas venezianas do fundo. As linhas
+       saem da integração desse campo, e a cor delas vem do campo térmico. */
+    function velocidadeNo(x, y, z, amostras, eq, sentido, v) {
+      // Jato do soprador, espalhando ao se afastar da boca.
+      var dx = (x - 88) / 72, dz = (z - 19) / 44;
+      v.set(0, sentido * 34 * Math.exp(-(dx * dx + dz * dz)), 0);
+      // Empuxo: o ar sobe onde está quente, e é o que leva o jato ao cooktop.
+      var t = eq.normalizar(FOGAO.valorEm(amostras, x, y, z));
+      v.z += 7 + 48 * t * t;
+      // Giro em torno das bobinas, forte só perto do plano do cooktop. O ganho
+      // é da ordem do empuxo de propósito: abaixo disso a linha sobe reta e o
+      // desenho perde justamente a recirculação que interessa ver.
+      var alt = Math.exp(-Math.pow((z - 278) / 95, 2));
+      for (var i = 0; i < FOGAO.POSICOES.length; i++) {
+        var c = FOGAO.POSICOES[i];
+        var rx = x - c[1], ry = y - c[2], r = Math.sqrt(rx * rx + ry * ry) + 1;
+        var g = 46000 / (r * r + 340) * alt;
+        v.x += -ry / r * g;
+        v.y += rx / r * g;
+      }
+      // Recirculação de fundo, só função da posição: as linhas se separam sem
+      // nunca se cruzarem, que é o que um campo de velocidade permite.
+      v.x += 9 * Math.sin(z * 0.041 + y * 0.017);
+      v.y += 9 * Math.cos(z * 0.037 + x * 0.019);
+      // Sucção pelas venezianas da traseira, na meia altura do produto.
+      v.y += 18 * Math.exp(-Math.pow((y - 240) / 74, 2)) * Math.exp(-Math.pow((z - 150) / 130, 2));
+      return v;
+    }
+
+    function trajetoria(semente, amostras, eq, sentido) {
+      var p = new T.Vector3(semente[0], semente[1], semente[2]);
+      var v = new T.Vector3(), pts = [];
+      for (var s = 0; s < 150; s++) {
+        if (p.x < -12 || p.x > DOM.x + 12 || p.y < -12 || p.y > DOM.y + 12 || p.z < -6 || p.z > DOM.z + 52) break;
+        pts.push(mundo(p.x, p.y, p.z));
+        velocidadeNo(p.x, p.y, p.z, amostras, eq, sentido, v);
+        var n = v.length();
+        if (n < 1e-3) break;
+        p.addScaledVector(v, 4.2 / n);
+      }
+      return pts;
+    }
+
+    var grupoFluxo = new T.Group();
+    var matFluxo = new T.ShaderMaterial({
+      uniforms: comUC({ uAlfa: { value: 0.95 } }),
+      transparent: true, depthWrite: false,
+      vertexShader: [
+        "attribute float aFase;",
+        "varying vec3 vP;",
+        "varying vec2 vUvF;",
+        "varying float vFase;",
+        "void main() {",
+        "  vec4 mp = modelMatrix * vec4(position, 1.0);",
+        "  vP = mp.xyz; vUvF = uv; vFase = aFase;",
+        "  gl_Position = projectionMatrix * viewMatrix * mp;",
+        "}"
+      ].join("\n"),
+      fragmentShader: [
+        "varying vec3 vP;",
+        "varying vec2 vUvF;",
+        "varying float vFase;",
+        "uniform float uAlfa;",
+        GLSL_CAMPO,
+        "void main() {",
+        "  float v = campoEm(vP);",
+        "  vec3 c = corCampo(v);",
+        // Contas de luz correndo pela linha: o sentido do escoamento fica visível.
+        "  float pulso = pow(fract(vUvF.x * 5.0 - uTempo * 0.20 + vFase), 4.0);",
+        "  vec3 cor = mix(c * 0.75, mix(c, vec3(1.0), 0.35), pulso);",
+        "  gl_FragColor = vec4(cor, uAlfa * (0.42 + 0.58 * pulso));",
+        "  #include <tonemapping_fragment>",
+        "  #include <colorspace_fragment>",
+        "}"
+      ].join("\n")
+    });
+    /* Réplica sem teste de profundidade: a linha que passa dentro do produto
+       segue visível, apagada, no mesmo truque dos marcadores. */
+    var matFluxoVelado = matFluxo.clone();
+    matFluxoVelado.uniforms = comUC({ uAlfa: { value: 0.16 } });
+    matFluxoVelado.depthTest = false;
+    grupoFluxo.visible = false;
+    cena.add(grupoFluxo);
+
+    function construirFluxo(amostras, eq, sentido) {
+      grupoFluxo.children.slice().forEach(function (o) {
+        grupoFluxo.remove(o);
+        if (o.geometry) o.geometry.dispose();
+      });
+      var sementes = [], i, j;
+      // Boca do soprador e coroa de cada bobina: é por onde o ar entra no campo.
+      for (i = 0; i < 7; i++) for (j = 0; j < 2; j++) {
+        sementes.push([46 + i * 15, sentido > 0 ? 192 : 138, 12 + j * 15, (i * 2 + j) / 14]);
+      }
+      FOGAO.POSICOES.forEach(function (c, n) {
+        for (var a = 0; a < 5; a++) {
+          var ang = a / 5 * Math.PI * 2 + 0.6, raio = FOGAO.RAIO_BOBINA[c[0]] + 16;
+          sementes.push([c[1] + Math.cos(ang) * raio, c[2] + Math.sin(ang) * raio, 252, (n * 5 + a) / 20]);
+        }
+      });
+
+      var geos = [];
+      sementes.forEach(function (s) {
+        var pts = trajetoria(s, amostras, eq, sentido);
+        if (pts.length < 8) return;
+        var curva = new T.CatmullRomCurve3(pts, false, "catmullrom", 0.2);
+        var geo = new T.TubeGeometry(curva, pts.length, 1.7 * U, 5, false);
+        var fase = new Float32Array(geo.attributes.position.count).fill(s[3]);
+        geo.setAttribute("aFase", new T.BufferAttribute(fase, 1));
+        geos.push(geo);
+      });
+      if (!geos.length) return;
+
+      var tudo = geos.length > 1 ? T.mergeGeometries(geos, false) : geos[0];
+      if (geos.length > 1) geos.forEach(function (g) { g.dispose(); });
+      var nitido = new T.Mesh(tudo, matFluxo);
+      nitido.renderOrder = 4;
+      var velado = new T.Mesh(tudo, matFluxoVelado);
+      velado.renderOrder = 6;
+      grupoFluxo.add(nitido, velado);
+    }
+
+    /* ----- Focos quentes -----
+       Halo pulsante nos termopares mais quentes: marca onde o campo tem pico
+       medido, e não só onde ele está alto por vizinhança. */
+    var grupoFocos = new T.Group();
+    grupoFocos.visible = false;
+    cena.add(grupoFocos);
+    var TEX_FOCO = textura(128, 128, function (c, w) {
+      var g = c.createRadialGradient(w / 2, w / 2, 0, w / 2, w / 2, w / 2);
+      g.addColorStop(0, "rgba(255,255,255,1)");
+      g.addColorStop(0.35, "rgba(255,255,255,0.42)");
+      g.addColorStop(1, "rgba(255,255,255,0)");
+      c.fillStyle = g; c.fillRect(0, 0, w, w);
+    });
+    var GEO_FOCO = new T.PlaneGeometry(1, 1);
+
+    function construirFocos(colocados, eq) {
+      grupoFocos.children.slice().forEach(function (o) {
+        grupoFocos.remove(o);
+        o.material.dispose();
+      });
+      colocados.slice()
+        .sort(function (a, b) { return b.ponto.temperatura_prevista_c - a.ponto.temperatura_prevista_c; })
+        .slice(0, 10)
+        .forEach(function (c, i) {
+          var rgb = FOGAO.corDaRampa(FOGAO.RAMPA_CAMPO, eq.normalizar(c.ponto.temperatura_prevista_c));
+          var halo = new T.Mesh(GEO_FOCO, new T.MeshBasicMaterial({
+            map: TEX_FOCO, color: new T.Color(rgb[0] / 255, rgb[1] / 255, rgb[2] / 255),
+            transparent: true, depthWrite: false, depthTest: false,
+            blending: T.AdditiveBlending, toneMapped: false, opacity: 0.4
+          }));
+          halo.position.copy(mundo(c.g[0], c.g[1], c.g[2]));
+          halo.renderOrder = 7;
+          halo.userData.fase = i / 10;
+          grupoFocos.add(halo);
+        });
+    }
+
+    /* ----- Montagem do campo ----- */
+
+    function construirCampo(colocados, op) {
+      var amostras = colocados.map(function (c) {
+        return { x: c.g[0], y: c.g[1], z: c.g[2], v: c.ponto.temperatura_prevista_c };
+      });
       if (!amostras.length) return null;
+
+      // Guardadas em graus: a sonda responde em °C, não na escala normalizada.
+      estado.campoAmostras = amostras;
       var eq = FOGAO.equalizador(amostras.map(function (a) { return a.v; }));
-      var C = FOGAO.CAIXA;
+      var grade = FOGAO.grade3D(amostras, eq, GRADE.x, GRADE.y, GRADE.z);
+      if (UC.uCampo.value) UC.uCampo.value.dispose();
+      UC.uCampo.value = texturaVolume(grade);
 
-      var geo = new T.BoxGeometry(C.x * U, C.z * U, C.y * U, 64, 60, 48);
-      var pos = geo.attributes.position, nor = geo.attributes.normal;
-      var cores = new Float32Array(pos.count * 3), cor = new T.Color();
-      for (var i = 0; i < pos.count; i++) {
-        var x = pos.getX(i) / U + C.x / 2, zz = pos.getY(i) / U + C.z / 2, y = C.y / 2 - pos.getZ(i) / U;
-        // 0,08 medido contra os termopares: correlação 0,86 contra 0,58 sem compressão.
-        var kk = [nor.getX(i) ? 0.08 : 1, nor.getZ(i) ? 0.08 : 1, nor.getY(i) ? 0.08 : 1];
-        var rgb = FOGAO.corDaRampa(FOGAO.RAMPA_CAMPO, eq.normalizar(FOGAO.valorEm(amostras, x, y, zz, kk)));
-        cor.setRGB(rgb[0] / 255, rgb[1] / 255, rgb[2] / 255, T.SRGBColorSpace);
-        cores[i * 3] = cor.r; cores[i * 3 + 1] = cor.g; cores[i * 3 + 2] = cor.b;
-      }
-      geo.setAttribute("color", new T.BufferAttribute(cores, 3));
-
-      grupoCampo = new T.Group();
-      var caixa = new T.Mesh(geo, new T.MeshBasicMaterial({ vertexColors: true, toneMapped: false }));
-      caixa.position.set(0, C.z / 2 * U, 0);
-      caixa.castShadow = true;
-      grupoCampo.add(caixa);
-      var arestas = new T.LineSegments(new T.EdgesGeometry(new T.BoxGeometry(C.x * U, C.z * U, C.y * U)), new T.LineBasicMaterial({ color: 0x1b1b1b }));
-      arestas.position.copy(caixa.position);
-      grupoCampo.add(arestas);
-      FOGAO.POSICOES.forEach(function (p) {
-        var r = FOGAO.RAIO_BOBINA[p[0]] * 1.08 * U;
-        var pts = [];
-        for (var a = 0; a <= 64; a++) pts.push(new T.Vector3(Math.cos(a / 64 * Math.PI * 2) * r, 0, Math.sin(a / 64 * Math.PI * 2) * r));
-        var anel = new T.Line(new T.BufferGeometry().setFromPoints(pts), new T.LineBasicMaterial({ color: 0x1b1b1b, transparent: true, opacity: 0.75 }));
-        anel.position.copy(mundo(p[1], p[2], C.z + 0.3));
-        grupoCampo.add(anel);
-      });
-      // Contornos de porta, painel e puxador: o volume colorido segue lendo como fogão.
-      var traco = new T.LineBasicMaterial({ color: 0x1b1b1b, transparent: true, opacity: 0.7 });
-      function retangulo(x0, z0, x1, z1) {
-        var y = -0.4;
-        return [mundo(x0, y, z0), mundo(x1, y, z0), mundo(x1, y, z0), mundo(x1, y, z1), mundo(x1, y, z1), mundo(x0, y, z1), mundo(x0, y, z1), mundo(x0, y, z0)];
-      }
-      var linhas = [].concat(retangulo(10, 30, 310, 188), retangulo(116, 238, 204, 274), [mundo(40, -0.4, 176), mundo(280, -0.4, 176), mundo(0, -0.4, 192), mundo(320, -0.4, 192)]);
-      grupoCampo.add(new T.LineSegments(new T.BufferGeometry().setFromPoints(linhas), traco));
-      FOGAO.MANIPULOS.forEach(function (x) {
-        var pts = [];
-        for (var a = 0; a <= 32; a++) pts.push(mundo(x + Math.cos(a / 32 * Math.PI * 2) * 10, -0.4, 240 + Math.sin(a / 32 * Math.PI * 2) * 10));
-        grupoCampo.add(new T.Line(new T.BufferGeometry().setFromPoints(pts), traco));
-      });
-      cena.add(grupoCampo);
+      construirFluxo(amostras, eq, op.soprador === "back" ? 1 : -1);
+      construirFocos(colocados, eq);
       renderer.shadowMap.needsUpdate = true;
 
       var paradas = [0, 0.25, 0.5, 0.75, 1].map(function (f) { return eq.quantil(f); });
       return { min: paradas[0], max: paradas[4], paradas: paradas };
+    }
+
+    // Camadas ligadas pela barra do viewport; sem pedido, todas ligadas.
+    function aplicarCamadas(op) {
+      var c = op.camadas || {};
+      function liga(v) { return v !== false; }
+      grupoVolume.visible = estado.campo && liga(c.volume);
+      grupoFluxo.visible = estado.campo && liga(c.fluxo);
+      grupoFocos.visible = estado.campo && liga(c.focos);
+      UC.uForcaIso.value = liga(c.iso) ? 0.55 : 0;
+      UC.uOnda.value = movimentoReduzido.matches ? 0 : 1;
     }
 
     /* ----- Marcadores ----- */
@@ -861,16 +1224,28 @@ var FOGAO3D = (function () {
        o desenhado, que o persegue com amortecimento; presets e foco usam uma
        transição com easing. */
 
-    var ELEV_MIN = 4 * GRAU;   // acima do chão: nunca por baixo do produto
-    var ELEV_MAX = 86 * GRAU;  // antes do zênite: a frente segue reconhecível
+    /* A elevação dá a volta inteira: passando de 90° a câmera cruza o zênite
+       e desce pelo outro lado de cabeça para baixo, o que só fecha se o vetor
+       "para cima" acompanhar o sinal do cosseno. Exatamente no polo os dois
+       são paralelos e `lookAt` degenera, então o polo é evitado por um fio. */
+    var POLO = 0.0015;
+    function normalizarEl(el) {
+      el = (el + Math.PI) % (Math.PI * 2);
+      if (el < 0) el += Math.PI * 2;
+      el -= Math.PI;
+      if (Math.abs(Math.abs(el) - Math.PI / 2) < POLO) el += el > 0 ? POLO : -POLO;
+      return el;
+    }
+    function sinalCima(el) { return Math.cos(el) >= 0 ? 1 : -1; }
 
     var PRESETS = {
       isometrica: { az: 32 * GRAU, el: 24 * GRAU },
       frontal: { az: 0, el: 6 * GRAU },
       lateral: { az: 90 * GRAU, el: 10 * GRAU },
-      superior: { az: 0, el: 86 * GRAU }
+      superior: { az: 0, el: 86 * GRAU },
+      inferior: { az: 0, el: -62 * GRAU }
     };
-    var TECLA_PRESET = { "1": "isometrica", "2": "frontal", "3": "lateral", "4": "superior" };
+    var TECLA_PRESET = { "1": "isometrica", "2": "frontal", "3": "lateral", "4": "superior", "5": "inferior" };
 
     var cam = {
       alvo: { az: PRESETS.isometrica.az, el: PRESETS.isometrica.el, dist: 9, t: new T.Vector3(0, 1.5, 0) },
@@ -887,11 +1262,6 @@ var FOGAO3D = (function () {
     // Caixas das peças visíveis na posição corrente, para enquadrar e limitar.
     function caixasVisiveis() {
       var caixas = [];
-      if (estado.campo) {
-        var C = FOGAO.CAIXA;
-        caixas.push(new T.Box3(mundo(0, C.y, 0), mundo(C.x, 0, C.z)));
-        return caixas;
-      }
       estado.lista.forEach(function (pc) {
         var p = estado.pecas[pc.id];
         // Na montagem o fantasma da peça futura também conta: o quadro não muda a cada fator.
@@ -930,11 +1300,10 @@ var FOGAO3D = (function () {
        empurrado para fora dela ao longo da linha de visão. */
     var MARGEM = 0.12;
     function limitarCamera(c) {
-      c.el = Math.max(ELEV_MIN, Math.min(ELEV_MAX, c.el));
+      c.el = normalizarEl(c.el);
       var caixas = caixasVisiveis(), tudo = uniao(caixas);
       if (tudo.isEmpty()) return;
       tudo.clampPoint(c.t, c.t);
-      c.t.y = Math.max(0.05, c.t.y);
 
       var max = distanciaQueEnquadra(tudo, 1.6);
       c.dist = Math.min(max, Math.max(0.4, c.dist));
@@ -959,6 +1328,8 @@ var FOGAO3D = (function () {
       // Menor arco: trocar de preset não dá a volta inteira.
       while (para.az - de.az > Math.PI) para.az -= Math.PI * 2;
       while (para.az - de.az < -Math.PI) para.az += Math.PI * 2;
+      while (para.el - de.el > Math.PI) para.el -= Math.PI * 2;
+      while (para.el - de.el < -Math.PI) para.el += Math.PI * 2;
       var reduzido = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
       cam.alvo = copiaCam(para);
       cam.preset = nome || null;
@@ -1017,8 +1388,7 @@ var FOGAO3D = (function () {
     function pontoSob(cx, cy) {
       raycaster.setFromCamera(ndc(cx, cy), camera);
       var alvos = [];
-      if (estado.campo && grupoCampo) alvos.push(grupoCampo);
-      else estado.lista.forEach(function (pc) {
+      estado.lista.forEach(function (pc) {
         var p = estado.pecas[pc.id];
         if (pc.present && p.opacidade > 0.5) alvos.push(p.corpo);
       });
@@ -1096,7 +1466,7 @@ var FOGAO3D = (function () {
       gesto.x = e.clientX; gesto.y = e.clientY;
       if (gesto.tipo === "pan") { pan(dx, dy); return; }
       manipular();
-      cam.alvo.az -= dx * 0.008;
+      cam.alvo.az -= dx * 0.008 * sinalCima(cam.alvo.el);
       cam.alvo.el += dy * 0.006;
       limitarCamera(cam.alvo);
       pedir();
@@ -1139,11 +1509,38 @@ var FOGAO3D = (function () {
       else return;
       e.preventDefault();
       manipular();
-      cam.alvo.az += az * 6 * GRAU * mult;
+      cam.alvo.az += az * 6 * GRAU * mult * sinalCima(cam.alvo.el);
       cam.alvo.el += elv * 5 * GRAU * mult;
       limitarCamera(cam.alvo);
       pedir();
     });
+
+    /* ----- Sonda do campo -----
+       No campo não há marcador para apontar, então o que responde ao ponteiro
+       é a própria superfície: o ponto atingido volta para coordenadas do
+       modelo e a interpolação é refeita ali, em graus. */
+    function sondarCampo(cx, cy) {
+      if (!estado.campoAmostras) return null;
+      raycaster.setFromCamera(ndc(cx, cy), camera);
+      var alvos = [];
+      estado.lista.forEach(function (pc) {
+        var p = estado.pecas[pc.id];
+        if (pc.present && p.opacidade > 0.5) alvos.push(p.corpo);
+      });
+      var hits = raycaster.intersectObjects(alvos, true);
+      if (!hits.length) return null;
+
+      var o = hits[0].object, id = null;
+      while (o && !id) { id = o.userData.pecaId; o = o.parent; }
+      var peca = id && estado.pecas[id];
+      // Desconta o explodido: a sonda lê a temperatura do lugar montado.
+      var p = hits[0].point.clone();
+      if (peca) p.sub(peca.raiz.position);
+      return {
+        c: FOGAO.valorEm(estado.campoAmostras, p.x / U + 160, 120 - p.z / U, p.y / U),
+        peca: peca ? peca.pc.nome : null
+      };
+    }
 
     /* ----- Seleção e balão ----- */
 
@@ -1173,7 +1570,15 @@ var FOGAO3D = (function () {
     }
 
     function pairar(e) {
-      if (!opcoes.aoPairar || estado.campo) return;
+      if (estado.campo) {
+        if (!opcoes.aoSondar) return;
+        var achado = sondarCampo(e.clientX, e.clientY);
+        el.style.cursor = achado ? "crosshair" : "";
+        var caixa = renderer.domElement.getBoundingClientRect();
+        opcoes.aoSondar(achado, e.clientX - caixa.left, e.clientY - caixa.top);
+        return;
+      }
+      if (!opcoes.aoPairar) return;
       var achado = marcadorSob(e.clientX, e.clientY, 13);
       if (achado !== estado.pairado) {
         estado.pairado = achado;
@@ -1189,6 +1594,7 @@ var FOGAO3D = (function () {
       estado.pairado = null;
       el.style.cursor = "";
       if (opcoes.aoPairar) opcoes.aoPairar(null);
+      if (opcoes.aoSondar) opcoes.aoSondar(null);
       pedir();
     });
 
@@ -1220,6 +1626,12 @@ var FOGAO3D = (function () {
       ultimo = agora;
       var continuar = false;
 
+      // O campo é estacionário; o que anda é a leitura dele.
+      if (estado.campo && !movimentoReduzido.matches) {
+        UC.uTempo.value = agora / 1000;
+        continuar = true;
+      }
+
       // Explodido e opacidades.
       var ex = estado.explode;
       estado.explode = aproximar(estado.explode, estado.explodeAlvo, 7, dt);
@@ -1241,6 +1653,7 @@ var FOGAO3D = (function () {
         var queda = (1 - p.aparecer) * 0.9;
         p.raiz.position.copy(desloc(pc.ex).multiplyScalar(estado.explode));
         p.raiz.position.y += queda;
+        p.uDesloc.value.copy(p.raiz.position);
         p.corpo.visible = p.aparecer > 0.01;
         p.fantasma.visible = !pc.present && estado.op.modo !== "calor";
         if (pc.present && p.aparecer < 1) aplicarOpacidade(p);
@@ -1261,6 +1674,7 @@ var FOGAO3D = (function () {
         var a = cam.alvo, taxa = 14;
         // Mantém o azimute em uma volta, deslocando alvo e atual juntos: sem salto na tela.
         if (Math.abs(a.az) > Math.PI) { var volta = Math.round(a.az / (Math.PI * 2)) * Math.PI * 2; a.az -= volta; c.az -= volta; }
+        if (Math.abs(a.el) > Math.PI) { var giro = Math.round(a.el / (Math.PI * 2)) * Math.PI * 2; a.el -= giro; c.el -= giro; }
         c.az = aproximar(c.az, a.az, taxa, dt);
         c.el = aproximar(c.el, a.el, taxa, dt);
         c.dist = aproximar(c.dist, a.dist, taxa, dt);
@@ -1269,20 +1683,37 @@ var FOGAO3D = (function () {
         else { c.az = a.az; c.el = a.el; c.dist = a.dist; c.t.copy(a.t); }
       }
       camera.position.copy(c.t).addScaledVector(direcao(c.az, c.el), c.dist);
+      camera.up.set(0, sinalCima(c.el), 0);
       camera.lookAt(c.t);
       camera.updateMatrixWorld();
 
+      // Visto por baixo, o chão e a sombra de contato viram um tampo opaco.
+      var porBaixo = camera.position.y < 0.01;
+      chao.visible = contato.visible = !porBaixo;
+
       // Rotor e fluxo de ar.
       var soprador = estado.pecas.blower;
-      if (soprador && estado.op.soprador && soprador.pc.present && estado.op.modo !== "calor") {
+      if (soprador && estado.op.soprador && soprador.pc.present && (estado.op.modo !== "calor" || estado.campo)) {
         soprador.corpo.traverse(function (o) { if (o.userData.rotor) o.rotation.x += dt * 14 * o.userData.rotor; });
-        animarFluxo(soprador, agora);
+        if (!estado.campo) animarFluxo(soprador, agora);
+        else fluxo.visible = false;
         continuar = true;
       } else fluxo.visible = false;
 
       // Marcadores com tamanho constante na tela.
       var pxMundo = 2 * Math.tan(camera.fov * GRAU / 2) / (renderer.domElement.clientHeight || 1);
       posicionarMarcadores(pxMundo);
+
+      // Focos quentes: halo de tamanho constante na tela, pulsando devagar.
+      if (grupoFocos.visible) {
+        grupoFocos.children.forEach(function (h) {
+          var pulso = 0.5 + 0.5 * Math.sin(agora / 620 + h.userData.fase * Math.PI * 2);
+          h.scale.setScalar(h.position.distanceTo(camera.position) * pxMundo * (20 + pulso * 10));
+          h.quaternion.copy(camera.quaternion);
+          h.material.opacity = 0.20 + pulso * 0.26;
+        });
+        continuar = true;
+      }
 
       var sel = estado.sel;
       anelSel.visible = !!sel && sel.visivel !== false;
@@ -1406,20 +1837,20 @@ var FOGAO3D = (function () {
       if (campo !== estado.campo || (campo && op.pontos !== antes.pontos)) {
         estado.campo = campo;
         if (campo) {
-          info = construirCampo(FOGAO.posicionarPontos(op.pontos || [], FOGAO.pecas(Object.assign({}, op, { explode: false }))));
+          info = construirCampo(FOGAO.posicionarPontos(op.pontos || [], FOGAO.pecas(op)), op);
           estado.infoCampo = info;
-        } else if (grupoCampo) { cena.remove(grupoCampo); grupoCampo = null; }
+        }
         renderer.shadowMap.needsUpdate = true;
       }
       if (campo) info = estado.infoCampo;
-      produto.visible = !campo;
-      contato.visible = true;
+      produto.visible = true;
 
       aplicarModo();
-      estado.explodeAlvo = op.explode && !campo ? 1 : 0;
+      aplicarCamadas(op);
+      estado.explodeAlvo = op.explode ? 1 : 0;
 
       // Foco em subsistema: a peça fica, o resto esmaece quase até sumir.
-      var foco = !campo && op.foco && FOGAO.PECA_DA_AREA[op.foco] ? op.foco : null;
+      var foco = op.foco && FOGAO.PECA_DA_AREA[op.foco] ? op.foco : null;
       var meta = foco && FOGAO.PECA_DA_AREA[foco];
       var noFoco = meta ? [meta.peca].concat(meta.junto || []) : null;
       estado.lista.forEach(function (pc) {
