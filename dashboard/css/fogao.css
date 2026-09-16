@@ -531,6 +531,11 @@ tr[hidden] { display: none; }
    botoes a mais sem quebrar. */
 .viewport__bar--camera { background: var(--color-surface-sunken); }
 
+/* Barra das camadas do campo: mesma família da barra de câmera. O toggle
+   mini aqui não carrega a margem que ele usa embaixo da legenda. */
+.viewport__bar--camadas { background: var(--color-surface-sunken); }
+.viewport__bar--camadas .toggle--mini { margin: 0; }
+
 .sr-only {
   position: absolute;
   width: 1px;

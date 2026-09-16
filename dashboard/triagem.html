@@ -147,15 +147,22 @@
         <details class="more">
           <summary>Sobre o campo</summary>
           <p>
-            Campo interpolado no volume a partir dos 78 termopares e amostrado
-            nas faces do produto. A escala é equalizada por quantil — os
-            rótulos acima marcam os quartis em °C, e por isso não são
-            igualmente espaçados.
+            Campo interpolado no volume a partir dos 78 termopares e lido em
+            três camadas: a pele de cada peça, as fatias de volume e as linhas
+            de fluxo. A escala é equalizada por quantil — os rótulos acima
+            marcam os quartis em °C, e por isso não são igualmente espaçados.
           </p>
           <p>
             Aqui a cor representa temperatura, e não estado de risco: nenhuma
             faixa significa aprovação. Os 10 pontos sem limite entram no campo
             — não têm folga, mas têm temperatura.
+          </p>
+          <p>
+            A animação desloca a leitura do campo e faz as isotermas andarem;
+            o campo em si é estacionário. As linhas de fluxo saem de um modelo
+            simplificado de escoamento — soprador, empuxo e giro sobre as
+            bobinas — e servem para situar por onde o calor caminha, não para
+            substituir simulação.
           </p>
         </details>
       </div>
@@ -206,6 +213,20 @@
         </span>
       </div>
 
+      <!-- Camadas do campo: cada uma liga e desliga sozinha, porque servem a
+           leituras diferentes do mesmo campo e se sobrepõem na tela. -->
+      <div class="viewport__bar viewport__bar--camadas" id="heat-layers-bar" hidden>
+        <span class="hint" style="flex:none">Camadas</span>
+        <span class="toggle toggle--mini" id="heat-layers"
+              role="group" aria-label="Camadas do campo térmico">
+          <button type="button" data-layer="volume" aria-pressed="true">Volume</button>
+          <button type="button" data-layer="fluxo" aria-pressed="true">Fluxo de ar</button>
+          <button type="button" data-layer="iso" aria-pressed="true">Isotermas</button>
+          <button type="button" data-layer="focos" aria-pressed="true">Focos</button>
+        </span>
+        <span class="hint">Pele por peça sempre ligada · explodido abre o campo componente a componente</span>
+      </div>
+
       <div class="viewport__bar viewport__bar--camera">
         <span class="hint" style="flex:none">Câmera</span>
         <span class="toggle" id="heat-preset" role="group" aria-label="Vistas de câmera">
@@ -213,8 +234,9 @@
           <button type="button" data-preset="frontal" aria-pressed="false">Frontal</button>
           <button type="button" data-preset="lateral" aria-pressed="false">Lateral</button>
           <button type="button" data-preset="superior" aria-pressed="false">Superior</button>
+          <button type="button" data-preset="inferior" aria-pressed="false">Inferior</button>
         </span>
-        <span class="hint">Roda ou pinça aproxima · setas giram</span>
+        <span class="hint">Roda ou pinça aproxima · a órbita dá a volta inteira</span>
       </div>
 
       <!-- O palco recorta o desenho; o balão e o rodapé ficam fora do recorte
@@ -225,7 +247,7 @@
                aria-roledescription="modelo 3D navegável"
                aria-label="Mapa de calor 3D dos 78 pontos de medição sobre o fogão"
                aria-describedby="heat-teclas"></div>
-          <p class="sr-only" id="heat-teclas">Setas giram e inclinam o modelo, com Shift em passos maiores. Mais e menos aproximam e afastam. 1, 2, 3 e 4 escolhem as vistas isométrica, frontal, lateral e superior. Arrastar com Shift ou com o botão direito desloca.</p>
+          <p class="sr-only" id="heat-teclas">Setas giram e inclinam o modelo em volta completa, com Shift em passos maiores. Mais e menos aproximam e afastam. 1, 2, 3, 4 e 5 escolhem as vistas isométrica, frontal, lateral, superior e inferior. Arrastar com Shift ou com o botão direito desloca.</p>
         </div>
         <div class="tip" id="heat-tip" role="status" aria-live="polite"></div>
         <p class="viewport__disclaimer">
