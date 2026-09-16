@@ -351,6 +351,123 @@
 .gauge__mark { position: absolute; top: -3px; bottom: -3px; width: 1.5px; background: var(--color-accent); }
 .gauge__tag { position: absolute; top: 4px; font-size: 9.5px; font-weight: var(--weight-semibold); color: var(--color-accent); }
 
+/* ----- Painel da peça ----- */
+
+.part__pick { margin-bottom: var(--space-3); }
+
+.part__pick select {
+  font-family: inherit;
+  font-size: var(--size-small);
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: var(--border-width) solid var(--color-border-strong);
+  border-radius: var(--radius);
+  padding: var(--space-1) var(--space-2);
+  width: 100%;
+}
+
+.part__pick select:focus-visible { outline: 2px solid var(--color-focus-ring); outline-offset: 1px; }
+
+.part__head { display: flex; align-items: flex-start; gap: var(--space-2); }
+.part__titles { flex: 1; min-width: 0; }
+
+.part__close {
+  flex: none;
+  width: 1.5rem;
+  height: 1.5rem;
+  line-height: 1;
+  font-size: 1rem;
+  color: var(--color-text-muted);
+  background: var(--color-surface);
+  border: var(--border-width) solid var(--color-border-strong);
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+
+.part__close:hover { color: var(--color-accent); border-color: var(--color-accent); }
+.part__close:focus-visible { outline: 2px solid var(--color-focus-ring); outline-offset: 1px; }
+
+/* A régua de estado repete o peso da tabela: só o que está acima pede cor cheia. */
+.part__state { margin-bottom: var(--space-1); }
+.part__state--acima_do_limite { border-color: var(--color-critical); color: var(--color-critical); background: var(--color-critical-bg); }
+.part__state--banda_de_incerteza { border-color: var(--color-accent); color: var(--color-accent); background: var(--color-surface-accent); }
+.part__state--dentro_do_limite { color: var(--color-text); }
+.part__state--mono { border-style: dashed; color: var(--wp-charcoal); }
+.part__state svg { flex: none; }
+
+.part__ref { margin: 0 0 var(--space-2); font-size: var(--size-kicker); color: var(--color-text-muted); }
+.part__ref b { color: var(--color-text); font-weight: var(--weight-semibold); }
+
+.part__notice {
+  margin: var(--space-3) 0 0;
+  padding: var(--space-2) var(--space-3);
+  border: var(--border-width) dashed var(--color-border-strong);
+  font-size: var(--size-small);
+  color: var(--color-text);
+  line-height: 1.5;
+}
+
+.part__dismiss { margin-top: var(--space-3); }
+
+.part__sub {
+  font-family: var(--font-body);
+  font-size: 9.5px;
+  font-weight: var(--weight-semibold);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--wp-gray-medium);
+  margin: var(--space-4) 0 var(--space-2);
+}
+
+/* Composição por estado. Mesmas cores da tabela; o número vai escrito embaixo. */
+.part__bar { display: flex; height: 10px; gap: 1px; background: var(--color-surface); border: var(--border-width) solid var(--color-border); }
+.part__seg { flex-basis: 0; min-width: 3px; }
+.part__seg--acima_do_limite { background: var(--color-critical); }
+.part__seg--banda_de_incerteza { background: var(--color-accent); }
+.part__seg--dentro_do_limite { background: var(--wp-gray); }
+.part__seg--monitoramento {
+  background: repeating-linear-gradient(135deg, var(--color-surface) 0 3px, var(--wp-gray-medium) 3px 4px);
+}
+
+.part__legend { margin: var(--space-1) 0 0; font-size: var(--size-kicker); color: var(--color-text-muted); font-variant-numeric: tabular-nums; }
+
+.part__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 15rem;
+  overflow-y: auto;
+  border: var(--border-width) solid var(--color-border);
+}
+
+.part__item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  width: 100%;
+  padding: 5px var(--space-2);
+  background: var(--color-surface);
+  border: 0;
+  border-bottom: 1px solid var(--color-surface-sunken);
+  font-family: var(--font-body);
+  font-size: var(--size-kicker);
+  color: var(--color-text);
+  text-align: left;
+  cursor: pointer;
+}
+
+.part__list li:last-child .part__item { border-bottom: 0; }
+.part__item:hover { background: var(--color-surface-sunken); }
+.part__item[aria-current="true"] { background: var(--color-surface-accent); box-shadow: inset 2px 0 0 var(--color-accent); font-weight: var(--weight-semibold); }
+.part__item:focus-visible { outline: 2px solid var(--color-focus-ring); outline-offset: -2px; }
+.part__item svg { flex: none; }
+
+.part__item-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.part__item-num { flex: none; text-align: right; font-variant-numeric: tabular-nums; line-height: 1.25; }
+.part__item-num small { display: block; font-size: 10px; color: var(--color-text-muted); font-weight: var(--weight-regular); }
+.part__item-num small.is-neg { color: var(--color-critical); font-weight: var(--weight-semibold); }
+
 /* Linha da tabela vinculada ao ponto selecionado no modelo. */
 .row--selected { background: var(--color-surface-accent) !important; box-shadow: inset 2px 0 0 var(--color-accent); }
 

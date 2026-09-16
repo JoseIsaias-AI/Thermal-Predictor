@@ -247,7 +247,7 @@
                aria-roledescription="modelo 3D navegável"
                aria-label="Mapa de calor 3D dos 78 pontos de medição sobre o fogão"
                aria-describedby="heat-teclas"></div>
-          <p class="sr-only" id="heat-teclas">Setas giram e inclinam o modelo em volta completa, com Shift em passos maiores. Mais e menos aproximam e afastam. 1, 2, 3, 4 e 5 escolhem as vistas isométrica, frontal, lateral, superior e inferior. Arrastar com Shift ou com o botão direito desloca.</p>
+          <p class="sr-only" id="heat-teclas">Setas giram e inclinam o modelo em volta completa, com Shift em passos maiores. Mais e menos aproximam e afastam. 1, 2, 3, 4 e 5 escolhem as vistas isométrica, frontal, lateral, superior e inferior. Arrastar com Shift ou com o botão direito desloca. Clicar numa peça abre o resumo dela ao lado; Esc desfaz a seleção. A lista Escolher sem o modelo faz a mesma seleção pelo teclado.</p>
         </div>
         <div class="tip" id="heat-tip" role="status" aria-live="polite"></div>
         <p class="viewport__disclaimer">
@@ -258,6 +258,19 @@
     </div>
 
     <div class="heat__side heat__side--right">
+      <!-- Resumo da peça clicada no modelo. Só lê o que a tabela já mostra:
+           estado, folga e ordem vêm prontos em dados_triagem.js. -->
+      <div class="heat__block">
+        <h3 class="heat__label">Peça selecionada</h3>
+        <label class="filter part__pick">
+          <span class="filter__label">Escolher sem o modelo</span>
+          <select id="part-select">
+            <option value="">— nenhuma peça —</option>
+          </select>
+        </label>
+        <div id="part-detail" role="region" aria-live="polite" aria-label="Resumo da peça selecionada"></div>
+      </div>
+
       <div class="heat__block">
         <h3 class="heat__label">Ponto selecionado</h3>
         <div id="detail"><p class="detail__empty">Clique num ponto do modelo ou numa linha da tabela.</p></div>
@@ -406,6 +419,7 @@
 <script src="vendor/three.min.js"></script>
 <script src="js/fogao.js"></script>
 <script src="js/fogao3d.js"></script>
+<script src="js/painel_peca.js"></script>
 <script src="js/grafico.js"></script>
 <script src="js/triagem.js"></script>
 </body>

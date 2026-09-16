@@ -572,7 +572,10 @@
   /* ----- Mapa de calor ----- */
 
   var palcoCalor = document.getElementById("heat-3d");
+  /* `zona` é a peça selecionada (id em FOGAO.ZONAS) e `semDado` a última peça
+     clicada que não tem termopar, só para o painel dizer por quê. */
   var mapa = { explode: true, escala: "a", isolar: "todos", faixas: {}, sel: null,
+               zona: null, semDado: null,
                vista: "pontos", nome: "", estados: {}, mono: true,
                camadas: { volume: true, fluxo: true, iso: true, focos: true } };
   var linhaPorId = {};
@@ -717,8 +720,7 @@
   var geometria = geometriaDaConfig(null);
 
   function corDoPonto(p) {
-    if (p.is_monitor_only) return "#ffffff";
-    return (mapa.escala === "b" ? FOGAO.RAMPA_B : FOGAO.RAMPA_A)[FOGAO.faixaDaRampa(p.margem_percentual)];
+    return PAINEL_PECA.corDoPonto(p, rampaAtual());
   }
 
   function linhaDetalhe(rotulo, valor, vazio) {
@@ -769,9 +771,74 @@
     caixa.innerHTML = html;
   }
 
+  /* Seleção de ponto e de peça andam amarradas por uma regra só: havendo
+     ponto selecionado, a peça selecionada é a dele. Escolher um ponto — no
+     modelo, na tabela, nos gráficos ou na lista da peça — leva a peça junto;
+     trocar ou soltar a peça solta o ponto que não mora nela. Assim os dois
+     painéis nunca descrevem coisas diferentes. */
   function selecionar(p) {
     mapa.sel = p ? p.measurement_id : null;
+    if (p) {
+      var zona = FOGAO.zonaDoPonto(p);
+      mapa.zona = zona ? zona.id : null;
+      mapa.semDado = null;
+    }
+    atualizarSelecao(p);
+  }
+
+  function pontoSelecionado() {
+    if (!mapa.sel) return null;
+    return todosOsPontos().filter(function (p) { return p.measurement_id === mapa.sel; })[0] || null;
+  }
+
+  function selecionarZona(id) {
+    mapa.zona = id;
+    mapa.semDado = null;
+    var p = pontoSelecionado();
+    if (p && (!id || FOGAO.zonaDoPonto(p).id !== id)) mapa.sel = null;
+    atualizarSelecao(pontoSelecionado());
+  }
+
+  function limparSelecao() {
+    mapa.sel = null;
+    mapa.zona = null;
+    mapa.semDado = null;
+    atualizarSelecao(null);
+  }
+
+  /* Clique no modelo fora de marcador. Fundo e Esc limpam tudo; peça sem
+     termopar também solta a seleção, mas o painel diz que o clique pegou e
+     por que não há resumo; clicar de novo na peça já selecionada a solta. */
+  function clicarPeca(alvo) {
+    if (!alvo) { limparSelecao(); return; }
+    if (!alvo.zona) {
+      mapa.sel = null;
+      mapa.zona = null;
+      mapa.semDado = { id: alvo.id, nome: alvo.nome, casca: alvo.casca };
+      atualizarSelecao(null);
+      return;
+    }
+    selecionarZona(alvo.zona.id === mapa.zona ? null : alvo.zona.id);
+  }
+
+  function desenharPainelPeca() {
+    var zona = mapa.zona && FOGAO.ZONA_POR_ID[mapa.zona];
+    var sel = zona ? { resumo: PAINEL_PECA.resumir(zona, DADOS_TRIAGEM) }
+      : mapa.semDado ? { semDado: mapa.semDado } : null;
+    PAINEL_PECA.desenhar(document.getElementById("part-detail"), sel, {
+      rampa: rampaAtual(),
+      dados: DADOS_TRIAGEM,
+      pontoSel: mapa.sel,
+      aoEscolherPonto: selecionar,
+      aoLimpar: limparSelecao
+    });
+    var escolha = document.getElementById("part-select");
+    if (escolha) escolha.value = mapa.zona || "";
+  }
+
+  function atualizarSelecao(p) {
     mostrarDetalhe(p);
+    desenharPainelPeca();
     redesenharCalor();
     desenharVisuais();
 
@@ -780,6 +847,25 @@
     });
     /* A linha fica destacada, mas a página não se move: quem clicou no modelo
        quer ler o painel ao lado, e só desce até a tabela se quiser detalhe. */
+  }
+
+  // Caminho de teclado e leitor de tela para a mesma seleção que o clique faz.
+  function montarEscolhaDePeca() {
+    var escolha = document.getElementById("part-select");
+    var areas = {};
+    FOGAO.ZONAS.forEach(function (z) { (areas[z.area] = areas[z.area] || []).push(z); });
+    Object.keys(areas).forEach(function (area) {
+      var grupo = document.createElement("optgroup");
+      grupo.label = area;
+      areas[area].forEach(function (z) {
+        var o = document.createElement("option");
+        o.value = z.id;
+        o.textContent = z.nome;
+        grupo.appendChild(o);
+      });
+      escolha.appendChild(grupo);
+    });
+    escolha.addEventListener("change", function () { selecionarZona(this.value || null); });
   }
 
   /* Só os três estados de RN-01. Monitoramento não entra: por RN-03 esses
@@ -944,6 +1030,7 @@
       escala: mapa.escala,
       isolar: mapa.isolar,
       sel: mapa.sel,
+      zonaSel: mapa.zona,
       pontos: pontos
     });
 
@@ -968,10 +1055,10 @@
 
     document.getElementById("occlusion-hint").textContent =
       meta ? meta.nome
-      : campoAtivo && mapa.explode ? "Campo por componente · o cursor sonda a temperatura"
-      : campoAtivo ? "Campo no volume · o cursor sonda a temperatura, o arrasto gira sem parada"
-      : mapa.explode ? "Explodido · arraste para girar"
-      : "Assentado: pontos internos aparecem em transparência";
+      : campoAtivo && mapa.explode ? "Campo por componente · o cursor sonda, o clique resume a peça"
+      : campoAtivo ? "Campo no volume · o cursor sonda, o clique resume a peça"
+      : mapa.explode ? "Explodido · arraste para girar, clique numa peça para o resumo"
+      : "Assentado: pontos internos em transparência · clique numa peça para o resumo";
 
     document.getElementById("heat-view-name").textContent =
       meta ? "VISTA DE COMPONENTE"
@@ -992,7 +1079,8 @@
       Array.prototype.forEach.call(this.querySelectorAll("button"), function (b) {
         b.setAttribute("aria-pressed", String(b === botao));
       });
-      if (chave === "escala") montarRampa();
+      // A escala pinta também os glifos dos dois painéis de seleção.
+      if (chave === "escala") { montarRampa(); mostrarDetalhe(pontoSelecionado()); desenharPainelPeca(); }
       redesenharCalor();
       desenharVisuais();
     });
@@ -1000,6 +1088,8 @@
 
   function montarMapa() {
     criarModelo();
+    montarEscolhaDePeca();
+    desenharPainelPeca();
     montarRampa();
     montarSubsistemas();
 
@@ -1087,10 +1177,20 @@
         });
         balao.dataset.on = "0";
       },
-      // Clique fora de marcador limpa a seleção; o fim de um arrasto não conta.
+      // Só chega clique de verdade: o fim de um arrasto de câmera não conta.
       aoClicar: function (p) {
         if (mapa.vista === "campo") return;
         selecionar(p);
+      },
+      aoClicarPeca: clicarPeca,
+      aoPairarPeca: function (alvo, x, y) {
+        if (!alvo) { balao.dataset.on = "0"; return; }
+        var n = FOGAO.pontosDaZona(alvo.zona, todosOsPontos()).length;
+        var selecionada = alvo.zona.id === mapa.zona;
+        balao.innerHTML = "<b class=\"tip__name\">" + alvo.zona.nome + "</b>" +
+          "<span class=\"tip__state\">" + alvo.zona.area + " · " + n + (n === 1 ? " ponto" : " pontos") +
+          " · " + (selecionada ? "clique para soltar" : "clique para o resumo") + "</span>";
+        posicionarBalao(balao, x, y);
       },
       /* No campo o balão vira sonda: mostra a temperatura interpolada sob o
          cursor, que é o que substitui o marcador desta vista. */

@@ -107,9 +107,14 @@ var FOGAO = (function () {
       s.placas[c[0]] = { peca: "coilSupport", g: [c[1] + RAIO_BOBINA[c[0]] + 6, c[2] + 20, cs.b[2] + cs.b[5] + 1] };
     });
 
+    /* Os pontos de duto moram no duto, e não no soprador: é a peça que a zona
+       clicável deles aponta, e o marcador tem de cair onde o clique cai. */
     var bl = acharPeca(lista, "blower");
-    s["Main Vent Sys"] = [[16, 24, 27], [60, 18, 27], [30, 44, 12], [82, 36, 22], [46, 54, 14], [4, 30, 16], [96, 16, 27]]
+    s["Main Vent Sys"] = [[16, 24, 27], [60, 18, 27], [30, 44, 12], [82, 36, 22], [46, 54, 14]]
       .map(function (q) { return { peca: "blower", g: [bl.b[0] + q[0], bl.b[1] + q[1], bl.b[2] + q[2]] }; });
+    var du = acharPeca(lista, "duct");
+    s.dutos = [[14, 10, 23], [36, 30, 23]]
+      .map(function (q) { return { peca: "duct", g: [du.b[0] + q[0], du.b[1] + q[1], du.b[2] + q[2]] }; });
 
     var kb = acharPeca(lista, "knobBar");
     s["CT Knobs"] = [MANIPULOS[0], MANIPULOS[1], MANIPULOS[2], MANIPULOS[3], 106, 214].map(function (x, i) {
@@ -142,11 +147,12 @@ var FOGAO = (function () {
         if (m) slot = /^Coil\b/.test(pt.TC_Name) ? slots.bobinas[m[1]] : slots.placas[m[1]];
       }
       if (!slot) {
-        var disp = slots[pt.Key_Area];
+        var chave = pt.Key_Area === "Main Vent Sys" && EH_DUTO.test(pt.TC_Name) ? "dutos" : pt.Key_Area;
+        var disp = slots[chave];
         if (disp) {
-          var k = fila[pt.Key_Area] || 0;
+          var k = fila[chave] || 0;
           slot = disp[k % disp.length];
-          fila[pt.Key_Area] = k + 1;
+          fila[chave] = k + 1;
         }
       }
       if (slot) saida.push({ ponto: pt, g: slot.g, peca: slot.peca, haste: slot.haste });
@@ -166,6 +172,81 @@ var FOGAO = (function () {
     "CT Knobs": { peca: "knobBar", plano: "elevacao", nome: "Manípulos do cooktop" },
     "Oven HMI": { peca: "hmiPanel", plano: "elevacao", nome: "Interface do forno" }
   };
+
+  /* ----- Peças clicáveis -----
+   *
+   * Cada zona liga uma peça do modelo a um recorte dos pontos: a Key_Area e,
+   * quando a peça divide a área com outra, o nome do termopar. As zonas
+   * particionam os 78 pontos — cada um cai em exatamente uma — e cada zona
+   * aponta para uma peça só. A fidelidade é a da especificação: esquema por
+   * zona, não posição de CAD.
+   *
+   * Bobinas e suporte guardam uma zona por posição (FL, FR, RL, RR). O clique
+   * nessas peças escolhe a zona pela posição mais próxima do ponto atingido,
+   * e `regiao` é o círculo, em planta, que o destaque acende.
+   *
+   * Peça fora desta lista (laterais, porta, cavidade, cooktop, defletor,
+   * bandeja) não tem termopar no conjunto de dados. */
+  var EH_DUTO = /\bDuct\b/;
+
+  var ZONAS = [
+    { id: "ipcBoard", peca: "ipcBoard", area: "IPC Comp", nome: "Placa de potência (IPC)" },
+    { id: "ipcLid", peca: "ipcLid", area: "IPC Cooling", nome: "Tampa e dutos da IPC" },
+    { id: "blower", peca: "blower", area: "Main Vent Sys", nome: "Soprador (AC Blower)", excluiNome: EH_DUTO },
+    { id: "duct", peca: "duct", area: "Main Vent Sys", nome: "Duto de ar", nomeTC: EH_DUTO },
+    { id: "mainback", peca: "mainback", area: "Mainback", nome: "Traseira (Mainback)" },
+    { id: "knobBar", peca: "knobBar", area: "CT Knobs", nome: "Painel de manípulos" },
+    { id: "hmiPanel", peca: "hmiPanel", area: "Oven HMI", nome: "Interface do forno (HMI)" }
+  ];
+
+  var NOME_POSICAO = { FL: "frontal esquerda", FR: "frontal direita", RL: "traseira esquerda", RR: "traseira direita" };
+
+  POSICOES.forEach(function (c) {
+    var raio = RAIO_BOBINA[c[0]];
+    ZONAS.push({
+      id: "coil-" + c[0], peca: "coils", area: "Coil Temps", pos: c[0],
+      nome: "Bobina " + c[0], sub: "posição " + NOME_POSICAO[c[0]],
+      nomeTC: new RegExp("^Coil " + c[0] + "$"), regiao: { x: c[1], y: c[2], r: raio + 4 }
+    });
+    ZONAS.push({
+      id: "placa-" + c[0], peca: "coilSupport", area: "Coil Temps", pos: c[0],
+      nome: "Placa de alumínio " + c[0], sub: "posição " + NOME_POSICAO[c[0]],
+      nomeTC: new RegExp("^Aluminium Plate " + c[0] + "$"), regiao: { x: c[1], y: c[2], r: raio + 16 }
+    });
+  });
+
+  var ZONA_POR_ID = {};
+  ZONAS.forEach(function (z) { ZONA_POR_ID[z.id] = z; });
+
+  function pontoNaZona(z, p) {
+    if (p.Key_Area !== z.area) return false;
+    if (z.nomeTC && !z.nomeTC.test(p.TC_Name)) return false;
+    if (z.excluiNome && z.excluiNome.test(p.TC_Name)) return false;
+    return true;
+  }
+
+  function zonaDoPonto(p) {
+    for (var i = 0; i < ZONAS.length; i++) if (pontoNaZona(ZONAS[i], p)) return ZONAS[i];
+    return null;
+  }
+
+  // Filtra sem reordenar: a ordem de severidade é a que o dado já traz.
+  function pontosDaZona(z, pontos) {
+    return pontos.filter(function (p) { return pontoNaZona(z, p); });
+  }
+
+  /* Zona sob um ponto atingido na peça, em coordenadas do modelo montado.
+     Nas peças por posição vence o centro de bobina mais próximo em planta:
+     o suporte inteiro fica coberto, sem fresta entre quadrantes. */
+  function zonaEm(pecaId, x, y) {
+    var melhor = null, dMin = Infinity;
+    ZONAS.forEach(function (z) {
+      if (z.peca !== pecaId) return;
+      var d = z.regiao ? Math.hypot(x - z.regiao.x, y - z.regiao.y) : 0;
+      if (d < dMin) { dMin = d; melhor = z; }
+    });
+    return melhor;
+  }
 
   // Os cortes acompanham RN-01: 0 e +10% são fronteiras.
   function faixaDaRampa(mp) {
@@ -271,6 +352,11 @@ var FOGAO = (function () {
     acharPeca: acharPeca,
     posicionarPontos: posicionarPontos,
     PECA_DA_AREA: PECA_DA_AREA,
+    ZONAS: ZONAS,
+    ZONA_POR_ID: ZONA_POR_ID,
+    zonaDoPonto: zonaDoPonto,
+    pontosDaZona: pontosDaZona,
+    zonaEm: zonaEm,
     valorEm: valorEm,
     grade3D: grade3D,
     equalizador: equalizador,

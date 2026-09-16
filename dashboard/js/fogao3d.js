@@ -1202,6 +1202,246 @@ var FOGAO3D = (function () {
       cena.add(anelSel);
     })();
 
+    /* ----- Realce de peça -----
+       Casca desenhada sobre a própria geometria da peça, sem trocar o
+       material dela — o modo argila, a cor real e a pele térmica seguem
+       intactos por baixo. Três passes: a superfície visível acende pela borda
+       (fresnel), a parte oculta atrás de outras peças aparece em raio-X tênue,
+       e as arestas vivas viram contorno. Zona por posição recorta os três pelo
+       círculo em planta, então a bobina FL acende sozinha no conjunto.
+
+       `sel` fica enquanto a peça estiver escolhida, e entra com um pulso que
+       decai em pouco mais de um segundo: é o aviso de que o clique pegou.
+       `pairar` é só a sugestão sob o cursor. `nega` pisca uma vez em cinza na
+       peça sem dado, e some. */
+    /* `campo` troca os pesos no campo térmico: ali a pele da peça é o dado, e
+       preenchê-la de branco apagaria a temperatura que se quer ler. Sobra a
+       borda e o contorno. */
+    var TIPOS_REALCE = {
+      sel: { cor: 0x00a0dd, alfa: 0.10, borda: 0.60, oculto: 0.20, arestas: 0.95, cantos: 1, pulso: true, campo: { alfa: 0, borda: 0, oculto: 0, arestas: 0.1, cantos: 1 } },
+      pairar: { cor: 0x00a0dd, alfa: 0.04, borda: 0.32, oculto: 0, arestas: 0.35, cantos: 0, pulso: false, campo: { alfa: 0, borda: 0, oculto: 0, arestas: 0, cantos: 0.55 } },
+      nega: { cor: 0x505863, alfa: 0, borda: 0.18, oculto: 0, arestas: 0.8, cantos: 0, pulso: true, vida: 0.75 }
+    };
+
+    /* Colchetes nos oito cantos da caixa da peça, ou do quadrado que cerca a
+       região da zona. Marcam a seleção sem cobrir nada: no campo térmico é o
+       único realce que fica, porque ali qualquer tinta sobre a peça falseia a
+       cor que é o dado. */
+    function geometriaCantos(pc, zona) {
+      var b = pc.b, x0 = b[0], x1 = b[0] + b[3], y0 = b[1], y1 = b[1] + b[4], z0 = b[2], z1 = b[2] + b[5];
+      if (zona && zona.regiao) {
+        var g = zona.regiao;
+        x0 = g.x - g.r; x1 = g.x + g.r; y0 = g.y - g.r; y1 = g.y + g.r;
+      }
+      // Folga de 3 unidades para o colchete não encostar na chapa.
+      x0 -= 3; y0 -= 3; z0 -= 3; x1 += 3; y1 += 3; z1 += 3;
+      var f = 0.22, pts = [];
+      [x0, x1].forEach(function (x) {
+        [y0, y1].forEach(function (y) {
+          [z0, z1].forEach(function (z) {
+            var c = mundo(x, y, z);
+            pts.push(c, mundo(x + (x === x0 ? 1 : -1) * (x1 - x0) * f, y, z));
+            pts.push(c, mundo(x, y + (y === y0 ? 1 : -1) * (y1 - y0) * f, z));
+            pts.push(c, mundo(x, y, z + (z === z0 ? 1 : -1) * (z1 - z0) * f));
+          });
+        });
+      });
+      return new T.BufferGeometry().setFromPoints(pts);
+    }
+    var DURACAO_PULSO = 1.3;
+
+    var GLSL_REALCE_V = [
+      "varying vec3 vMundo;",
+      "#ifndef LINHA",
+      "varying vec3 vNormalM;",
+      "#endif",
+      "void main() {",
+      "  vec4 mp = modelMatrix * vec4(position, 1.0);",
+      "  vMundo = mp.xyz;",
+      "#ifndef LINHA",
+      "  vNormalM = normalize(mat3(modelMatrix) * normal);",
+      "#endif",
+      "  gl_Position = projectionMatrix * viewMatrix * mp;",
+      // Linha não aceita polygonOffset: o recuo em profundidade é feito à mão.
+      "#ifdef LINHA",
+      "  gl_Position.z -= 1.5e-5 * gl_Position.w;",
+      "#endif",
+      "}"
+    ].join("\n");
+
+    var GLSL_REALCE_F = [
+      "uniform vec3 uCor;",
+      "uniform float uAlfa;",
+      "uniform float uBorda;",
+      "uniform float uPulso;",
+      // xz do centro e raio, na cena; raio zero desliga o recorte.
+      "uniform vec3 uRegiao;",
+      "varying vec3 vMundo;",
+      "#ifndef LINHA",
+      "varying vec3 vNormalM;",
+      "#endif",
+      "void main() {",
+      "  if (uRegiao.z > 0.0 && distance(vMundo.xz, uRegiao.xy) > uRegiao.z) discard;",
+      "#ifdef LINHA",
+      "  float a = uAlfa * (1.0 + uPulso * 0.4);",
+      "  vec3 c = mix(uCor, vec3(1.0), uPulso * 0.35);",
+      "#else",
+      // Face dupla: o módulo do cosseno acende a borda dos dois lados da chapa.
+      "  float rim = 1.0 - abs(dot(normalize(vNormalM), normalize(cameraPosition - vMundo)));",
+      "  rim *= rim;",
+      "  float a = uAlfa + uBorda * rim + uPulso * 0.42;",
+      "  vec3 c = uCor * (0.9 + 0.5 * rim) + vec3(uPulso * 0.28);",
+      "#endif",
+      "  gl_FragColor = vec4(c, clamp(a, 0.0, 1.0));",
+      "  #include <colorspace_fragment>",
+      "}"
+    ].join("\n");
+
+    function materialRealce(passe) {
+      var m = new T.ShaderMaterial({
+        uniforms: {
+          uCor: { value: new T.Color() },
+          uAlfa: { value: 0 }, uBorda: { value: 0 }, uPulso: { value: 0 },
+          uRegiao: { value: new T.Vector3() }
+        },
+        defines: passe === "arestas" ? { LINHA: "" } : {},
+        vertexShader: GLSL_REALCE_V,
+        fragmentShader: GLSL_REALCE_F,
+        transparent: true, depthWrite: false, side: T.DoubleSide
+      });
+      // Um fio à frente da superfície que ele cobre: sem isso as duas brigam pelo mesmo pixel.
+      m.polygonOffset = true;
+      m.polygonOffsetFactor = -2;
+      m.polygonOffsetUnits = -2;
+      // O oculto só passa onde há algo na frente.
+      if (passe === "oculto") m.depthFunc = T.GreaterDepth;
+      return m;
+    }
+
+    // Arestas vivas por geometria, calculadas uma vez: a malha fundida não muda.
+    var cacheArestas = new WeakMap();
+    function arestasDe(geo) {
+      if (!cacheArestas.has(geo)) cacheArestas.set(geo, new T.EdgesGeometry(geo, 32));
+      return cacheArestas.get(geo);
+    }
+
+    var realces = { sel: null, pairar: null, nega: null };
+
+    function montarRealce(tipo, id, zona) {
+      var p = estado.pecas[id], cfg = TIPOS_REALCE[tipo];
+      if (!p) return null;
+      var grupo = new T.Group(), pares = [], mats = [];
+      var passes = [["superficie", T.Mesh, 9]];
+      if (cfg.oculto) passes.push(["oculto", T.Mesh, 9]);
+      if (cfg.arestas) passes.push(["arestas", T.LineSegments, 10]);
+
+      var porPasse = {};
+      passes.forEach(function (ps) { porPasse[ps[0]] = materialRealce(ps[0]); mats.push(porPasse[ps[0]]); });
+
+      p.corpo.updateMatrixWorld(true);
+      p.corpo.traverse(function (o) {
+        if (!o.isMesh || !o.geometry.attributes.normal) return;
+        passes.forEach(function (ps) {
+          var geo = ps[0] === "arestas" ? arestasDe(o.geometry) : o.geometry;
+          var copia = new ps[1](geo, porPasse[ps[0]]);
+          copia.matrixAutoUpdate = false;
+          copia.frustumCulled = false;
+          copia.renderOrder = ps[2];
+          grupo.add(copia);
+          pares.push([copia, o]);
+        });
+      });
+      var cantos = null;
+      if (cfg.cantos || (cfg.campo && cfg.campo.cantos)) {
+        var matCantos = new T.LineBasicMaterial({ color: cfg.cor, transparent: true, depthTest: false, depthWrite: false, toneMapped: false });
+        cantos = new T.LineSegments(geometriaCantos(p.pc, zona), matCantos);
+        cantos.renderOrder = 11;
+        cantos.frustumCulled = false;
+        grupo.add(cantos);
+        mats.push(matCantos);
+      }
+
+      cena.add(grupo);
+      return { tipo: tipo, cfg: cfg, id: id, zona: zona || null, grupo: grupo, pares: pares, porPasse: porPasse, mats: mats, cantos: cantos, t0: performance.now() };
+    }
+
+    function descartarRealce(r) {
+      if (!r) return;
+      cena.remove(r.grupo);
+      r.mats.forEach(function (m) { m.dispose(); });
+      if (r.cantos) r.cantos.geometry.dispose();
+    }
+
+    function trocarRealce(tipo, novo) {
+      descartarRealce(realces[tipo]);
+      realces[tipo] = novo;
+      pedir();
+    }
+
+    var corCampoRealce = new T.Color(0xffffff);
+
+    // Acompanha a peça no explodido e no rotor, e devolve se ainda anima.
+    function atualizarRealce(r, agora) {
+      if (!r) return false;
+      var p = estado.pecas[r.id];
+      if (!p) return false;
+      r.grupo.visible = p.pc.present && p.corpo.visible && p.opacidade > 0.3;
+      if (!r.grupo.visible) return false;
+
+      var t = (agora - r.t0) / 1000;
+      var pulso = 0;
+      if (r.cfg.pulso && !movimentoReduzido.matches && t < DURACAO_PULSO) {
+        // Duas batidas que se apagam: lê como confirmação, não como alarme.
+        pulso = Math.exp(-t * 3.4) * (0.55 + 0.45 * Math.cos(t * Math.PI * 2 * 2.2));
+      }
+      var cfg = r.cfg;
+      // No campo a pele já é a escala de cor: o realce passa a branco para não virar mais uma temperatura.
+      var cor = estado.campo && r.tipo !== "nega" ? corCampoRealce : null;
+      var zr = r.zona && r.zona.regiao;
+      var cx = 0, cz = 0, raio = 0;
+      if (zr) {
+        cx = (zr.x - 160) * U + p.raiz.position.x;
+        cz = (120 - zr.y) * U + p.raiz.position.z;
+        raio = zr.r * U;
+      }
+      var pesos = estado.campo && cfg.campo ? cfg.campo : cfg;
+      Object.keys(r.porPasse).forEach(function (passe) {
+        var u = r.porPasse[passe].uniforms;
+        if (cor) u.uCor.value.copy(cor); else u.uCor.value.setHex(cfg.cor);
+        // No campo o pulso também não pode cobrir a escala.
+        u.uPulso.value = estado.campo ? pulso * 0.5 : pulso;
+        u.uRegiao.value.set(cx, cz, raio);
+        var peso = passe === "superficie" ? pesos.alfa + pesos.borda : passe === "oculto" ? pesos.oculto : pesos.arestas;
+        // Passe zerado sai do desenho, em vez de desenhar transparente por cima.
+        r.porPasse[passe].visible = peso > 0 || pulso > 0.02;
+        if (passe === "superficie") { u.uAlfa.value = pesos.alfa; u.uBorda.value = pesos.borda; }
+        else if (passe === "oculto") { u.uAlfa.value = pesos.oculto * 0.35; u.uBorda.value = pesos.oculto; }
+        else u.uAlfa.value = pesos.arestas;
+      });
+      if (r.cantos) {
+        r.cantos.position.copy(p.raiz.position);
+        if (cor) r.cantos.material.color.copy(cor); else r.cantos.material.color.setHex(cfg.cor);
+        r.cantos.material.opacity = Math.min(1, pesos.cantos + pulso * 0.5);
+        r.cantos.visible = pesos.cantos > 0;
+      }
+
+      r.pares.forEach(function (par) { par[0].matrix.copy(par[1].matrixWorld); });
+      return r.cfg.pulso && t < (r.cfg.vida || DURACAO_PULSO);
+    }
+
+    function atualizarRealces(agora) {
+      produto.updateMatrixWorld(true);
+      var anima = false;
+      ["sel", "pairar"].forEach(function (k) { if (atualizarRealce(realces[k], agora)) anima = true; });
+      if (realces.nega) {
+        if (atualizarRealce(realces.nega, agora)) anima = true;
+        else trocarRealce("nega", null);
+      }
+      return anima;
+    }
+
+    function chaveDoRealce(r) { return r ? (r.zona ? r.zona.id : "peca:" + r.id) : null; }
+
     /* ----- Fluxo de ar ----- */
 
     var fluxo = new T.Group();
@@ -1377,23 +1617,50 @@ var FOGAO3D = (function () {
     /* ----- Entradas ----- */
 
     var el = host;
-    var ponteiros = {}, gesto = null, andou = false;
+    var ponteiros = {}, gesto = null, andou = false, toque = null;
     var raycaster = new T.Raycaster();
+
+    /* Quanto o ponteiro pode andar e ainda valer como clique. O dedo treme
+       mais que o mouse. Dentro desse raio a câmera também não se mexe: um
+       clique não gira o modelo nem um grau. */
+    var LIMIAR_CLIQUE = { mouse: 4, pen: 6, touch: 10 };
 
     function ndc(cx, cy) {
       var r = renderer.domElement.getBoundingClientRect();
       return new T.Vector2((cx - r.left) / r.width * 2 - 1, -((cy - r.top) / r.height) * 2 + 1);
     }
 
-    function pontoSob(cx, cy) {
+    /* Peça atingida sob o cursor. Só conta peça montada e opaca: a casca
+       esmaecida do explodido e o resto recuado pelo foco deixam o raio passar
+       até o miolo, que é o que o usuário está vendo. O ponto volta para
+       coordenadas do modelo montado, descontando o explodido, e é por ele que
+       a zona se resolve. */
+    function pecaSob(cx, cy) {
       raycaster.setFromCamera(ndc(cx, cy), camera);
       var alvos = [];
       estado.lista.forEach(function (pc) {
         var p = estado.pecas[pc.id];
-        if (pc.present && p.opacidade > 0.5) alvos.push(p.corpo);
+        if (pc.present && p.corpo.visible && p.opacidade > 0.5) alvos.push(p.corpo);
       });
       var hits = raycaster.intersectObjects(alvos, true);
-      return hits.length ? hits[0].point : null;
+      if (!hits.length) return null;
+
+      var o = hits[0].object, id = null;
+      while (o && !id) { id = o.userData.pecaId; o = o.parent; }
+      var peca = id && estado.pecas[id];
+      if (!peca) return null;
+      var local = hits[0].point.clone().sub(peca.raiz.position);
+      var modelo = { x: local.x / U + 160, y: 120 - local.z / U, z: local.y / U };
+      return {
+        id: id, nome: peca.pc.nome, casca: !!peca.pc.casca,
+        mundo: hits[0].point, modelo: modelo,
+        zona: FOGAO.zonaEm(id, modelo.x, modelo.y)
+      };
+    }
+
+    function pontoSob(cx, cy) {
+      var alvo = pecaSob(cx, cy);
+      return alvo ? alvo.mundo : null;
     }
 
     function zoom(fator, cx, cy) {
@@ -1438,7 +1705,8 @@ var FOGAO3D = (function () {
         andou = false;
         var panear = e.button === 2 || e.button === 1 || e.shiftKey;
         gesto = { tipo: panear ? "pan" : "orbita", x: e.clientX, y: e.clientY };
-        el.classList.add("girando");
+        // Só o botão principal, sem Shift, seleciona: os outros são gesto de câmera.
+        toque = { x0: e.clientX, y0: e.clientY, limiar: LIMIAR_CLIQUE[e.pointerType] || 4, seleciona: e.button === 0 && !e.shiftKey };
       } else if (n === 2) {
         var par = doisPonteiros();
         gesto = { tipo: "pinca", d: Math.hypot(par[0].x - par[1].x, par[0].y - par[1].y) || 1, mx: (par[0].x + par[1].x) / 2, my: (par[0].y + par[1].y) / 2 };
@@ -1447,7 +1715,7 @@ var FOGAO3D = (function () {
     });
 
     el.addEventListener("pointermove", function (e) {
-      if (!ponteiros[e.pointerId] || !gesto) { pairar(e); return; }
+      if (!ponteiros[e.pointerId] || !gesto) { agendarPairar(e); return; }
       ponteiros[e.pointerId] = { x: e.clientX, y: e.clientY };
 
       if (gesto.tipo === "pinca") {
@@ -1462,8 +1730,17 @@ var FOGAO3D = (function () {
       }
 
       var dx = e.clientX - gesto.x, dy = e.clientY - gesto.y;
-      if (Math.abs(dx) + Math.abs(dy) > 3) andou = true;
       gesto.x = e.clientX; gesto.y = e.clientY;
+      /* Distância contada da origem, e não por evento: um arrasto lento chega
+         em passos de 1 px e nunca passaria de um limiar por passo. Ao sair
+         da zona morta o gesto recupera o que ela segurou, sem salto. */
+      if (!andou) {
+        if (!toque || Math.hypot(e.clientX - toque.x0, e.clientY - toque.y0) <= toque.limiar) return;
+        andou = true;
+        dx = e.clientX - toque.x0; dy = e.clientY - toque.y0;
+        el.classList.add("girando");
+        limparPairar();
+      }
       if (gesto.tipo === "pan") { pan(dx, dy); return; }
       manipular();
       cam.alvo.az -= dx * 0.008 * sinalCima(cam.alvo.el);
@@ -1481,11 +1758,30 @@ var FOGAO3D = (function () {
       else if (!ids.length) {
         gesto = null;
         el.classList.remove("girando");
-        if (!andou && e.type === "pointerup" && opcoes.aoClicar) {
-          var achado = marcadorSob(e.clientX, e.clientY, 16);
-          opcoes.aoClicar(achado ? achado.ponto : null);
-        }
+        if (!andou && e.type === "pointerup" && toque && toque.seleciona) clicar(e.clientX, e.clientY);
+        toque = null;
       }
+    }
+
+    /* Clique confirmado. Marcador tem prioridade: é o alvo menor, e quem mira
+       nele não quer a peça inteira. Sem marcador, a peça sob o cursor; sem
+       peça, o fundo, que desfaz a seleção. A peça sem dado ganha uma piscada
+       cinza — o clique foi reconhecido, só não há o que resumir. */
+    function clicar(cx, cy) {
+      if (!estado.campo && opcoes.aoClicar) {
+        var marca = marcadorSob(cx, cy, 16);
+        if (marca) { opcoes.aoClicar(marca.ponto); return; }
+      }
+      if (!opcoes.aoClicarPeca) {
+        if (opcoes.aoClicar && !estado.campo) opcoes.aoClicar(null);
+        return;
+      }
+      var alvo = pecaSob(cx, cy);
+      if (alvo && !alvo.zona) {
+        var nega = montarRealce("nega", alvo.id, null);
+        trocarRealce("nega", nega);
+      }
+      opcoes.aoClicarPeca(alvo);
     }
     el.addEventListener("pointerup", soltar);
     el.addEventListener("pointercancel", soltar);
@@ -1500,6 +1796,7 @@ var FOGAO3D = (function () {
     el.addEventListener("keydown", function (e) {
       if (e.altKey || e.ctrlKey || e.metaKey) return;
       var k = e.key, mult = e.shiftKey ? 3 : 1;
+      if (k === "Escape" && opcoes.aoClicarPeca) { e.preventDefault(); opcoes.aoClicarPeca(null); return; }
       if (TECLA_PRESET[k]) { e.preventDefault(); if (!estado.foco) aplicarPreset(TECLA_PRESET[k]); return; }
       if (k === "+" || k === "=") { e.preventDefault(); zoom(1 / 1.2); return; }
       if (k === "-" || k === "_") { e.preventDefault(); zoom(1.2); return; }
@@ -1519,26 +1816,14 @@ var FOGAO3D = (function () {
        No campo não há marcador para apontar, então o que responde ao ponteiro
        é a própria superfície: o ponto atingido volta para coordenadas do
        modelo e a interpolação é refeita ali, em graus. */
-    function sondarCampo(cx, cy) {
-      if (!estado.campoAmostras) return null;
-      raycaster.setFromCamera(ndc(cx, cy), camera);
-      var alvos = [];
-      estado.lista.forEach(function (pc) {
-        var p = estado.pecas[pc.id];
-        if (pc.present && p.opacidade > 0.5) alvos.push(p.corpo);
-      });
-      var hits = raycaster.intersectObjects(alvos, true);
-      if (!hits.length) return null;
-
-      var o = hits[0].object, id = null;
-      while (o && !id) { id = o.userData.pecaId; o = o.parent; }
-      var peca = id && estado.pecas[id];
-      // Desconta o explodido: a sonda lê a temperatura do lugar montado.
-      var p = hits[0].point.clone();
-      if (peca) p.sub(peca.raiz.position);
+    function sondarCampo(alvo) {
+      if (!estado.campoAmostras || !alvo) return null;
+      // O ponto já vem descontado do explodido: a sonda lê a temperatura do lugar montado.
+      var m = alvo.modelo;
       return {
-        c: FOGAO.valorEm(estado.campoAmostras, p.x / U + 160, 120 - p.z / U, p.y / U),
-        peca: peca ? peca.pc.nome : null
+        c: FOGAO.valorEm(estado.campoAmostras, m.x, m.y, m.z),
+        peca: alvo.zona ? alvo.zona.nome : alvo.nome,
+        zona: alvo.zona
       };
     }
 
@@ -1569,32 +1854,74 @@ var FOGAO3D = (function () {
       return achado;
     }
 
+    /* Peça sugerida sob o cursor: só a que tem zona acende, e a já
+       selecionada não ganha um segundo realce por cima do dela. */
+    function pairarPeca(alvo) {
+      var zona = alvo && alvo.zona;
+      var chave = zona ? zona.id : null;
+      if (chave === chaveDoRealce(realces.sel)) chave = null;
+      if (chave === chaveDoRealce(realces.pairar)) return;
+      trocarRealce("pairar", chave ? montarRealce("pairar", alvo.id, zona) : null);
+    }
+
     function pairar(e) {
+      var caixa = renderer.domElement.getBoundingClientRect();
+      var clicaveis = !!opcoes.aoClicarPeca;
       if (estado.campo) {
-        if (!opcoes.aoSondar) return;
-        var achado = sondarCampo(e.clientX, e.clientY);
-        el.style.cursor = achado ? "crosshair" : "";
-        var caixa = renderer.domElement.getBoundingClientRect();
-        opcoes.aoSondar(achado, e.clientX - caixa.left, e.clientY - caixa.top);
+        if (!opcoes.aoSondar && !clicaveis) return;
+        var alvoCampo = pecaSob(e.clientX, e.clientY);
+        if (clicaveis) pairarPeca(alvoCampo);
+        var sonda = sondarCampo(alvoCampo);
+        el.style.cursor = alvoCampo && alvoCampo.zona && clicaveis ? "pointer" : sonda ? "crosshair" : "";
+        if (opcoes.aoSondar) opcoes.aoSondar(sonda, e.clientX - caixa.left, e.clientY - caixa.top);
         return;
       }
-      if (!opcoes.aoPairar) return;
+      if (!opcoes.aoPairar && !clicaveis) return;
       var achado = marcadorSob(e.clientX, e.clientY, 13);
       if (achado !== estado.pairado) {
         estado.pairado = achado;
-        el.style.cursor = achado ? "pointer" : "";
         pedir();
       }
-      if (!achado) { opcoes.aoPairar(null); return; }
-      var s = naTela(achado);
-      opcoes.aoPairar(achado.ponto, s.x, s.y);
+      if (achado) {
+        if (clicaveis) pairarPeca(null);
+        el.style.cursor = "pointer";
+        var s = naTela(achado);
+        if (opcoes.aoPairar) opcoes.aoPairar(achado.ponto, s.x, s.y);
+        return;
+      }
+      if (opcoes.aoPairar) opcoes.aoPairar(null);
+      if (!clicaveis) { el.style.cursor = ""; return; }
+      var alvo = pecaSob(e.clientX, e.clientY);
+      pairarPeca(alvo);
+      el.style.cursor = alvo && alvo.zona ? "pointer" : "";
+      if (opcoes.aoPairarPeca) opcoes.aoPairarPeca(alvo && alvo.zona ? alvo : null, e.clientX - caixa.left, e.clientY - caixa.top);
+    }
+
+    // Um raio por quadro, no máximo: o ponteiro dispara mais eventos que a tela desenha.
+    var pairarPendente = null;
+    function agendarPairar(e) {
+      if (!pairarPendente) {
+        requestAnimationFrame(function () {
+          var ev = pairarPendente;
+          pairarPendente = null;
+          if (ev && !gesto) pairar(ev);
+        });
+      }
+      pairarPendente = { clientX: e.clientX, clientY: e.clientY };
+    }
+
+    function limparPairar() {
+      pairarPendente = null;
+      estado.pairado = null;
+      el.style.cursor = "";
+      trocarRealce("pairar", null);
+      if (opcoes.aoPairar) opcoes.aoPairar(null);
+      if (opcoes.aoPairarPeca) opcoes.aoPairarPeca(null);
+      if (opcoes.aoSondar) opcoes.aoSondar(null);
     }
 
     el.addEventListener("pointerleave", function () {
-      estado.pairado = null;
-      el.style.cursor = "";
-      if (opcoes.aoPairar) opcoes.aoPairar(null);
-      if (opcoes.aoSondar) opcoes.aoSondar(null);
+      limparPairar();
       pedir();
     });
 
@@ -1737,6 +2064,8 @@ var FOGAO3D = (function () {
         else { cena.remove(estado.destaque.grupo); estado.destaque = null; }
       }
 
+      if (atualizarRealces(agora)) continuar = true;
+
       renderer.render(cena, camera);
       tempos.push(performance.now() - t0);
       if (tempos.length > 240) tempos.shift();
@@ -1827,6 +2156,10 @@ var FOGAO3D = (function () {
       if (chave !== estado.chaveGeo) {
         estado.chaveGeo = chave;
         construirPecas(op);
+        // As malhas mudaram: realce apontando para as antigas é refeito abaixo.
+        trocarRealce("pairar", null);
+        trocarRealce("nega", null);
+        trocarRealce("sel", null);
       } else {
         // Só o nível mudou: as peças já existem, basta atualizar quem aparece.
         var nova = FOGAO.pecas(op);
@@ -1868,6 +2201,13 @@ var FOGAO3D = (function () {
       if (estado.pairado && estado.marcadores.indexOf(estado.pairado) < 0) estado.pairado = null;
 
       if (op.novo && op.novo !== antes.novo) destacar(op.novo);
+
+      // Peça selecionada: o realce entra com pulso só quando a escolha muda.
+      var zonaSel = op.zonaSel ? FOGAO.ZONA_POR_ID[op.zonaSel] || null : null;
+      if ((zonaSel ? zonaSel.id : null) !== chaveDoRealce(realces.sel)) {
+        trocarRealce("sel", zonaSel ? montarRealce("sel", zonaSel.peca, zonaSel) : null);
+        if (zonaSel && chaveDoRealce(realces.pairar) === zonaSel.id) trocarRealce("pairar", null);
+      }
 
       if (!cam.enquadrado && host.clientWidth) redimensionar();
       if (foco !== estado.foco) {
@@ -1916,7 +2256,49 @@ var FOGAO3D = (function () {
           var r = renderer.domElement.getBoundingClientRect(), s = naTela(m);
           return { x: r.left + s.x, y: r.top + s.y };
         },
-        marcadores: function () { return estado.marcadores.map(function (m) { return m.ponto.measurement_id; }); }
+        marcadores: function () { return estado.marcadores.map(function (m) { return m.ponto.measurement_id; }); },
+        pecaSob: function (cx, cy) {
+          var a = pecaSob(cx, cy);
+          return a && { id: a.id, zona: a.zona ? a.zona.id : null };
+        },
+        realces: function () {
+          return { sel: chaveDoRealce(realces.sel), pairar: chaveDoRealce(realces.pairar), nega: realces.nega ? realces.nega.id : null };
+        },
+        /* Ponto de tela, em coordenadas do documento, onde um clique cai na
+           zona pedida: varre a caixa da peça em grade e devolve o primeiro
+           pixel cujo raio resolve para a zona. Serve aos testes de seleção. */
+        telaDaZona: function (zonaId) {
+          var z = FOGAO.ZONA_POR_ID[zonaId], p = z && estado.pecas[z.peca];
+          if (!p) return null;
+          p.corpo.updateMatrixWorld(true);
+          var caixa = new T.Box3().setFromObject(p.corpo), r = renderer.domElement.getBoundingClientRect();
+          var cantos = [], v = new T.Vector3();
+          for (var i = 0; i < 8; i++) {
+            v.set(i & 1 ? caixa.max.x : caixa.min.x, i & 2 ? caixa.max.y : caixa.min.y, i & 4 ? caixa.max.z : caixa.min.z).project(camera);
+            cantos.push([r.left + (v.x + 1) / 2 * r.width, r.top + (1 - v.y) / 2 * r.height]);
+          }
+          var x0 = Math.max(r.left, Math.min.apply(null, cantos.map(function (c) { return c[0]; })));
+          var x1 = Math.min(r.right, Math.max.apply(null, cantos.map(function (c) { return c[0]; })));
+          var y0 = Math.max(r.top, Math.min.apply(null, cantos.map(function (c) { return c[1]; })));
+          var y1 = Math.min(r.bottom, Math.max.apply(null, cantos.map(function (c) { return c[1]; })));
+          if (x1 <= x0 || y1 <= y0) return null;
+          var passo = Math.max(3, Math.sqrt((x1 - x0) * (y1 - y0) / 400)), achados = [], sobMarca = [];
+          for (var y = y0 + passo / 2; y < y1; y += passo) for (var x = x0 + passo / 2; x < x1; x += passo) {
+            var a = pecaSob(x, y);
+            if (!a || !a.zona || a.zona.id !== zonaId) continue;
+            // Folga sobre o raio de 16 px do clique: o teste mira a peça, não o marcador.
+            (marcadorSob(x, y, 18) ? sobMarca : achados).push([x, y]);
+          }
+          var livre = achados.length > 0;
+          if (!livre) achados = sobMarca;
+          if (!achados.length) return null;
+          // O do meio: longe da borda, onde um tremor de pixel mudaria de peça.
+          var mx = 0, my = 0;
+          achados.forEach(function (c) { mx += c[0]; my += c[1]; });
+          mx /= achados.length; my /= achados.length;
+          achados.sort(function (a, b) { return Math.hypot(a[0] - mx, a[1] - my) - Math.hypot(b[0] - mx, b[1] - my); });
+          return { x: achados[0][0], y: achados[0][1], n: achados.length, sobMarcador: !livre };
+        }
       }
     };
     // Acesso para depuração pelo console: document.getElementById(...)._fogao3d.
