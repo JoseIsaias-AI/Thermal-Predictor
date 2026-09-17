@@ -205,9 +205,10 @@ def particoes_de_validacao(base, indices, n_particoes=PARTICOES_VALIDACAO):
     versões recentes do scikit-learn trocaram a ordem de desempate entre configurações com o mesmo
     número de medições, que são comuns nesta base, e passaram a montar outras partições, com outras
     métricas de validação. O desempate abaixo é o da versão em que os notebooks foram executados, e
-    mantém as partições iguais em qualquer versão instalada. Com as mesmas partições, Ridge, média do
-    termopar e Gradient Boosting reproduzem as métricas publicadas; o Random Forest ainda pode variar
-    em centésimos de grau entre versões do scikit-learn, pelo sorteio interno das árvores.
+    mantém as partições iguais em qualquer versão instalada. Com as mesmas partições, Ridge e média do
+    termopar reproduzem as métricas publicadas; Random Forest e Gradient Boosting, que sorteiam
+    amostras internamente, ainda podem variar em milésimos a centésimos de grau entre versões do
+    scikit-learn.
     """
     grupos = base["configuracao"].to_numpy()[indices]
     configuracoes, grupo_de = np.unique(grupos, return_inverse=True)
@@ -650,6 +651,39 @@ def escolher_hiperparametros(algoritmo, base, treino, devolver_fora=False):
         fora.loc[indices] = previsao
 
     return grade[posicao], tabela, fora.to_numpy()
+
+
+def tabela_da_busca(algoritmo, combinacoes, base, treino):
+    """Métricas de validação de cada combinação, com a variação do MAE entre as partições.
+
+    Usa as mesmas partições e as mesmas previsões de `escolher_hiperparametros`, e por isso a
+    combinação de menor MAE é a mesma que ela escolhe. O MAE junta as cinco partições, como na
+    escolha. O desvio-padrão do MAE entre as partições mostra se o resultado é estável ou depende de
+    qual configuração caiu em qual partição, e a lista `MAE por partição` permite comparar duas
+    combinações partição a partição. Só aparecem como colunas os hiperparâmetros que variam.
+    """
+    particoes = particoes_de_validacao(base, treino)
+    y = base["Value"].to_numpy()
+    validacao = np.concatenate([v for _, v in particoes])
+    previsoes = _previsoes_de_validacao(algoritmo, combinacoes, base, particoes, (SEMENTE,))
+    chaves = list(dict.fromkeys(k for c in combinacoes for k in c))
+    variaveis = [k for k in chaves if len({str(c.get(k)) for c in combinacoes}) > 1]
+    linhas = []
+
+    for combinacao, por_particao in zip(combinacoes, previsoes):
+        metricas = metricas_regressao(y[validacao], np.concatenate(por_particao))
+        mae_particao = [float(np.abs(p - y[v]).mean()) for p, (_, v) in zip(por_particao, particoes)]
+        linhas.append({
+            **{k: "sem limite" if combinacao.get(k) is None else combinacao.get(k) for k in variaveis},
+            "MAE (C) validação": metricas["MAE (C)"],
+            "Desvio do MAE entre partições (C)": float(np.std(mae_particao)),
+            "MSE (C2) validação": metricas["MSE (C2)"],
+            "RMSE (C) validação": metricas["RMSE (C)"],
+            "R2 validação": metricas["R2"],
+            "MAE por partição": mae_particao,
+        })
+
+    return pd.DataFrame(linhas).sort_values("MAE (C) validação").reset_index(drop=True)
 
 
 def tabela_de_ajuste(conjuntos):
