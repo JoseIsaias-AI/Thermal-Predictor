@@ -10,6 +10,8 @@ var FOGAO = (function () {
   "use strict";
 
   var CAIXA = { x: 320, y: 240, z: 298 };
+  // Centro do modelo: origem dos vetores radiais do explodido.
+  var CENTRO = { x: CAIXA.x / 2, y: CAIXA.y / 2, z: CAIXA.z / 2 };
 
   /* Duas rampas para a mesma folga, expostas na interface como "Cor" e "Tons
      de cinza". A divergente codifica o sinal da folga na matiz, e o cinza
@@ -29,34 +31,41 @@ var FOGAO = (function () {
   /* ----- Peças -----
    *
    * `b` é a caixa assentada [x, y, z, largura, profundidade, altura] e `ex` o
-   * deslocamento no explodido. As caixas não se interceptam em nenhum dos dois
-   * estados: a pilha de eletrônica cabe nos 66 entre o teto da cavidade e o
-   * vidro, e no explodido cada nível sobe acima do anterior.
+   * deslocamento com o slider no máximo; no meio do curso a peça anda
+   * `ex · t`, sem deformar. Cada componente de `ex` aponta para fora do
+   * CENTRO, no lado em que a peça mora (radial), e os vetores foram escolhidos
+   * para que nenhum par de caixas se intercepte em t algum de 0 a 1 — o teste
+   * explosao_raio_x.test.js verifica isso por intervalo exato, não amostrado.
+   * Soprador e duto saem pelos lados, e não pela frente: pela frente
+   * atravessariam o rodapé no meio do curso.
    *
    * `lvl` é o estágio de montagem em que a peça aparece (1 chassi, 2
    * ventilação, 3 eletrônica, 4 cooktop). `casca` marca o que fecha o produto
-   * por fora e vira fantasma no explodido, para não tapar o miolo. */
+   * por fora e vira fantasma no explodido, para não tapar o miolo. `externa`
+   * é o que o raio-X torna transparente: a casca, o vidro do cooktop e a
+   * cavidade, que escondem a eletrônica e a ventilação. Nenhuma delas tem
+   * termopar, então o raio-X não tira nenhuma zona clicável de alcance. */
   function pecas(op) {
     op = op || {};
     var nivel = op.nivel == null ? 4 : op.nivel;
     var bx = op.placa === "right" ? 164 : 84;
 
     var lista = [
-      { id: "rodape", nome: "Rodapé", lvl: 1, casca: true, b: [8, 0, 0, 304, 6, 26], ex: [0, 0, 0] },
-      { id: "lateralE", nome: "Lateral esquerda", lvl: 1, casca: true, b: [0, -18, 0, 6, 258, 290], ex: [-70, 0, 0] },
-      { id: "lateralD", nome: "Lateral direita", lvl: 1, casca: true, b: [314, -18, 0, 6, 258, 290], ex: [70, 0, 0] },
-      { id: "ovenCavity", nome: "Cavidade do forno", lvl: 1, b: [24, 26, 34, 272, 196, 190], ex: [0, 0, 0] },
-      { id: "porta", nome: "Porta do forno", lvl: 1, casca: true, b: [6, -18, 28, 308, 18, 162], ex: [0, -130, 0] },
+      { id: "rodape", nome: "Rodapé", lvl: 1, casca: true, externa: true, b: [8, 0, 0, 304, 6, 26], ex: [0, 0, 0] },
+      { id: "lateralE", nome: "Lateral esquerda", lvl: 1, casca: true, externa: true, b: [0, -18, 0, 6, 258, 290], ex: [-110, 0, 0] },
+      { id: "lateralD", nome: "Lateral direita", lvl: 1, casca: true, externa: true, b: [314, -18, 0, 6, 258, 290], ex: [110, 0, 0] },
+      { id: "ovenCavity", nome: "Cavidade do forno", lvl: 1, externa: true, b: [24, 26, 34, 272, 196, 190], ex: [0, 0, 0] },
+      { id: "porta", nome: "Porta do forno", lvl: 1, casca: true, externa: true, b: [6, -18, 28, 308, 18, 162], ex: [0, -130, 0] },
       { id: "mainback", nome: "Traseira (Mainback)", lvl: 2, b: [0, 240, 20, 320, 8, 300], ex: [0, 120, 0] },
-      { id: "blower", nome: "Soprador", lvl: 2, b: [36, 132, 6, 104, 64, 26], ex: [0, -200, 0] },
-      { id: "duct", nome: "Duto de ar", lvl: 2, b: [146, 148, 6, 48, 44, 22], ex: [0, -200, 0] },
+      { id: "blower", nome: "Soprador", lvl: 2, b: [36, 132, 6, 104, 64, 26], ex: [-100, 0, 0] },
+      { id: "duct", nome: "Duto de ar", lvl: 2, b: [146, 148, 6, 48, 44, 22], ex: [120, 0, 0] },
       { id: "deflector", nome: "Defletor", lvl: 3, b: [118, 40, 227, 84, 54, 3], ex: [0, 0, 42] },
       { id: "ipcTray", nome: "Bandeja da IPC", lvl: 3, b: [bx - 10, 30, 232, 160, 132, 6], ex: [0, 0, 88] },
       { id: "ipcBoard", nome: "Placa de potência (IPC)", lvl: 3, b: [bx, 40, 238, 140, 112, 3], ex: [0, 0, 128] },
       { id: "ipcLid", nome: "Tampa da IPC", lvl: 3, b: [bx - 10, 30, 255, 160, 132, 6], ex: [0, 0, 190] },
       { id: "coilSupport", nome: "Suporte das bobinas", lvl: 4, b: [20, 34, 264, 280, 180, 4], ex: [0, 0, 240] },
       { id: "coils", nome: "Bobinas de indução", lvl: 4, b: [48, 28, 268, 226, 188, 9], ex: [0, 0, 272] },
-      { id: "cooktop", nome: "Cooktop de vidro", lvl: 4, b: [0, 0, 290, 320, 240, 8], ex: [0, 0, 330] },
+      { id: "cooktop", nome: "Cooktop de vidro", lvl: 4, externa: true, b: [0, 0, 290, 320, 240, 8], ex: [0, 0, 330] },
       { id: "knobBar", nome: "Painel de manípulos", lvl: 4, b: [6, -14, 194, 308, 14, 94], ex: [0, -86, 0] },
       { id: "hmiPanel", nome: "Interface do forno (HMI)", lvl: 4, b: [116, -19, 238, 88, 5, 36], ex: [0, -112, 0] }
     ];
@@ -345,6 +354,7 @@ var FOGAO = (function () {
 
   return {
     CAIXA: CAIXA,
+    CENTRO: CENTRO,
     POSICOES: POSICOES,
     RAIO_BOBINA: RAIO_BOBINA,
     MANIPULOS: MANIPULOS,

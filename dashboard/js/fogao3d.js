@@ -6,6 +6,12 @@
  *
  * Eixos da cena: X para a direita, Y para cima, Z para quem olha de frente.
  * Uma unidade do modelo vale 0,01 na cena.
+ *
+ * Explodido e raio-X combinam. O explodido mexe só na posição de cada peça
+ * (`explode` de 0 a 1, contínuo) e o raio-X só na opacidade das peças
+ * `externa`; como tocam propriedades diferentes, qualquer par de valores é um
+ * estado válido, e a opacidade final é o menor dos dois esmaecimentos. Com
+ * uma peça em foco os dois ficam travados, como os presets de câmera.
  */
 
 var FOGAO3D = (function () {
@@ -559,7 +565,7 @@ var FOGAO3D = (function () {
 
     var estado = {
       op: {}, chaveGeo: null, pecas: {}, lista: [],
-      explode: 0, explodeAlvo: 0,
+      explode: 0, explodeAlvo: 0, raioX: false, reenquadro: null,
       foco: null, marcadores: [], sel: null, pairado: null,
       campo: false
     };
@@ -1149,6 +1155,10 @@ var FOGAO3D = (function () {
         inst.borda.setColorAt(i, cor);
 
         var m = { ponto: p, dentro: dentro, peca: item.peca, forma: forma, i: i, base: mundo(item.g[0], item.g[1], item.g[2]), mundo: new T.Vector3(), visivel: true };
+        /* Já nasce onde a peça está: cada passo do slider refaz os marcadores,
+           e um clique antes do próximo quadro os acharia todos na origem. */
+        m.mundo.copy(m.base).add(peca.raiz.position);
+        m.visivel = peca.opacidade > 0.3 && peca.corpo.visible;
         estado.marcadores.push(m);
 
         if (item.haste != null) {
@@ -1640,7 +1650,8 @@ var FOGAO3D = (function () {
       var alvos = [];
       estado.lista.forEach(function (pc) {
         var p = estado.pecas[pc.id];
-        if (pc.present && p.corpo.visible && p.opacidade > 0.5) alvos.push(p.corpo);
+        // Peça que está esmaecendo sai do raio já no pedido, sem esperar a animação.
+        if (pc.present && p.corpo.visible && Math.min(p.opacidade, p.opacidadeAlvo) > 0.5) alvos.push(p.corpo);
       });
       var hits = raycaster.intersectObjects(alvos, true);
       if (!hits.length) return null;
@@ -1649,6 +1660,7 @@ var FOGAO3D = (function () {
       while (o && !id) { id = o.userData.pecaId; o = o.parent; }
       var peca = id && estado.pecas[id];
       if (!peca) return null;
+      // A posição desenhada é a de agora, também no meio do slider: descontá-la leva o ponto de volta à peça montada.
       var local = hits[0].point.clone().sub(peca.raiz.position);
       var modelo = { x: local.x / U + 160, y: 120 - local.z / U, z: local.y / U };
       return {
@@ -1961,7 +1973,8 @@ var FOGAO3D = (function () {
 
       // Explodido e opacidades.
       var ex = estado.explode;
-      estado.explode = aproximar(estado.explode, estado.explodeAlvo, 7, dt);
+      // Taxa alta: arrastando o slider, o modelo acompanha a mão sem arrasto visível.
+      estado.explode = aproximar(estado.explode, estado.explodeAlvo, 12, dt);
       if (Math.abs(estado.explode - estado.explodeAlvo) < 0.0005) estado.explode = estado.explodeAlvo;
       var mexeu = estado.explode !== ex;
 
@@ -2180,7 +2193,9 @@ var FOGAO3D = (function () {
 
       aplicarModo();
       aplicarCamadas(op);
-      estado.explodeAlvo = op.explode ? 1 : 0;
+      var explodeAntes = estado.explodeAlvo;
+      estado.explodeAlvo = valorExplode(op.explode);
+      estado.raioX = !!op.raioX;
 
       // Foco em subsistema: a peça fica, o resto esmaece quase até sumir.
       var foco = op.foco && FOGAO.PECA_DA_AREA[op.foco] ? op.foco : null;
@@ -2190,10 +2205,25 @@ var FOGAO3D = (function () {
         var p = estado.pecas[pc.id];
         var alvo = 1;
         if (noFoco) alvo = noFoco.indexOf(pc.id) >= 0 ? 1 : 0.06;
-        else if (pc.casca && op.explode) alvo = 0.14;
+        else {
+          /* A casca some no primeiro terço do curso: é ali que ela ainda tapa
+             o miolo, e o clique precisa atravessá-la desde cedo. */
+          if (pc.casca) alvo = lerp(1, OPACIDADE_CASCA, Math.min(1, estado.explodeAlvo / 0.35));
+          if (estado.raioX && pc.externa) alvo = Math.min(alvo, OPACIDADE_RAIO_X);
+        }
         if (p.opacidadeAlvo !== alvo) { p.opacidadeAlvo = alvo; }
         aplicarOpacidade(p);
       });
+
+      // Restaurar: sem animação, o modelo volta montado e opaco neste mesmo quadro.
+      if (op.imediato) {
+        estado.explode = estado.explodeAlvo;
+        estado.lista.forEach(function (pc) {
+          var p = estado.pecas[pc.id];
+          p.opacidade = p.opacidadeAlvo;
+          aplicarOpacidade(p);
+        });
+      }
 
       construirMarcadores(op);
       estado.sel = null;
@@ -2214,16 +2244,37 @@ var FOGAO3D = (function () {
         estado.foco = foco;
         if (foco) enquadrarFoco(foco);
         else if (cam.enquadrado) aplicarPreset(cam.preset || "isometrica", 900);
-      } else if (!!op.explode !== !!antes.explode && cam.enquadrado && !foco) {
-        // Explodir muda o volume: reenquadra mantendo o ângulo.
-        var alvoE = copiaCam(cam.alvo), caixa = uniao(caixasVisiveis());
-        alvoE.t = caixa.getCenter(new T.Vector3());
-        alvoE.dist = distanciaQueEnquadra(caixa, 1.04);
-        irPara(alvoE, cam.preset, 800);
+      } else if (estado.explodeAlvo !== explodeAntes && cam.enquadrado && !foco) {
+        /* Explodir muda o volume: reenquadra mantendo o ângulo. Arrastando o
+           slider, espera a mão parar — reenquadrar a cada passo faria a câmera
+           brigar com o modelo. */
+        clearTimeout(estado.reenquadro);
+        if (op.arrastando) estado.reenquadro = setTimeout(function () { reenquadrar(800); }, 260);
+        else reenquadrar(op.imediato ? 0 : 800);
       }
 
       pedir();
       return { info: info };
+    }
+
+    var OPACIDADE_CASCA = 0.14, OPACIDADE_RAIO_X = 0.12;
+
+    // Aceita o booleano das telas antigas e o valor contínuo do slider.
+    function valorExplode(v) {
+      if (typeof v !== "number" || isNaN(v)) return v ? 1 : 0;
+      return Math.max(0, Math.min(1, v));
+    }
+
+    function reenquadrar(duracao) {
+      if (estado.foco) return;
+      var alvoE = copiaCam(cam.alvo), caixa = uniao(caixasVisiveis());
+      alvoE.t = caixa.getCenter(new T.Vector3());
+      alvoE.dist = distanciaQueEnquadra(caixa, 1.04);
+      if (duracao) { irPara(alvoE, cam.preset, duracao); return; }
+      cam.alvo = copiaCam(alvoE);
+      cam.atual = copiaCam(alvoE);
+      cam.transicao = null;
+      pedir();
     }
 
     var api = {
@@ -2257,6 +2308,15 @@ var FOGAO3D = (function () {
           return { x: r.left + s.x, y: r.top + s.y };
         },
         marcadores: function () { return estado.marcadores.map(function (m) { return m.ponto.measurement_id; }); },
+        // Estado desenhado de explodido e opacidade, para os testes compararem com o pedido.
+        vista: function () {
+          var pecas = {};
+          estado.lista.forEach(function (pc) {
+            var p = estado.pecas[pc.id];
+            pecas[pc.id] = { opacidade: p.opacidade, alvo: p.opacidadeAlvo, x: p.raiz.position.x, y: p.raiz.position.y, z: p.raiz.position.z };
+          });
+          return { explode: estado.explode, explodeAlvo: estado.explodeAlvo, raioX: estado.raioX, pecas: pecas };
+        },
         pecaSob: function (cx, cy) {
           var a = pecaSob(cx, cy);
           return a && { id: a.id, zona: a.zona ? a.zona.id : null };

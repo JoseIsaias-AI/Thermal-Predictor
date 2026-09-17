@@ -54,6 +54,11 @@
   function faixa() { var n = painel.querySelector(".part__state span"); return n ? n.textContent : null; }
   function sel() { return d.realces().sel; }
 
+  // Botões Assentado (0) e Explodido (100); o slider tem teste próprio.
+  function explodir(pct) {
+    document.querySelector("#heat-montagem [data-explode='" + pct + "']").click();
+  }
+
   async function alvo(zonaId) {
     d.quadro();
     var t = d.telaDaZona(zonaId);
@@ -69,7 +74,7 @@
 
   // Parte sempre do mesmo quadro: explodido, isométrica enquadrada.
   host.scrollIntoView({ block: "center" });
-  document.querySelector("#heat-explode [data-explode='1']").click();
+  explodir(100);
   host._fogao3d.preset("isometrica");
   await assentarAnimacao();
 
@@ -85,7 +90,8 @@
   checar("Bobina FL: folga", l["Folga"] === "−" + Math.abs(coil.margem_c).toFixed(2) + " °C", l["Folga"]);
   checar("Bobina FL: is_monitor_only", l["Só monitoramento"] === "Não", l["Só monitoramento"]);
 
-  // 2. Clicar de novo na mesma peça solta a seleção.
+  // 2. Clicar de novo na mesma peça solta a seleção. O painel cresce e desloca o palco: mira de novo.
+  t = await alvo("coil-FL");
   await clicar(t.x, t.y);
   checar("Mesma peça de novo: deseleciona", sel() === null && !!painel.querySelector(".detail__empty"), sel());
 
@@ -140,8 +146,7 @@
   checar("Botão direito: não seleciona", sel() === "knobBar", sel());
 
   // 9. Peça sem termopar: pisca, solta a seleção e explica.
-  var assentar = document.querySelector("#heat-explode [data-explode='0']");
-  assentar.click();
+  explodir(0);
   await assentarAnimacao();
   var r = host.getBoundingClientRect(), achou = null;
   for (var y = r.top + 20; y < r.bottom && !achou; y += 8) for (var x = r.left + 20; x < r.right && !achou; x += 8) {
@@ -153,7 +158,7 @@
   checar("Cooktop: pisca como sem dado", d.realces().nega === "cooktop", d.realces().nega);
   checar("Cooktop: nenhuma peça selecionada", sel() === null, sel());
   checar("Cooktop: painel explica", /sem ponto de medição/i.test(painel.textContent), painel.textContent.slice(0, 60));
-  document.querySelector("#heat-explode [data-explode='1']").click();
+  explodir(100);
   await assentarAnimacao();
 
   // 10. Marcador leva a peça junto; linha da tabela também.

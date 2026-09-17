@@ -261,6 +261,14 @@
 }
 .push { flex: 1; }
 
+/* Dica que quebra linha em vez de cortar com reticências. */
+.hint--quebra {
+  min-width: 10rem;
+  white-space: normal;
+  text-align: right;
+  overflow: visible;
+}
+
 /* ----- Mapa de calor: três colunas ----- */
 
 .heat {
@@ -735,6 +743,41 @@ tr[hidden] { display: none; }
 .vbtn:hover { border-color: var(--color-text-subtle); }
 .vbtn:focus-visible { outline: 2px solid var(--color-focus-ring); outline-offset: 1px; }
 .vbtn[hidden] { display: none; }
+.vbtn[disabled] { opacity: 0.4; cursor: not-allowed; }
+.vbtn--toggle[aria-pressed="true"] {
+  color: var(--color-accent);
+  background: var(--color-surface-accent);
+  border-color: var(--color-accent);
+}
+
+/* ----- Slider de explosão ----- */
+
+.explode {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.explode .bar-label { margin-right: 0; }
+
+.explode input[type="range"] {
+  width: 8.5rem;
+  margin: 0;
+  accent-color: var(--color-accent);
+  cursor: pointer;
+}
+
+.explode input[type="range"]:focus-visible { outline: 2px solid var(--color-focus-ring); outline-offset: 2px; }
+.explode input[type="range"][disabled] { opacity: 0.4; cursor: not-allowed; }
+
+.explode output {
+  min-width: 3ch;
+  text-align: right;
+  font-size: var(--size-kicker);
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-muted);
+}
 
 /* ----- Movimento -----
  * Curto e sem quique; tudo respeita prefers-reduced-motion. */

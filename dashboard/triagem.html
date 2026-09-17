@@ -8,7 +8,7 @@
   <link rel="stylesheet" href="css/tokens.css?v=3">
   <link rel="stylesheet" href="css/app.css?v=3">
   <link rel="stylesheet" href="css/triagem.css?v=3">
-  <link rel="stylesheet" href="css/fogao.css?v=3">
+  <link rel="stylesheet" href="css/fogao.css?v=4">
   <link rel="stylesheet" href="css/grafico.css?v=3">
 </head>
 <body>
@@ -167,10 +167,22 @@
 
     <div class="heat__main">
       <div class="viewport__bar">
-        <span class="toggle" id="heat-explode" role="group" aria-label="Montagem">
+        <!-- Botões levam aos extremos; o slider regula qualquer ponto entre eles. -->
+        <span class="toggle" id="heat-montagem" role="group" aria-label="Montagem">
           <button type="button" data-explode="0" aria-pressed="false">Assentado</button>
-          <button type="button" data-explode="1" aria-pressed="true">Explodido</button>
+          <button type="button" data-explode="100" aria-pressed="true">Explodido</button>
         </span>
+        <!-- Explosão e raio-X combinam: um mexe na posição, o outro na opacidade. -->
+        <label class="explode" for="heat-explode">
+          <span class="bar-label">Explosão</span>
+          <input type="range" id="heat-explode" min="0" max="100" step="1" value="100"
+                 aria-valuetext="100% explodido">
+          <output id="heat-explode-valor" for="heat-explode">100%</output>
+        </label>
+        <button type="button" class="vbtn vbtn--toggle" id="heat-xray" aria-pressed="false"
+                title="Deixa transparentes a casca, o vidro e a cavidade">Raio-X</button>
+        <button type="button" class="vbtn" id="heat-reset"
+                title="Volta o modelo montado e opaco">Restaurar</button>
         <span class="toggle" id="heat-view" role="group" aria-label="Leitura">
           <button type="button" data-view="pontos" aria-pressed="true">Pontos</button>
           <button type="button" data-view="campo" aria-pressed="false">Campo térmico</button>
@@ -355,10 +367,10 @@
 <script src="js/schema.js?v=3"></script>
 <script src="js/dados_triagem.js?v=3"></script>
 <script src="vendor/three.min.js"></script>
-<script src="js/fogao.js?v=3"></script>
-<script src="js/fogao3d.js?v=3"></script>
+<script src="js/fogao.js?v=4"></script>
+<script src="js/fogao3d.js?v=4"></script>
 <script src="js/painel_peca.js?v=3"></script>
 <script src="js/grafico.js?v=3"></script>
-<script src="js/triagem.js?v=3"></script>
+<script src="js/triagem.js?v=4"></script>
 </body>
 </html>

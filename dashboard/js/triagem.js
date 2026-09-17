@@ -574,7 +574,8 @@
   var palcoCalor = document.getElementById("heat-3d");
   /* `zona` é a peça selecionada (id em FOGAO.ZONAS) e `semDado` a última peça
      clicada que não tem termopar, só para o painel dizer por quê. */
-  var mapa = { explode: true, escala: "a", isolar: "todos", faixas: {}, sel: null,
+  // `explode` vai de 0 (montado) a 1; `raioX` combina com qualquer valor dele.
+  var mapa = { explode: 1, raioX: false, escala: "a", isolar: "todos", faixas: {}, sel: null,
                zona: null, semDado: null,
                vista: "pontos", nome: "", estados: {}, mono: true,
                camadas: { volume: true, fluxo: true, iso: true, focos: true } };
@@ -1003,8 +1004,11 @@
     });
   }
 
-  function redesenharCalor() {
+  /* `extra` leva o que vale só para este pedido: `arrastando` adia o
+     reenquadro até o slider parar, `imediato` pula a animação no Restaurar. */
+  function redesenharCalor(extra) {
     if (!modelo) return;
+    extra = extra || {};
     /* Isolar vale também no campo: ali a peça em foco é justamente onde o
        campo tem detalhe por componente, e o resto esmaece em vez de tapar. */
     var foco = mapa.isolar !== "todos" && FOGAO.PECA_DA_AREA[mapa.isolar] ? mapa.isolar : null;
@@ -1020,6 +1024,9 @@
       vista: mapa.vista,
       foco: foco,
       explode: mapa.explode,
+      raioX: mapa.raioX,
+      arrastando: !!extra.arrastando,
+      imediato: !!extra.imediato,
       camadas: mapa.camadas,
       placa: geometria.placa,
       alojamento: geometria.alojamento,
@@ -1038,10 +1045,21 @@
 
     // Com uma peça em foco a câmera está enquadrada nela: explodir e presets não se aplicam.
     var travado = !!meta;
-    Array.prototype.forEach.call(
-      document.querySelectorAll("#heat-explode button"),
-      function (b) { b.disabled = travado; }
-    );
+    ["heat-explode", "heat-xray", "heat-reset"].forEach(function (id) {
+      document.getElementById(id).disabled = travado;
+    });
+    var pct = Math.round(mapa.explode * 100);
+    var slider = document.getElementById("heat-explode");
+    slider.value = pct;
+    slider.setAttribute("aria-valuetext", pct === 0 ? "montado" : pct + "% explodido");
+    document.getElementById("heat-explode-valor").textContent = pct + "%";
+    document.getElementById("heat-xray").setAttribute("aria-pressed", String(mapa.raioX));
+    // No meio do curso nenhum dos dois botões fica marcado: o estado é o do slider.
+    Array.prototype.forEach.call(document.querySelectorAll("#heat-montagem button"), function (b) {
+      b.setAttribute("aria-pressed", String(Number(b.dataset.explode) === pct));
+      b.disabled = travado;
+    });
+    var explodido = mapa.explode > 0;
     Array.prototype.forEach.call(
       document.querySelectorAll("#heat-preset button"),
       function (b) { b.disabled = !!meta; }
@@ -1055,14 +1073,15 @@
     document.getElementById("occlusion-hint").textContent =
       meta ? meta.nome
       : campoAtivo ? "Passe o cursor para sondar · clique numa peça para o resumo"
-      : mapa.explode ? "Arraste para girar · clique numa peça para o resumo"
+      : explodido || mapa.raioX ? "Arraste para girar · clique numa peça para o resumo"
       : "Pontos internos em transparência · clique numa peça";
 
+    var sufixo = mapa.raioX ? " · raio-X" : "";
     document.getElementById("heat-view-name").textContent =
       meta ? "Vista de componente"
-      : campoAtivo && mapa.explode ? "Campo térmico explodido"
+      : (campoAtivo && explodido ? "Campo térmico explodido"
       : campoAtivo ? "Campo térmico esquemático"
-      : mapa.explode ? "Vista explodida esquemática" : "Vista esquemática";
+      : explodido ? "Vista explodida esquemática" : "Vista esquemática") + sufixo;
     document.getElementById("heat-view-note").textContent =
       meta ? "Sem CAD · termopares deste subsistema"
       : campoAtivo ? "Sem CAD · interpolado entre termopares, não é CFD"
@@ -1094,7 +1113,33 @@
     montarChips();
     aplicarFiltros();
 
-    ligarAlternancia("heat-explode", "explode", function (b) { return b.dataset.explode === "1"; });
+    // `input` chega a cada passo do arrasto; `change`, quando a mão solta.
+    var slider = document.getElementById("heat-explode");
+    slider.addEventListener("input", function () {
+      mapa.explode = Number(this.value) / 100;
+      redesenharCalor({ arrastando: true });
+    });
+    slider.addEventListener("change", function () {
+      mapa.explode = Number(this.value) / 100;
+      redesenharCalor();
+    });
+    // Atalho para os extremos: anima até lá e o slider acompanha.
+    document.getElementById("heat-montagem").addEventListener("click", function (evento) {
+      var botao = evento.target.closest("button");
+      if (!botao) return;
+      mapa.explode = Number(botao.dataset.explode) / 100;
+      redesenharCalor();
+    });
+    document.getElementById("heat-xray").addEventListener("click", function () {
+      mapa.raioX = !mapa.raioX;
+      redesenharCalor();
+    });
+    // A seleção fica: restaurar mexe no modelo, não no que está sendo lido.
+    document.getElementById("heat-reset").addEventListener("click", function () {
+      mapa.explode = 0;
+      mapa.raioX = false;
+      redesenharCalor({ imediato: true });
+    });
     ligarAlternancia("heat-scale", "escala", function (b) { return b.dataset.scale; });
     ligarAlternancia("heat-view", "vista", function (b) { return b.dataset.view; });
 
