@@ -54,6 +54,11 @@
   function faixa() { var n = painel.querySelector(".part__state span"); return n ? n.textContent : null; }
   function sel() { return d.realces().sel; }
 
+  // Botões Assentado (0) e Explodido (100); o slider tem teste próprio.
+  function explodir(pct) {
+    document.querySelector("#heat-montagem [data-explode='" + pct + "']").click();
+  }
+
   async function alvo(zonaId) {
     d.quadro();
     var t = d.telaDaZona(zonaId);
@@ -69,7 +74,7 @@
 
   // Parte sempre do mesmo quadro: explodido, isométrica enquadrada.
   host.scrollIntoView({ block: "center" });
-  document.querySelector("#heat-explode [data-explode='1']").click();
+  explodir(100);
   host._fogao3d.preset("isometrica");
   await assentarAnimacao();
 
@@ -83,9 +88,11 @@
   checar("Bobina FL: temperatura", l["Temperatura prevista"] === coil.temperatura_prevista_c.toFixed(2) + " °C", l["Temperatura prevista"]);
   checar("Bobina FL: limite", l["Limite do componente"] === coil.limit_c.toFixed(2) + " °C", l["Limite do componente"]);
   checar("Bobina FL: folga", l["Folga"] === "−" + Math.abs(coil.margem_c).toFixed(2) + " °C", l["Folga"]);
+  checar("Bobina FL: ponto único sem mediana", !Object.keys(l).some(function (k) { return /^Mediana/.test(k); }));
   checar("Bobina FL: is_monitor_only", l["Só monitoramento"] === "Não", l["Só monitoramento"]);
 
-  // 2. Clicar de novo na mesma peça solta a seleção.
+  // 2. Clicar de novo na mesma peça solta a seleção. O painel cresce e desloca o palco: mira de novo.
+  t = await alvo("coil-FL");
   await clicar(t.x, t.y);
   checar("Mesma peça de novo: deseleciona", sel() === null && !!painel.querySelector(".detail__empty"), sel());
 
@@ -96,7 +103,10 @@
   l = linhas();
   checar("Manípulos: realce", sel() === "knobBar", sel());
   checar("Manípulos: status do primeiro da triagem", faixa() === knobs[0].estado_rotulo, faixa());
-  checar("Manípulos: temperatura da referência", l["Temperatura prevista"] === knobs[0].temperatura_prevista_c.toFixed(2) + " °C", l["Temperatura prevista"]);
+  checar("Manípulos: temperatura rotulada como do ponto mais crítico", l["Temperatura do ponto mais crítico"] === knobs[0].temperatura_prevista_c.toFixed(2) + " °C", l["Temperatura do ponto mais crítico"]);
+  checar("Manípulos: sem rótulo genérico de temperatura", !("Temperatura prevista" in l));
+  var tk = knobs.map(function (p) { return p.temperatura_prevista_c; }).sort(function (a, b) { return a - b; });
+  checar("Manípulos: mediana dos 6 pontos", l["Mediana dos 6 pontos"] === ((tk[2] + tk[3]) / 2).toFixed(1) + " °C", l["Mediana dos 6 pontos"]);
   checar("Manípulos: seis pontos listados", painel.querySelectorAll(".part__item").length === 6);
 
   // 4. Duto de ar — só monitorados. Tira os marcadores monitorados para mirar a peça, não o marcador.
@@ -140,8 +150,7 @@
   checar("Botão direito: não seleciona", sel() === "knobBar", sel());
 
   // 9. Peça sem termopar: pisca, solta a seleção e explica.
-  var assentar = document.querySelector("#heat-explode [data-explode='0']");
-  assentar.click();
+  explodir(0);
   await assentarAnimacao();
   var r = host.getBoundingClientRect(), achou = null;
   for (var y = r.top + 20; y < r.bottom && !achou; y += 8) for (var x = r.left + 20; x < r.right && !achou; x += 8) {
@@ -153,7 +162,7 @@
   checar("Cooktop: pisca como sem dado", d.realces().nega === "cooktop", d.realces().nega);
   checar("Cooktop: nenhuma peça selecionada", sel() === null, sel());
   checar("Cooktop: painel explica", /sem ponto de medição/i.test(painel.textContent), painel.textContent.slice(0, 60));
-  document.querySelector("#heat-explode [data-explode='1']").click();
+  explodir(100);
   await assentarAnimacao();
 
   // 10. Marcador leva a peça junto; linha da tabela também.

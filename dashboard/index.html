@@ -10,7 +10,7 @@
   <link rel="stylesheet" href="css/tokens.css?v=3">
   <link rel="stylesheet" href="css/app.css?v=3">
   <link rel="stylesheet" href="css/triagem.css?v=3">
-  <link rel="stylesheet" href="css/fogao.css?v=3">
+  <link rel="stylesheet" href="css/fogao.css?v=4">
 </head>
 <body>
 
@@ -90,9 +90,16 @@
           <span class="bar-label">Vista</span>
           <span class="toggle" id="view-toggle">
             <button type="button" data-explode="0" aria-pressed="true">Assentado</button>
-            <button type="button" data-explode="1" aria-pressed="false">Explodido</button>
+            <button type="button" data-explode="100" aria-pressed="false">Explodido</button>
           </span>
-          <span class="hint" id="build-hint">Arraste para girar · Shift ou botão direito desloca</span>
+          <!-- Botões levam aos extremos; o slider regula qualquer ponto entre eles. -->
+          <label class="explode" for="view-explode">
+            <span class="bar-label">Explosão</span>
+            <input type="range" id="view-explode" min="0" max="100" step="1" value="0"
+                   aria-valuetext="montado">
+            <output id="view-explode-valor" for="view-explode">0%</output>
+          </label>
+          <span class="push"></span>
           <span class="hint" style="flex:none"><span id="build-count">0</span> de 7 fatores</span>
         </div>
 
@@ -105,6 +112,8 @@
             <button type="button" data-preset="superior" aria-pressed="false">Superior</button>
             <button type="button" data-preset="inferior" aria-pressed="false">Inferior</button>
           </span>
+          <!-- Aqui, e não na barra da vista: lá o slider tomava o espaço e o texto saía cortado. -->
+          <span class="hint hint--quebra" id="build-hint">Arraste para girar · Shift ou botão direito desloca</span>
         </div>
 
         <div class="viewport__stage">
@@ -144,8 +153,8 @@
 
 <script src="js/schema.js?v=3"></script>
 <script src="vendor/three.min.js"></script>
-<script src="js/fogao.js?v=3"></script>
-<script src="js/fogao3d.js?v=3"></script>
-<script src="js/app.js?v=3"></script>
+<script src="js/fogao.js?v=4"></script>
+<script src="js/fogao3d.js?v=4"></script>
+<script src="js/app.js?v=4"></script>
 </body>
 </html>
