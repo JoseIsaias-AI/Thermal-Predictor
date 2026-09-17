@@ -1212,6 +1212,35 @@ var FOGAO3D = (function () {
       cena.add(anelSel);
     })();
 
+    /* ----- Halo de incerteza -----
+       Disco translúcido atrás do ponto selecionado e do ponto sob o cursor.
+       O raio vem de `op.haloDoPonto(ponto)`, em unidades de marcador; sem a
+       função, ou com 0, não há halo. O viewport não sabe de onde o número
+       sai — na triagem é o stub de CONFIANCA — nem o mistura à cor ou à
+       forma do marcador, que continuam sendo só o estado de risco. */
+    function criarHalo() {
+      var g = new T.Group();
+      var disco = new T.Mesh(new T.CircleGeometry(1, 48), new T.MeshBasicMaterial({ color: 0x5d6675, transparent: true, opacity: 0.16, depthTest: false, depthWrite: false, toneMapped: false }));
+      var borda = new T.Mesh(new T.RingGeometry(0.97, 1, 64), new T.MeshBasicMaterial({ color: 0x5d6675, transparent: true, opacity: 0.55, depthTest: false, depthWrite: false, toneMapped: false }));
+      // Abaixo da réplica em transparência dos marcadores (5) e do anel de seleção (10).
+      disco.renderOrder = borda.renderOrder = 4;
+      g.add(disco, borda);
+      g.visible = false;
+      cena.add(g);
+      return g;
+    }
+    var haloSel = criarHalo(), haloPairado = criarHalo();
+
+    function posicionarHalo(halo, m, pxMundo) {
+      var raio = m && m.visivel && estado.op.haloDoPonto ? estado.op.haloDoPonto(m.ponto) : 0;
+      halo.visible = raio > 0;
+      halo.userData.raio = raio;
+      if (!halo.visible) return;
+      halo.position.copy(m.mundo);
+      halo.scale.setScalar(m.mundo.distanceTo(camera.position) * pxMundo * TAMANHO_MARCA_PX * raio);
+      halo.quaternion.copy(camera.quaternion);
+    }
+
     /* ----- Realce de peça -----
        Casca desenhada sobre a própria geometria da peça, sem trocar o
        material dela — o modo argila, a cor real e a pele térmica seguem
@@ -2056,6 +2085,8 @@ var FOGAO3D = (function () {
       }
 
       var sel = estado.sel;
+      posicionarHalo(haloSel, sel, pxMundo);
+      posicionarHalo(haloPairado, estado.pairado !== sel ? estado.pairado : null, pxMundo);
       anelSel.visible = !!sel && sel.visivel !== false;
       if (sel) {
         anelSel.position.copy(sel.mundo);
@@ -2308,6 +2339,17 @@ var FOGAO3D = (function () {
           return { x: r.left + s.x, y: r.top + s.y };
         },
         marcadores: function () { return estado.marcadores.map(function (m) { return m.ponto.measurement_id; }); },
+        // Halos desenhados no último quadro: raio em unidades de marcador e raio na tela, em px.
+        halos: function () {
+          var r = renderer.domElement.getBoundingClientRect();
+          var pxMundo = 2 * Math.tan(camera.fov * GRAU / 2) / (r.height || 1);
+          function ler(h) {
+            if (!h.visible) return null;
+            var dist = h.position.distanceTo(camera.position);
+            return { raio: h.userData.raio, px: h.scale.x / (dist * pxMundo) };
+          }
+          return { sel: ler(haloSel), pairado: ler(haloPairado) };
+        },
         // Estado desenhado de explodido e opacidade, para os testes compararem com o pedido.
         vista: function () {
           var pecas = {};

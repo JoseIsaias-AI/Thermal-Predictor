@@ -728,6 +728,45 @@
     return "<dt>" + rotulo + "</dt><dd" + (vazio ? " class=\"is-empty\"" : "") + ">" + valor + "</dd>";
   }
 
+  /* Cartão de confiança: temperatura prevista ao lado do nível e do glifo com
+     halo, na mesma escala do 3D. Lê só o contrato de CONFIANCA — o aviso de
+     ilustrativo depende de `conf.ilustrativo`, então some sozinho quando a
+     métrica real entrar. Não toca no estado de risco, que segue logo acima. */
+  function cartaoConfianca(p, cor) {
+    var conf = CONFIANCA.doPonto(p);
+    // Marcador de 4,4 px como nos gráficos; caixa de 60 px cabe até o halo de incerteza total.
+    var PX_MARCA = 4.4, C = 30;
+    var raio = CONFIANCA.raioHalo(conf) * PX_MARCA;
+    var marca = FOGAO.formaDoPonto(C, C, p.estado, p.is_monitor_only);
+    // Três passos: alta acende três, baixa acende um.
+    var acesos = CONFIANCA.ORDEM.length - CONFIANCA.ORDEM.indexOf(conf.nivel);
+    var passos = CONFIANCA.ORDEM.map(function (n, i) {
+      return "<span class=\"conf__passo" + (i < acesos ? " is-on" : "") + "\"></span>";
+    }).join("");
+
+    return "<section class=\"conf conf--" + conf.nivel + (conf.ilustrativo ? " conf--ilustrativo" : "") + "\" aria-label=\"Confiança da previsão\">" +
+      "<div class=\"conf__head\">" +
+        "<h4 class=\"conf__title\">Confiança da previsão</h4>" +
+        (conf.ilustrativo ? "<span class=\"conf__tag\">Ilustrativo · preliminar</span>" : "") +
+      "</div>" +
+      "<div class=\"conf__body\">" +
+        "<svg class=\"conf__glifo\" width=\"" + 2 * C + "\" height=\"" + 2 * C + "\" viewBox=\"0 0 " + 2 * C + " " + 2 * C + "\" aria-hidden=\"true\">" +
+          "<circle class=\"conf__halo\" cx=\"" + C + "\" cy=\"" + C + "\" r=\"" + raio.toFixed(1) + "\"></circle>" +
+          "<path d=\"" + marca + "\" fill=\"" + (p.is_monitor_only ? "#ffffff" : cor) + "\" stroke=\"" + (p.is_monitor_only ? "#767777" : "#484949") + "\" stroke-width=\"0.8\"" +
+            (p.is_monitor_only ? " stroke-dasharray=\"2.5 2\"" : "") + "></path>" +
+        "</svg>" +
+        "<dl class=\"conf__dados\">" +
+          "<div><dt>Temperatura prevista</dt><dd class=\"conf__temp\">" + p.temperatura_prevista_c.toFixed(2) + " °C</dd></div>" +
+          "<div><dt>Confiança</dt><dd class=\"conf__nivel\"><span class=\"conf__passos\" aria-hidden=\"true\">" + passos + "</span>" + conf.rotulo + "</dd></div>" +
+        "</dl>" +
+      "</div>" +
+      "<p class=\"conf__nota\">" +
+        (conf.ilustrativo ? "Atribuído sem cálculo: não é métrica do modelo e não altera o estado de risco. " : "") +
+        "Halo maior, menor confiança." +
+      "</p>" +
+    "</section>";
+  }
+
   function mostrarDetalhe(p) {
     var caixa = document.getElementById("detail");
     if (!p) {
@@ -741,8 +780,9 @@
       "<p class=\"detail__state detail__state--" + (p.is_monitor_only ? "mono" : p.estado) + "\">" +
       "<span class=\"detail__swatch\" style=\"background:" + cor + ";box-shadow:inset 0 0 0 1px rgba(16,21,31,.35)\"></span>" +
       "<span>" + (p.is_monitor_only ? "Limite não declarado" : p.estado_rotulo) + "</span></p>" +
-      "<dl class=\"detail__rows\">" +
-      linhaDetalhe("Temperatura prevista", p.temperatura_prevista_c.toFixed(2) + " °C");
+      // A temperatura prevista mora no cartão, ao lado da confiança.
+      cartaoConfianca(p, cor) +
+      "<dl class=\"detail__rows\">";
 
     if (p.is_monitor_only) {
       html += linhaDetalhe("Limite do componente", "—", true) +
@@ -1035,6 +1075,8 @@
       isolar: mapa.isolar,
       sel: mapa.sel,
       zonaSel: mapa.zona,
+      // Mesmo raio do glifo do cartão: os dois leem CONFIANCA.
+      haloDoPonto: function (p) { return CONFIANCA.raioHalo(CONFIANCA.doPonto(p)); },
       pontos: pontos
     });
 

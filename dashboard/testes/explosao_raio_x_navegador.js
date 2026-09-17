@@ -104,7 +104,8 @@
     for (var q = 0; q < 2; q++) { d.quadro(); await espera(16); }
     var z = tentativas % 2 ? "coil-RR" : "mainback";
     var tz = d.telaDaZona(z);
-    if (!tz) continue;
+    // Só pixel sob marcador: o clique iria para o ponto, que pode ser de outra zona (placa RR sobre a bobina RR).
+    if (!tz || tz.sobMarcador) continue;
     tentativas++;
     var vv = d.vista();
     if (Math.abs(vv.explode - vv.explodeAlvo) > 0.005) emMovimento++;

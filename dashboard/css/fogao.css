@@ -452,6 +452,61 @@
 
 .detail__empty { color: var(--color-text-subtle); font-size: var(--size-small); margin: 0; }
 
+/* ----- Cartão de confiança (stub) -----
+ * Borda tracejada, a mesma convenção do "sem limite declarado": o que está
+ * ali não é dado validado. Paleta neutra de propósito — verde para "alta"
+ * seria lido como aprovação (RN-07). */
+
+.conf {
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius);
+  padding: var(--space-2) var(--space-3) var(--space-3);
+  margin: 0 0 var(--space-3);
+  min-width: 0;
+}
+.conf--ilustrativo { border-style: dashed; border-color: var(--color-border-strong); }
+
+.conf__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px var(--space-2);
+}
+.conf__title {
+  margin: 0;
+  font-size: var(--size-kicker);
+  font-weight: var(--weight-semibold);
+  color: var(--color-text-muted);
+}
+.conf__tag {
+  font-size: var(--size-kicker);
+  font-weight: var(--weight-semibold);
+  color: var(--color-text-muted);
+  background: var(--color-surface-sunken);
+  border: var(--border-width) dashed var(--color-border-strong);
+  border-radius: 999px;
+  padding: 1px 8px;
+  white-space: nowrap;
+}
+
+.conf__body { display: flex; align-items: center; gap: var(--space-3); margin-top: var(--space-2); min-width: 0; }
+.conf__glifo { flex: none; }
+.conf__halo { fill: rgba(93, 102, 117, 0.16); stroke: rgba(93, 102, 117, 0.55); stroke-width: 1; }
+
+.conf__dados { flex: 1; min-width: 0; margin: 0; display: grid; gap: var(--space-1); }
+.conf__dados div { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 0 var(--space-2); }
+.conf__dados dt { font-size: var(--size-kicker); color: var(--color-text-muted); }
+.conf__dados dd { margin: 0; font-variant-numeric: tabular-nums; font-weight: var(--weight-semibold); }
+.conf__temp { font-size: 1rem; color: var(--color-text); }
+.conf__nivel { display: inline-flex; align-items: center; gap: 6px; font-size: var(--size-small); }
+
+.conf__passos { display: inline-flex; gap: 2px; }
+.conf__passo { width: 8px; height: 8px; border-radius: 2px; background: #e3e7ed; }
+.conf__passo.is-on { background: var(--wp-gray-dark); }
+
+.conf__nota { margin: var(--space-2) 0 0; font-size: var(--size-kicker); line-height: 1.45; color: var(--color-text-subtle); }
+
 /* Barra que situa a previsão contra o limite. O rótulo fica acima da barra,
    e não dentro: sobre a cor escura da faixa ele sumia. */
 .gauge {

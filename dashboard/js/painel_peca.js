@@ -34,11 +34,12 @@ var PAINEL_PECA = (function () {
       });
     }
 
-    var tMin = Infinity, tMax = -Infinity;
-    todos.forEach(function (p) {
-      tMin = Math.min(tMin, p.temperatura_prevista_c);
-      tMax = Math.max(tMax, p.temperatura_prevista_c);
-    });
+    /* Mediana, e não média: um ponto quente não arrasta o valor central, e
+       nenhum dos dois decide estado — quem decide é o ponto mais crítico,
+       como a RN-02 faz para a configuração. */
+    var temps = todos.map(function (p) { return p.temperatura_prevista_c; }).sort(function (a, b) { return a - b; });
+    var meio = temps.length >> 1;
+    var mediana = temps.length % 2 ? temps[meio] : (temps[meio - 1] + temps[meio]) / 2;
 
     return {
       zona: zona,
@@ -51,7 +52,7 @@ var PAINEL_PECA = (function () {
       soMonitoramento: !todos.length ? "vazio"
         : monitorados.length === todos.length ? "todos"
         : monitorados.length ? "parcial" : "nenhum",
-      temperatura: todos.length ? { min: tMin, max: tMax } : null
+      temperatura: todos.length ? { min: temps[0], max: temps[temps.length - 1], mediana: mediana } : null
     };
   }
 
@@ -164,8 +165,12 @@ var PAINEL_PECA = (function () {
     var ref = r.referencia;
     var dl = el("dl", "detail__rows");
 
-    linha(dl, r.total > 1 && ref.is_monitor_only ? "Temperatura prevista (maior)" : "Temperatura prevista",
-      graus(ref.temperatura_prevista_c), false, "temperatura_prevista_c");
+    /* Com vários pontos, o rótulo diz de onde vem o número: é a temperatura
+       de um ponto escolhido, não um agregado da peça. Mais crítico é o de
+       pior folga, que nem sempre é o mais quente. */
+    var rotuloTemp = r.total < 2 ? "Temperatura prevista"
+      : ref.is_monitor_only ? "Temperatura do ponto mais quente" : "Temperatura do ponto mais crítico";
+    linha(dl, rotuloTemp, graus(ref.temperatura_prevista_c), false, "temperatura_prevista_c de " + ref.TC_Name);
 
     if (ref.is_monitor_only) {
       linha(dl, "Limite do componente", "—", true, "limit_c");
@@ -185,6 +190,8 @@ var PAINEL_PECA = (function () {
 
     if (r.total > 1) {
       linha(dl, "Faixa prevista na peça", r.temperatura.min.toFixed(1) + " a " + r.temperatura.max.toFixed(1) + " °C", false);
+      linha(dl, "Mediana dos " + r.total + " pontos", r.temperatura.mediana.toFixed(1) + " °C", false,
+        "Valor central, só informativo: não decide o estado da peça, que segue o ponto mais crítico");
     }
     caixa.appendChild(dl);
   }
