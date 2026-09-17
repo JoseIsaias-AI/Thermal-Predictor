@@ -205,7 +205,9 @@ def particoes_de_validacao(base, indices, n_particoes=PARTICOES_VALIDACAO):
     versões recentes do scikit-learn trocaram a ordem de desempate entre configurações com o mesmo
     número de medições, que são comuns nesta base, e passaram a montar outras partições, com outras
     métricas de validação. O desempate abaixo é o da versão em que os notebooks foram executados, e
-    mantém as métricas publicadas na documentação iguais em qualquer versão instalada.
+    mantém as partições iguais em qualquer versão instalada. Com as mesmas partições, Ridge, média do
+    termopar e Gradient Boosting reproduzem as métricas publicadas; o Random Forest ainda pode variar
+    em centésimos de grau entre versões do scikit-learn, pelo sorteio interno das árvores.
     """
     grupos = base["configuracao"].to_numpy()[indices]
     configuracoes, grupo_de = np.unique(grupos, return_inverse=True)
