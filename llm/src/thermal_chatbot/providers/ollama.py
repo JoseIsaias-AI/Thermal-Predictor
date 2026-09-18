@@ -40,6 +40,13 @@ class OllamaProvider(LLMProvider):
 
         try:
             response = await self._request("POST", "/api/chat", json=payload)
+        except httpx.TimeoutException as exc:
+            # Distinguir do erro de conexão: aqui o Ollama está no ar, mas o
+            # modelo não concluiu dentro de OLLAMA_TIMEOUT_SECONDS.
+            raise ProviderUnavailableError(
+                "O Ollama não respondeu dentro do tempo limite "
+                f"({self.settings.ollama_timeout_seconds:.0f}s)."
+            ) from exc
         except httpx.RequestError as exc:
             raise ProviderUnavailableError(
                 "Não foi possível conectar ao Ollama local."

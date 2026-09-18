@@ -12,12 +12,22 @@ class Settings(BaseModel):
 
     ollama_base_url: HttpUrl = "http://127.0.0.1:11434"
     ollama_model: str = Field(default="qwen3:4b", min_length=1)
-    ollama_timeout_seconds: float = Field(default=180.0, gt=0, le=600)
+    ollama_timeout_seconds: float = Field(default=300.0, gt=0, le=600)
     ollama_temperature: float = Field(default=0.1, ge=0, le=2)
     ollama_max_output_tokens: int = Field(default=768, ge=128, le=4_096)
+    ollama_embedding_model: str = Field(default="embeddinggemma", min_length=1)
     chatbot_allowed_origins: str = (
         "http://127.0.0.1:5500,http://localhost:5500"
     )
+    rag_enabled: bool = True
+    rag_database_url: str = (
+        "postgresql://thermal:thermal@127.0.0.1:5435/thermal_rag"
+    )
+    rag_corpus_dir: str = "docs"
+    rag_embedding_dimensions: int = Field(default=768, ge=64, le=4_096)
+    rag_top_k: int = Field(default=3, ge=1, le=20)
+    rag_min_similarity: float = Field(default=0.45, ge=0, le=1)
+    rag_always_retrieve: bool = True
 
     model_config = ConfigDict(extra="forbid", validate_default=True)
 
@@ -36,7 +46,15 @@ class Settings(BaseModel):
             "ollama_timeout_seconds": value("OLLAMA_TIMEOUT_SECONDS"),
             "ollama_temperature": value("OLLAMA_TEMPERATURE"),
             "ollama_max_output_tokens": value("OLLAMA_MAX_OUTPUT_TOKENS"),
+            "ollama_embedding_model": value("OLLAMA_EMBEDDING_MODEL"),
             "chatbot_allowed_origins": value("CHATBOT_ALLOWED_ORIGINS"),
+            "rag_enabled": value("RAG_ENABLED"),
+            "rag_database_url": value("RAG_DATABASE_URL"),
+            "rag_corpus_dir": value("RAG_CORPUS_DIR"),
+            "rag_embedding_dimensions": value("RAG_EMBEDDING_DIMENSIONS"),
+            "rag_top_k": value("RAG_TOP_K"),
+            "rag_min_similarity": value("RAG_MIN_SIMILARITY"),
+            "rag_always_retrieve": value("RAG_ALWAYS_RETRIEVE"),
         }
         return cls(**{key: item for key, item in configured.items() if item is not None})
 

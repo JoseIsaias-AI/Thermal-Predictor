@@ -61,8 +61,17 @@ class ChatResponse(BaseModel):
     sources: list[str] = Field(default_factory=list)
 
 
+class SourceStatus(BaseModel):
+    """Disponibilidade de uma fonte conectada, exposta no endpoint de saúde."""
+
+    name: ToolName
+    ready: bool
+    detail: str
+
+
 class HealthResponse(BaseModel):
     status: Literal["ready", "degraded"]
     provider: Literal["ollama"] = "ollama"
     model: str
     detail: str
+    sources: list[SourceStatus] = Field(default_factory=list)
