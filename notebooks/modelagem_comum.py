@@ -432,7 +432,7 @@ def _rede_modulos():
     return torch, nn, RedeTermica
 
 
-def treinar_rede(base, treino, alvo, c, semente, registrar_curva=False):
+def treinar_rede(base, treino, alvo, c, semente, registrar_curva=False, adicionais=None):
     """Treina uma rede em `treino` e prevê `alvo`.
 
     Cuidados: cerca de 20% das configurações de cada modo de ensaio decidem a parada antecipada, sem
@@ -440,6 +440,11 @@ def treinar_rede(base, treino, alvo, c, semente, registrar_curva=False):
     o alvo é o desvio em relação à média do termopar; o erro de treino é medido com o dropout
     desligado e só nas configurações que ajustaram os pesos. `alvo` só é consultado durante o treino
     quando `registrar_curva` pede o erro nele para desenhar a curva, e nunca decide nada.
+
+    `adicionais` recebe linhas sintéticas, um DataFrame com as colunas de configuração,
+    `indice_termopar` e `Value`, usado em `17_estudo_aumento_de_dados.ipynb`. Elas entram só nos
+    lotes de ajuste dos pesos, sorteadas a cada época: a parada antecipada, a padronização e a média
+    de referência de cada termopar continuam estimadas apenas nas leituras reais.
     """
     torch, nn, RedeTermica = _rede_modulos()
     torch.set_num_threads(1)
@@ -498,19 +503,39 @@ def treinar_rede(base, treino, alvo, c, semente, registrar_curva=False):
     xa, ta, ya = tensores(ajuste)
     xp, tp, yp = tensores(parada)
     xv, tv, _ = tensores(alvo)
+    x_lotes, t_lotes, y_lotes = xa, ta, ya
+    sinteticas = 0 if adicionais is None else len(adicionais)
+
+    if sinteticas > 0:
+        termopar_sintetico = adicionais["indice_termopar"].to_numpy(dtype=np.int64)
+        xs = torch.tensor(
+            (adicionais[colunas_configuracao(base)].to_numpy(dtype=np.float32) - media_x) / desvio_x)
+        ts = torch.tensor(termopar_sintetico)
+        ys = torch.tensor(((adicionais["Value"].to_numpy() - referencia[termopar_sintetico]) / escala)
+                          .astype(np.float32))
+
     melhor, melhor_estado, melhor_epoca, sem_melhora = np.inf, None, 0, 0
     curva = {"treino": [], "validação": [], "teste": []}
 
     for epoca in range(c["epocas_maximas"]):
         rede.train()
-        ordem = torch.randperm(len(ajuste))
 
-        for inicio in range(0, len(ajuste), c["tamanho_do_lote"]):
+        if sinteticas > 0:
+            # A cada época, todas as leituras reais e um sorteio de no máximo o mesmo número de
+            # linhas sintéticas: o custo da época fica no dobro, e não na razão entre as duas.
+            sorteio = torch.randperm(sinteticas)[:len(ajuste)]
+            x_lotes = torch.cat([xa, xs[sorteio]])
+            t_lotes = torch.cat([ta, ts[sorteio]])
+            y_lotes = torch.cat([ya, ys[sorteio]])
+
+        ordem = torch.randperm(len(y_lotes))
+
+        for inicio in range(0, len(y_lotes), c["tamanho_do_lote"]):
             lote = ordem[inicio:inicio + c["tamanho_do_lote"]]
 
             if len(lote) > 1:
                 otimizador.zero_grad()
-                perda(rede(xa[lote], ta[lote]), ya[lote]).backward()
+                perda(rede(x_lotes[lote], t_lotes[lote]), y_lotes[lote]).backward()
                 otimizador.step()
 
         rede.eval()
