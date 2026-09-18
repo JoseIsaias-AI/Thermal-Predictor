@@ -1,0 +1,274 @@
+{
+  "versao": "1.0",
+  "origem": "dashboard/js/schema.js, Seção 4.2.2 da documentação",
+  "descricao": "Contrato de entrada da camada de predição: os sete fatores de configuração de ensaio e seus níveis válidos.",
+  "fatores": [
+    {
+      "chave": "blower_direction",
+      "rotulo": "Direção do soprador",
+      "coluna_origem": "Blower_Direction",
+      "ajuda": "Sentido do fluxo de ar forçado.",
+      "tipo": "categorico",
+      "obrigatorio": true,
+      "nivel_de_referencia": "To Front",
+      "niveis": [
+        {
+          "valor": "To Front",
+          "rotulo": "To Front (para a frente)"
+        },
+        {
+          "valor": "To Back",
+          "rotulo": "To Back (para trás)"
+        }
+      ]
+    },
+    {
+      "chave": "housing",
+      "rotulo": "Estado do alojamento",
+      "coluna_origem": "Housing",
+      "ajuda": "Estado da carcaça na rodada simulada.",
+      "tipo": "categorico",
+      "obrigatorio": true,
+      "nivel_de_referencia": "Closed",
+      "niveis": [
+        {
+          "valor": "Closed",
+          "rotulo": "Closed (fechado)"
+        },
+        {
+          "valor": "Open",
+          "rotulo": "Open (aberto)"
+        },
+        {
+          "valor": "Open - Updated",
+          "rotulo": "Open - Updated"
+        }
+      ]
+    },
+    {
+      "chave": "board_position",
+      "rotulo": "Posição da placa",
+      "coluna_origem": "Board_Position",
+      "ajuda": "Onde a placa eletrônica fica montada.",
+      "tipo": "categorico",
+      "obrigatorio": true,
+      "nivel_de_referencia": "Center",
+      "niveis": [
+        {
+          "valor": "Center",
+          "rotulo": "Center (centro)"
+        },
+        {
+          "valor": "Right",
+          "rotulo": "Right (direita)"
+        }
+      ]
+    },
+    {
+      "chave": "run_case",
+      "rotulo": "Caso de operação",
+      "coluna_origem": "Run_Case",
+      "ajuda": "Regime de ensaio simulado.",
+      "tipo": "categorico",
+      "obrigatorio": true,
+      "nivel_de_referencia": "Broil Qualitative",
+      "niveis": [
+        {
+          "valor": "Broil Qualitative",
+          "rotulo": "Broil Qualitative"
+        },
+        {
+          "valor": "Broil C2",
+          "rotulo": "Broil C2"
+        },
+        {
+          "valor": "Broil C1",
+          "rotulo": "Broil C1"
+        },
+        {
+          "valor": "Pyro",
+          "rotulo": "Pyro (pirólise)"
+        }
+      ]
+    },
+    {
+      "chave": "losses",
+      "rotulo": "Perdas consideradas",
+      "coluna_origem": "Losses",
+      "ajuda": "Perdas dissipadas na placa de indução.",
+      "tipo": "composto",
+      "obrigatorio": true,
+      "niveis": [],
+      "subcampos": [
+        {
+          "chave": "present",
+          "rotulo": "Perda declarada",
+          "coluna_origem": "losses_present",
+          "ajuda": "Se a rodada declarou perdas.",
+          "tipo": "categorico",
+          "obrigatorio": true,
+          "niveis": [
+            {
+              "valor": "declared",
+              "rotulo": "Com perda declarada"
+            },
+            {
+              "valor": "none",
+              "rotulo": "Sem perda"
+            },
+            {
+              "valor": "missing",
+              "rotulo": "Metadado não declarado"
+            }
+          ]
+        },
+        {
+          "chave": "config",
+          "rotulo": "Configuração de montagem das bobinas",
+          "coluna_origem": "losses_config",
+          "ajuda": "Arranjo de montagem das bobinas.",
+          "tipo": "categorico",
+          "obrigatorio": true,
+          "depende_de": {
+            "campo": "present",
+            "valor": "declared"
+          },
+          "niveis": [
+            {
+              "valor": "Config S",
+              "rotulo": "Config S"
+            },
+            {
+              "valor": "Config M",
+              "rotulo": "Config M"
+            }
+          ]
+        },
+        {
+          "chave": "order",
+          "rotulo": "Ordem de montagem",
+          "coluna_origem": "losses_order",
+          "ajuda": "Ordem de montagem declarada na rodada.",
+          "tipo": "categorico",
+          "obrigatorio": false,
+          "depende_de": {
+            "campo": "present",
+            "valor": "declared"
+          },
+          "niveis": [
+            {
+              "valor": "Front Order",
+              "rotulo": "Front Order"
+            },
+            {
+              "valor": "Back Order",
+              "rotulo": "Back Order"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "chave": "deflector_hole",
+      "rotulo": "Abertura do defletor",
+      "coluna_origem": "Deflector_Hole",
+      "ajuda": "Furo do defletor, aberto ou fechado.",
+      "tipo": "categorico",
+      "obrigatorio": true,
+      "nivel_de_referencia": "Closed",
+      "niveis": [
+        {
+          "valor": "Closed",
+          "rotulo": "Closed (fechado)"
+        },
+        {
+          "valor": "Open",
+          "rotulo": "Open (aberto)"
+        }
+      ]
+    },
+    {
+      "chave": "material_coil_support",
+      "rotulo": "Material do suporte da bobina",
+      "coluna_origem": "Material_Coil_Support",
+      "ajuda": "Material da peça que sustenta a bobina.",
+      "tipo": "categorico",
+      "obrigatorio": true,
+      "nivel_de_referencia": "Aluminium",
+      "niveis": [
+        {
+          "valor": "Aluminium",
+          "rotulo": "Aluminium (alumínio)"
+        },
+        {
+          "valor": "Aluminium Plate",
+          "rotulo": "Aluminium Plate (placa de alumínio)"
+        },
+        {
+          "valor": "Plastic",
+          "rotulo": "Plastic (plástico)"
+        }
+      ]
+    }
+  ],
+  "sinonimos": {
+    "Open - Updated": "Open"
+  },
+  "regras": [
+    {
+      "codigo": "RN-04",
+      "descricao": "Nível fora do vocabulário declarado é recusado; a entrada é fechada."
+    },
+    {
+      "codigo": "CONFUNDIMENTO-PYRO",
+      "descricao": "losses.present = 'none' só ocorre em rodadas Pyro: as duas condições ocupam a mesma coluna na codificação."
+    },
+    {
+      "codigo": "REFERENCIA",
+      "descricao": "O nível de referência de cada fator foi removido na codificação; quando a configuração o usa, todas as colunas do bloco ficam em zero."
+    }
+  ],
+  "subsistemas": [
+    {
+      "area": "CT Knobs",
+      "pontos_de_medicao": 6
+    },
+    {
+      "area": "Coil Temps",
+      "pontos_de_medicao": 8
+    },
+    {
+      "area": "IPC Comp",
+      "pontos_de_medicao": 37
+    },
+    {
+      "area": "IPC Cooling",
+      "pontos_de_medicao": 4
+    },
+    {
+      "area": "Main Vent Sys",
+      "pontos_de_medicao": 7
+    },
+    {
+      "area": "Mainback",
+      "pontos_de_medicao": 11
+    },
+    {
+      "area": "Oven HMI",
+      "pontos_de_medicao": 4
+    }
+  ],
+  "exemplo_de_entrada": {
+    "blower_direction": "To Front",
+    "housing": "Closed",
+    "board_position": "Center",
+    "run_case": "Broil C2",
+    "deflector_hole": "Closed",
+    "material_coil_support": "Aluminium",
+    "losses": {
+      "present": "declared",
+      "config": "Config S",
+      "order": "Front Order"
+    }
+  }
+}

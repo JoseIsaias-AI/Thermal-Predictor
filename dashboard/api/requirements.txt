@@ -1,0 +1,19 @@
+# Versões fixadas para não divergir da camada de predição usada nos notebooks.
+# Todas as bibliotecas abaixo são livres (MIT, BSD-3 ou Apache-2.0).
+
+# Serviço HTTP.
+fastapi==0.141.1
+uvicorn==0.52.4
+pydantic==2.13.5
+
+# Compartilhadas com a camada de predição (mesmas versões dos notebooks de exportação).
+# Os artefatos hoje em `modelos/` foram serializados com scikit-learn 1.7.2 e carregam com
+# InconsistentVersionWarning nesta versão: reexportar ao fixar o modelo escolhido.
+scikit-learn==1.9.1
+pandas==3.0.5
+numpy==2.5.3
+joblib==1.6.0
+
+# Testes.
+pytest==9.1.1
+httpx==0.28.1
