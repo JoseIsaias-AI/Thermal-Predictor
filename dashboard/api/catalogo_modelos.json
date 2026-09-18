@@ -1,0 +1,14 @@
+{
+  "familia_padrao": null,
+  "familias": {
+    "random_forest": {
+      "rotulo": "Random Forest",
+      "tipo_preditor": "sklearn_joblib"
+    },
+    "gradient_boosting": {
+      "rotulo": "Gradient Boosting",
+      "tipo_preditor": "sklearn_joblib"
+    }
+  },
+  "por_subsistema": {}
+}
