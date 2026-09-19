@@ -192,3 +192,41 @@
   margin-top: var(--space-4);
   margin-bottom: 0;
 }
+
+/* ----- Tela de marketing ----- */
+
+/* A faixa de avisos da conformidade informa; esta impede. É onde uma leitura
+   otimista viraria promessa publicada, então ela sai do cinza. */
+.avisos--forte {
+  background: var(--color-critical-bg);
+  border-color: var(--color-critical-line);
+  color: var(--color-text);
+}
+
+.avisos--forte strong { color: var(--color-critical); }
+
+/* A consequência é o que a pessoa leva da tela; o resto do cartão é apoio. */
+.card__consequencia {
+  margin: 0;
+  font-size: var(--size-body);
+  line-height: var(--leading-body);
+  color: var(--color-text);
+}
+
+.maturidade {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+  gap: var(--space-4);
+  margin: 0 0 var(--space-4);
+}
+
+.maturidade .cfg-item dd { margin-top: var(--space-1); }
+
+.maturidade__nota {
+  display: block;
+  margin-top: var(--space-1);
+  font-size: var(--size-small);
+  font-weight: var(--weight-regular);
+  color: var(--color-text-muted);
+  line-height: var(--leading-body);
+}

@@ -312,6 +312,7 @@
       placa: config.board_position === "Right" ? "right" : "center",
       soprador: config.blower_direction === "To Back" ? "back" : config.blower_direction ? "front" : null,
       alojamento: config.housing && config.housing !== "Closed" ? "open" : "closed",
+      caso: config.run_case,
       material: config.material_coil_support === "Plastic" ? "plastic"
         : config.material_coil_support === "Aluminium Plate" ? "plate" : "aluminium"
     };

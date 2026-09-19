@@ -11,6 +11,7 @@
   <link rel="stylesheet" href="css/app.css?v=4">
   <link rel="stylesheet" href="css/triagem.css?v=3">
   <link rel="stylesheet" href="css/fogao.css?v=4">
+  <link rel="stylesheet" href="css/analise.css?v=2">
 </head>
 <body>
 
@@ -22,19 +23,10 @@
          alt="Whirlpool Corporation" width="1259" height="419">
 
     <div class="masthead__identity">
-      <p class="masthead__kicker">Triagem térmica</p>
+      <p class="masthead__kicker">Consulta</p>
       <h1 class="masthead__system-name">Thermal Predictor</h1>
     </div>
 
-    <nav class="nav" aria-label="Telas do painel">
-    <a class="nav__link" href="index.html" aria-current="page">Consulta</a>
-    <a class="nav__link" href="triagem.html">Triagem</a>
-    <a class="nav__link" href="comparacao.html">Comparação</a>
-    <a class="nav__link" href="conformidade.html">Conformidade</a>
-    <a class="nav__link" href="design.html">Design</a>
-    <a class="nav__link" href="marketing.html">Marketing</a>
-    <a class="nav__link" href="engenharia.html">Engenharia</a>
-    </nav>
 
     <span class="masthead__push"></span>
 
@@ -154,10 +146,37 @@
 
 </main>
 
+<!-- Passagem para a triagem. O #fogao-3d do formulário é movido para o palco
+     abaixo durante a animação e devolvido se a navegação for cancelada. -->
+<div class="analise" id="analise" hidden aria-hidden="true">
+  <div class="analise__caixa">
+    <div class="analise__palco" id="analise-palco">
+      <div class="analise__grade"></div>
+      <div class="analise__mira"><span></span><span></span><span></span><span></span></div>
+      <div class="analise__varredura" id="analise-varredura" hidden></div>
+
+      <div class="analise__fim" id="analise-fim" hidden>
+        <span class="analise__marca">
+          <svg width="26" height="26" viewBox="0 0 26 26" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 13.5l5.5 5.5L21 8"></path></svg>
+        </span>
+        <p>Previsão concluída</p>
+      </div>
+    </div>
+
+    <div class="analise__painel" role="status" aria-live="polite">
+      <p class="analise__etapa" id="analise-etapa">Montando a configuração escolhida</p>
+      <div class="analise__barra"><span id="analise-preenche"></span></div>
+      <p class="analise__contador"><strong id="analise-pontos">0</strong> de 78 pontos de medição percorridos</p>
+      <p class="analise__rodape">Demonstração · valores sintéticos, não previsões de modelo treinado</p>
+    </div>
+  </div>
+</div>
+
 <script src="js/schema.js?v=3"></script>
 <script src="vendor/three.min.js"></script>
 <script src="js/fogao.js?v=4"></script>
-<script src="js/fogao3d.js?v=4"></script>
-<script src="js/app.js?v=4"></script>
+<script src="js/fogao3d.js?v=6"></script>
+<script src="js/analise.js?v=3"></script>
+<script src="js/app.js?v=6"></script>
 </body>
 </html>

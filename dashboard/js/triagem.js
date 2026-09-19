@@ -714,7 +714,9 @@
       alojamento: config.housing && config.housing !== "Closed" ? "open" : "closed",
       material: config.material_coil_support === "Plastic" ? "plastic"
         : config.material_coil_support === "Aluminium Plate" ? "plate" : "aluminium",
-      soprador: config.blower_direction === "To Back" ? "back" : "front"
+      soprador: config.blower_direction === "To Back" ? "back" : "front",
+      // Não muda geometria: é o que o display do forno mostra.
+      caso: config.run_case
     };
   }
 
@@ -1071,6 +1073,7 @@
       placa: geometria.placa,
       alojamento: geometria.alojamento,
       material: geometria.material,
+      caso: geometria.caso,
       escala: mapa.escala,
       isolar: mapa.isolar,
       sel: mapa.sel,

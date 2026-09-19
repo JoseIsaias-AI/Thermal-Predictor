@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Marketing — Thermal Predictor</title>
+
+  <!-- Mesmos componentes das telas anteriores: .page-head, .config,
+       .data-table, .state e .btn vêm de triagem.css. publicos.css só
+       acrescenta o que falta. -->
+  <link rel="stylesheet" href="css/tokens.css?v=3">
+  <link rel="stylesheet" href="css/app.css?v=4">
+  <link rel="stylesheet" href="css/triagem.css?v=3">
+  <link rel="stylesheet" href="css/publicos.css?v=7">
+</head>
+<body>
+
+<header class="masthead">
+  <div class="masthead__inner">
+    <!-- O amarelo do anel é da marca e não se recolore. A proibição de
+         misturar paletas vale para a interface, não para o logotipo. -->
+    <img class="masthead__logo" src="img/logo-whirlpool.png"
+         alt="Whirlpool Corporation" width="1259" height="419">
+
+    <div class="masthead__identity">
+      <p class="masthead__kicker">Marketing</p>
+      <h1 class="masthead__system-name">Thermal Predictor</h1>
+    </div>
+
+    <nav class="nav" aria-label="Telas do painel">
+    <a class="nav__link" href="index.html">Consulta</a>
+    <a class="nav__link" href="triagem.html">Triagem</a>
+    <a class="nav__link" href="comparacao.html">Comparação</a>
+    <a class="nav__link" href="conformidade.html">Conformidade</a>
+    <a class="nav__link" href="design.html">Design</a>
+    <a class="nav__link" href="marketing.html" aria-current="page">Marketing</a>
+    <a class="nav__link" href="engenharia.html">Engenharia</a>
+    </nav>
+
+    <span class="masthead__push"></span>
+
+    <!-- Sai quando houver modelo treinado. Até lá, é o que impede que um
+         número sintético seja lido como previsão. Fica na barra, e não no
+         corpo da página, para valer nas sete telas. -->
+    <p class="model-chip" id="stub-banner">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.3" aria-hidden="true"><circle cx="7" cy="7" r="5.6"></circle><path d="M7 4.2v3.4"></path><circle cx="7" cy="9.9" r="0.6" fill="currentColor" stroke="none"></circle></svg>
+      <span><strong>Modelo <span id="model-version">—</span></strong> · valores sintéticos, não previsões</span>
+    </p>
+  </div>
+</header>
+
+<main class="page">
+
+  <div class="page-head">
+    <div class="page-head__text">
+      <h2 class="page-head__title">O que já dá para comunicar</h2>
+      <p class="page-head__sub">Sinal antecipado sobre os temas técnicos que sustentam campanha · e sobre o que ainda pode mudar</p>
+    </div>
+    <div class="page-head__actions">
+      <details class="scope-notice">
+        <summary>Como ler</summary>
+        <div class="scope-notice__body">
+          <p>
+            Cada tema recebe a leitura do <strong>componente mais quente</strong>
+            ligado a ele. Um tema só fica liberado quando todos os seus
+            componentes estão, nunca pela média.
+          </p>
+          <p>
+            <strong>Aguarda verificação</strong> não é reprovação. Significa que
+            a estimativa chegou perto demais do limite para decidir sozinha, e a
+            engenharia ainda precisa confirmar.
+          </p>
+          <p>
+            Nada aqui autoriza publicar. A leitura serve para planejar prazo de
+            campanha e saber que perguntas levar à engenharia.
+          </p>
+        </div>
+      </details>
+      <button class="btn btn--ghost" type="button" id="export-registro" disabled>Exportar consulta</button>
+      <a class="btn btn--ghost" href="index.html">Alterar configuração</a>
+    </div>
+  </div>
+
+  <!-- O aviso mais forte da tela, e o único que não se recolhe: é aqui que uma
+       leitura otimista viraria promessa publicada. -->
+  <ul class="avisos avisos--forte">
+    <li><strong>Nenhuma afirmação desta tela está liberada para campanha.</strong> A ferramenta não emite parecer de conformidade e não substitui a validação formal que autoriza uma promessa técnica ao consumidor.</li>
+    <li><strong>É estimativa, não medição.</strong> Os números vêm de um <abbr class="termo" title="Programa que aprendeu padrões nas simulações já feitas e, a partir deles, estima a temperatura de uma configuração nova sem precisar simular de novo.">modelo</abbr> treinado sobre simulações anteriores e existem para antecipar conversa, não para fechar texto de campanha.</li>
+  </ul>
+
+  <section class="config" id="config-panel" hidden>
+    <h2 class="config__title">Configuração consultada
+      <span class="config__tag" id="config-origin" hidden></span>
+      <span class="config__tag config__tag--nota" id="config-default-note" hidden
+            title="Nenhuma configuração foi informada. Estes são os fatores de referência do conjunto de dados de exemplo.">referência do dataset</span>
+    </h2>
+    <dl class="config__list" id="config-list"></dl>
+  </section>
+
+  <p class="status-line" id="loading">Carregando leitura…</p>
+
+  <section class="error" id="error" hidden>
+    <span class="error__label">Leitura indisponível</span>
+    <span id="error-message"></span>
+  </section>
+
+  <section class="panel" id="temas-panel" hidden>
+    <div class="panel__head">
+      <h2 class="panel__title">Temas que a campanha pode tocar</h2>
+      <p class="panel__meta">Do que ainda não se sustenta para o que já se sustenta</p>
+    </div>
+
+    <ul class="cards" id="temas-cards"></ul>
+  </section>
+
+  <section class="panel" id="maturidade-panel" hidden>
+    <div class="panel__head">
+      <h2 class="panel__title">Quando isso ainda pode mudar</h2>
+      <p class="panel__meta">O que sustenta esta leitura hoje</p>
+    </div>
+
+    <dl class="maturidade" id="maturidade-lista"></dl>
+
+    <p class="panel__note" id="maturidade-nota"></p>
+  </section>
+
+  <section class="panel" id="registro-panel" hidden>
+    <div class="panel__head">
+      <h2 class="panel__title">Registro da consulta</h2>
+      <p class="panel__meta">O que sustenta a peça em caso de questionamento</p>
+    </div>
+
+    <p class="panel__note">
+      A planilha guarda a configuração consultada, a leitura de cada tema, a
+      versão do modelo e a data. Serve como registro de trabalho do que se
+      sabia no momento da decisão, e não como evidência de conformidade.
+    </p>
+
+    <div class="table-scroll table-scroll--inteira">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th scope="col">Tema</th>
+            <th scope="col">Leitura</th>
+            <th scope="col">Componente que decide</th>
+            <th scope="col" class="num">Margem até o limite (°C)</th>
+          </tr>
+        </thead>
+        <tbody id="registro-body"></tbody>
+      </table>
+    </div>
+  </section>
+
+</main>
+
+<script src="js/schema.js?v=3"></script>
+<script src="js/dados_triagem.js?v=3"></script>
+<script src="js/dados_comparacao.js?v=3"></script>
+<script src="js/planilha.js?v=1"></script>
+<script src="js/leitura_publicos.js?v=4"></script>
+<script src="js/marketing.js?v=2"></script>
+</body>
+</html>

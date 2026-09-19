@@ -389,3 +389,39 @@ test("configuração sem par no histórico não inventa alternativa", function (
   });
   assert.equal(alternativas.length, 0);
 });
+
+test("os temas da tela de marketing cobrem os sete subsistemas", function () {
+  /* Os temas são conteúdo da tela e moram em js/marketing.js. O que se cobra
+     aqui é que nenhum subsistema fique de fora: um subsistema sem tema some da
+     leitura de quem planeja campanha, e um risco deixaria de aparecer. */
+  var fonte = fs.readFileSync(path.join(JS, "marketing.js"), "utf8");
+  var bloco = fonte.slice(fonte.indexOf("var TEMAS = ["), fonte.indexOf("var CONSEQUENCIA"));
+  var subsistemas = {};
+
+  TODOS.forEach(function (p) { subsistemas[p.Key_Area] = true; });
+
+  assert.equal(Object.keys(subsistemas).length, 7);
+  Object.keys(subsistemas).forEach(function (area) {
+    assert.ok(bloco.indexOf('"' + area + '"') > 0, "subsistema sem tema na tela: " + area);
+  });
+
+  // E nenhum tema inventa subsistema que não existe na base.
+  (bloco.match(/areas: \[([^\]]+)\]/g) || []).forEach(function (linha) {
+    (linha.match(/"([^"]+)"/g) || []).forEach(function (bruto) {
+      var area = bruto.replace(/"/g, "");
+      assert.ok(subsistemas[area], "tema aponta para subsistema inexistente: " + area);
+    });
+  });
+});
+
+test("todo estado tem uma consequência escrita para quem planeja campanha", function () {
+  var fonte = fs.readFileSync(path.join(JS, "marketing.js"), "utf8");
+  var bloco = fonte.slice(fonte.indexOf("var CONSEQUENCIA"), fonte.indexOf("var loading"));
+
+  LP.ORDEM_ESTADOS.forEach(function (estado) {
+    assert.ok(bloco.indexOf(estado + ":") > 0, "estado sem consequência: " + estado);
+  });
+
+  // Nenhuma consequência pode soar como liberação: a tela não autoriza peça.
+  assert.equal(/(aprovad|liberado para publica|pode publicar)/i.test(bloco), false, bloco);
+});
