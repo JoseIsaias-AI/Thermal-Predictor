@@ -1,0 +1,101 @@
+/* Estilos das áreas por público: conformidade, design e marketing.
+ *
+ * Carrega depois de css/triagem.css e reaproveita o que já existe lá:
+ * .page-head, .panel, .config, .data-table, .state, .tally e .btn. Aqui só
+ * entra o que essas telas têm e as quatro anteriores não têm. Nenhuma cor
+ * nova: "acima do limite" precisa ser a mesma coisa nas sete telas.
+ */
+
+/* ----- Cartões de leitura (design e marketing) -----
+ *
+ * Substituem a tabela onde o público não lê dado bruto (RF-25, RF-27). Mesma
+ * regra de cor da triagem: só o estado que exige ação recebe cor forte. */
+
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  background: var(--color-surface);
+  border: var(--border-width) solid var(--color-border);
+  border-left: 3px solid var(--color-border-strong);
+  border-radius: var(--radius);
+}
+
+.card__title {
+  font-family: var(--font-display);
+  font-size: var(--size-body);
+  font-weight: 600;
+  line-height: var(--leading-tight);
+  color: var(--color-text);
+  margin: 0;
+}
+
+.card__note {
+  font-size: var(--size-small);
+  color: var(--color-text-muted);
+  line-height: var(--leading-body);
+  margin: 0;
+}
+
+/* Número grande só onde ele decide; o rótulo textual continua obrigatório. */
+.card__metric {
+  font-family: var(--font-display);
+  font-size: var(--size-metric);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  color: var(--color-text);
+}
+
+.card__metric--negative { color: var(--color-critical); }
+
+.card--acima_do_limite { border-left-color: var(--color-critical); background: var(--color-critical-bg); }
+.card--banda_de_incerteza { border-left-color: var(--color-accent); background: var(--color-surface-accent); }
+.card--dentro_do_limite { border-left-color: var(--color-positive); }
+.card--monitoramento { border-left-style: dashed; }
+
+/* ----- Faixa de avisos (conformidade) -----
+ *
+ * RF-15, RF-16 e RF-17 ficam abertos nesta tela. O .scope-notice da triagem é
+ * recolhível, e é justamente aqui que a saída mais tenderia a ser lida como
+ * parecer de conformidade. */
+
+.avisos {
+  margin: 0 0 var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-surface-sunken);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius);
+  list-style: none;
+  font-size: var(--size-small);
+  color: var(--color-text-muted);
+  line-height: var(--leading-body);
+}
+
+.avisos li + li { margin-top: var(--space-2); }
+.avisos strong { color: var(--color-text); font-weight: var(--weight-semibold); }
+
+/* ----- Glossário em tela (marketing) -----
+ *
+ * Critério de verificação do RNF-07: termo técnico que sobra na interface tem
+ * a explicação no próprio elemento, sem exigir outra tela. */
+
+.termo {
+  border-bottom: 1px dotted var(--color-text-subtle);
+  cursor: help;
+  text-decoration: none;
+}
+
+.termo:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
+}

@@ -93,7 +93,9 @@ h1, h2, h3, h4 { font-family: var(--font-display); letter-spacing: -0.01em; }
   font-size: 0.875rem;
   color: var(--color-text-muted);
   text-decoration: none;
-  padding: 0 var(--space-3);
+  /* Sete telas na barra: com o respiro de 12px a última quebrava para uma
+     segunda linha em 1280px. */
+  padding: 0 var(--space-2);
   border-bottom: 2px solid transparent;
   margin-bottom: -1px;
 }
