@@ -8,7 +8,7 @@
   <!-- Fontes hospedadas localmente em css/tokens.css (@font-face), sem
        dependência de rede (RNF-02 e RNF-04, Tabela 48 da documentação). -->
   <link rel="stylesheet" href="css/tokens.css?v=3">
-  <link rel="stylesheet" href="css/app.css?v=4">
+  <link rel="stylesheet" href="css/app.css?v=5">
   <link rel="stylesheet" href="css/triagem.css?v=3">
   <link rel="stylesheet" href="css/fogao.css?v=4">
   <link rel="stylesheet" href="css/analise.css?v=2">
@@ -33,7 +33,7 @@
     <!-- Sai quando houver modelo treinado. Até lá, é o que impede que um
          número sintético seja lido como previsão. Fica na barra, e não no
          corpo da página, para valer nas sete telas. -->
-    <p class="model-chip" id="stub-banner">
+    <p class="model-chip termo" title="Identificador do preditor que gerou os números. Enquanto for de demonstração, os valores são sintéticos e não saem de um modelo treinado." id="stub-banner">
       <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.3" aria-hidden="true"><circle cx="7" cy="7" r="5.6"></circle><path d="M7 4.2v3.4"></path><circle cx="7" cy="9.9" r="0.6" fill="currentColor" stroke="none"></circle></svg>
       <span><strong>Modelo <span id="model-version">—</span></strong> · valores sintéticos, não previsões</span>
     </p>

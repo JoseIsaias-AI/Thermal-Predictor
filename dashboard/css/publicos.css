@@ -89,22 +89,6 @@
 .avisos li + li { margin-top: var(--space-2); }
 .avisos strong { color: var(--color-text); font-weight: var(--weight-semibold); }
 
-/* ----- Glossário em tela (marketing) -----
- *
- * Critério de verificação do RNF-07: termo técnico que sobra na interface tem
- * a explicação no próprio elemento, sem exigir outra tela. */
-
-.termo {
-  border-bottom: 1px dotted var(--color-text-subtle);
-  cursor: help;
-  text-decoration: none;
-}
-
-.termo:focus-visible {
-  outline: 2px solid var(--color-focus-ring);
-  outline-offset: 2px;
-}
-
 /* ----- Ajustes sobre componentes da triagem ----- */
 
 /* A triagem limita a tabela a 34rem porque tem 68 linhas. Aqui as tabelas têm

@@ -64,6 +64,32 @@ var LEITURA_PUBLICOS = (function () {
     }
   };
 
+  /* Glossário das áreas por público. Fica aqui, e não em cada tela, para o
+     mesmo termo não ganhar duas definições diferentes em telas vizinhas.
+     A revisão de linguagem cobra que todo termo técnico que sobra na interface
+     tenha explicação no próprio elemento. */
+  var GLOSSARIO = {
+    folga: "Quanto ainda falta para o componente chegar ao seu limite de temperatura. Valor negativo significa que a estimativa já passou do limite.",
+    margem: "Quanto ainda falta para o componente chegar ao seu limite de temperatura. Valor negativo significa que a estimativa já passou do limite.",
+    limite: "Temperatura máxima que o componente pode atingir, definida na especificação do produto.",
+    inconclusivo: "A estimativa ficou perto demais do limite para decidir sozinha. O componente vai para verificação, e não é descartado nem declarado conforme.",
+    modelo: "Programa que aprendeu padrões nas simulações já feitas e, a partir deles, estima a temperatura de uma configuração nova sem precisar simular de novo.",
+    versao: "Identificador do preditor que gerou os números. Enquanto for de demonstração, os valores são sintéticos e não saem de um modelo treinado.",
+    treino: "Conjunto de simulações usado para o modelo aprender. Mudança de material ou de fornecedor posterior a essa data não está refletida na leitura.",
+    simulacao: "Cálculo detalhado do comportamento térmico feito por dinâmica de fluidos computacional. Leva semanas e é o que esta ferramenta ajuda a priorizar, não a substituir.",
+    subsistema: "Conjunto de componentes agrupados por região e função do produto, como os manípulos ou a placa de potência."
+  };
+
+  /* Elemento de termo com a explicação junto. Toda tela usa este, para o
+     glossário não divergir entre elas. */
+  function termo(texto, chave) {
+    var n = document.createElement("abbr");
+    n.className = "termo";
+    n.textContent = texto;
+    n.title = GLOSSARIO[chave] || "";
+    return n;
+  }
+
   function indiceEstado(estado) {
     var i = ORDEM_ESTADOS.indexOf(estado);
     return i < 0 ? ORDEM_ESTADOS.length : i;
@@ -472,6 +498,9 @@ var LEITURA_PUBLICOS = (function () {
     FATORES_DE_DESIGN: FATORES_DE_DESIGN,
     ROTULO_CANONICO: ROTULO_CANONICO,
     ROTULOS: ROTULOS,
+    GLOSSARIO: GLOSSARIO,
+
+    termo: termo,
 
     fonte: fonte,
     todosOsPontos: todosOsPontos,

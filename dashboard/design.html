@@ -9,10 +9,10 @@
        .data-table, .state e .btn vêm de triagem.css; o modelo 3D, de
        fogao.css. publicos.css só acrescenta o que falta. -->
   <link rel="stylesheet" href="css/tokens.css?v=3">
-  <link rel="stylesheet" href="css/app.css?v=4">
+  <link rel="stylesheet" href="css/app.css?v=5">
   <link rel="stylesheet" href="css/triagem.css?v=3">
   <link rel="stylesheet" href="css/fogao.css?v=4">
-  <link rel="stylesheet" href="css/publicos.css?v=7">
+  <link rel="stylesheet" href="css/publicos.css?v=8">
 </head>
 <body>
 
@@ -43,7 +43,7 @@
     <!-- Sai quando houver modelo treinado. Até lá, é o que impede que um
          número sintético seja lido como previsão. Fica na barra, e não no
          corpo da página, para valer nas sete telas. -->
-    <p class="model-chip" id="stub-banner">
+    <p class="model-chip termo" title="Identificador do preditor que gerou os números. Enquanto for de demonstração, os valores são sintéticos e não saem de um modelo treinado." id="stub-banner">
       <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.3" aria-hidden="true"><circle cx="7" cy="7" r="5.6"></circle><path d="M7 4.2v3.4"></path><circle cx="7" cy="9.9" r="0.6" fill="currentColor" stroke="none"></circle></svg>
       <span><strong>Modelo <span id="model-version">—</span></strong> · valores sintéticos, não previsões</span>
     </p>
@@ -67,7 +67,7 @@
             componentes estão, não na média deles.
           </p>
           <p>
-            <strong>Folga</strong> é quanto ainda sobra até o limite de
+            <strong>Folga</strong> é quanto ainda sobra até o <abbr class="termo" title="Temperatura máxima que a peça pode atingir, definida na especificação do produto.">limite</abbr> de
             temperatura da peça. Quanto menor, mais apertado o desenho.
           </p>
           <p>
@@ -82,14 +82,14 @@
   </div>
 
   <ul class="avisos">
-    <li><strong>Estimativa, não medição.</strong> A leitura serve para escolher o que vale levar à engenharia primeiro. Não substitui a simulação nem o ensaio do protótipo.</li>
+    <li><strong>Estimativa, não medição.</strong> A leitura serve para escolher o que vale levar à engenharia primeiro. Não substitui a <abbr class="termo" title="Cálculo detalhado do comportamento térmico feito por dinâmica de fluidos computacional. Leva semanas, e esta ferramenta ajuda a priorizar quais configurações merecem passar por ele.">simulação</abbr> nem o ensaio do protótipo.</li>
     <li><strong>Não é aprovação de peça.</strong> Uma peça viável nesta leitura ainda passa pela verificação formal antes de entrar no desenho final.</li>
   </ul>
 
   <section class="config" id="config-panel" hidden>
     <h2 class="config__title">Configuração avaliada
       <span class="config__tag config__tag--nota" id="config-default-note" hidden
-            title="Nenhuma configuração foi informada. Estes são os fatores de referência do conjunto de dados de exemplo.">referência do dataset</span>
+            title="Nenhuma configuração foi informada. Estes são os fatores de referência do conjunto de dados de exemplo.">referência do conjunto de dados</span>
     </h2>
     <dl class="config__list" id="config-list"></dl>
   </section>
@@ -168,7 +168,7 @@
             <th scope="col">Material do suporte</th>
             <th scope="col">Leitura das peças de contato</th>
             <th scope="col">Peça mais apertada</th>
-            <th scope="col" class="num">Folga (°C)</th>
+            <th scope="col" class="num"><abbr class="termo" title="Quanto ainda falta para a peça chegar ao seu limite de temperatura. Valor negativo significa que a estimativa já passou do limite.">Folga</abbr> (°C)</th>
             <th scope="col" class="num">Rodadas</th>
           </tr>
         </thead>
@@ -190,7 +190,7 @@
 <script src="vendor/three.min.js"></script>
 <script src="js/fogao.js?v=4"></script>
 <script src="js/fogao3d.js?v=6"></script>
-<script src="js/leitura_publicos.js?v=4"></script>
-<script src="js/design.js?v=6"></script>
+<script src="js/leitura_publicos.js?v=5"></script>
+<script src="js/design.js?v=7"></script>
 </body>
 </html>

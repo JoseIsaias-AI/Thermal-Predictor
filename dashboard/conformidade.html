@@ -9,9 +9,9 @@
        são os mesmos componentes das telas anteriores, e é o que impede esta
        parecer outro sistema. publicos.css só acrescenta o que falta. -->
   <link rel="stylesheet" href="css/tokens.css?v=3">
-  <link rel="stylesheet" href="css/app.css?v=4">
+  <link rel="stylesheet" href="css/app.css?v=5">
   <link rel="stylesheet" href="css/triagem.css?v=3">
-  <link rel="stylesheet" href="css/publicos.css?v=7">
+  <link rel="stylesheet" href="css/publicos.css?v=8">
 </head>
 <body>
 
@@ -42,7 +42,7 @@
     <!-- Sai quando houver modelo treinado. Até lá, é o que impede que um
          número sintético seja lido como previsão. Fica na barra, e não no
          corpo da página, para valer nas sete telas. -->
-    <p class="model-chip" id="stub-banner">
+    <p class="model-chip termo" title="Identificador do preditor que gerou os números. Enquanto for de demonstração, os valores são sintéticos e não saem de um modelo treinado." id="stub-banner">
       <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.3" aria-hidden="true"><circle cx="7" cy="7" r="5.6"></circle><path d="M7 4.2v3.4"></path><circle cx="7" cy="9.9" r="0.6" fill="currentColor" stroke="none"></circle></svg>
       <span><strong>Modelo <span id="model-version">—</span></strong> · valores sintéticos, não previsões</span>
     </p>
@@ -87,7 +87,7 @@
   <!-- RF-15, RF-16 e RF-17 ficam abertos nesta tela, e não recolhidos como na
        triagem: é aqui que a saída mais tenderia a ser lida como parecer. -->
   <ul class="avisos">
-    <li><strong>Triagem pré-simulação.</strong> A saída estima o comportamento térmico para ordenar o que simular primeiro. Não substitui a simulação por dinâmica de fluidos computacional nem o ensaio físico.</li>
+    <li><strong>Triagem pré-simulação.</strong> A saída estima o comportamento térmico para ordenar o que simular primeiro. Não substitui a <abbr class="termo" title="Cálculo detalhado do comportamento térmico feito por dinâmica de fluidos computacional. Leva semanas, e esta ferramenta ajuda a priorizar quais configurações merecem passar por ele.">simulação</abbr> nem o ensaio físico.</li>
     <li><strong>Não é parecer de conformidade.</strong> A ferramenta não declara atendimento a norma e não gera evidência formal para auditoria ou certificação.</li>
     <li><strong>Arquitetura única.</strong> Esta prova de conceito cobre a arquitetura presente na base disponível, sem distinguir os requisitos de Brasil e México.</li>
   </ul>
@@ -96,7 +96,7 @@
     <h2 class="config__title">Configuração avaliada
       <span class="config__tag" id="config-origin" hidden></span>
       <span class="config__tag config__tag--nota" id="config-default-note" hidden
-            title="Nenhuma configuração foi informada. Estes são os fatores de referência do conjunto de dados de exemplo.">referência do dataset</span>
+            title="Nenhuma configuração foi informada. Estes são os fatores de referência do conjunto de dados de exemplo.">referência do conjunto de dados</span>
     </h2>
     <dl class="config__list" id="config-list"></dl>
   </section>
@@ -119,14 +119,14 @@
 
     <div class="table-scroll table-scroll--inteira">
       <table class="data-table">
-        <caption>Componentes acima do limite ou dentro da banda de incerteza. Os demais não aparecem aqui, o que não os declara conformes.</caption>
+        <caption>Componentes acima do limite admissível ou inconclusivos. Os demais não aparecem aqui, o que não os declara conformes.</caption>
         <thead>
           <tr>
             <th scope="col">Componente</th>
             <th scope="col" class="num">Prevista (°C)</th>
             <th scope="col" class="num">Limite (°C)</th>
-            <th scope="col" class="num">Folga (°C)</th>
-            <th scope="col" class="num">Folga (%)</th>
+            <th scope="col" class="num"><abbr class="termo" title="Quanto ainda falta para o componente chegar ao seu limite de temperatura. Valor negativo significa que a estimativa já passou do limite.">Folga</abbr> (°C)</th>
+            <th scope="col" class="num"><abbr class="termo" title="A mesma distância até o limite, expressa como fração do próprio limite do componente.">Folga</abbr> (%)</th>
             <th scope="col">Estado</th>
           </tr>
         </thead>
@@ -150,7 +150,7 @@
             <th scope="col">Subsistema</th>
             <th scope="col">Estado</th>
             <th scope="col">Componente que decide</th>
-            <th scope="col" class="num">Pior folga (°C)</th>
+            <th scope="col" class="num">Pior <abbr class="termo" title="Quanto ainda falta para o componente chegar ao seu limite de temperatura. Valor negativo significa que a estimativa já passou do limite.">folga</abbr> (°C)</th>
             <th scope="col" class="num">Acima</th>
             <th scope="col" class="num">Inconclusivos</th>
             <th scope="col" class="num">Dentro</th>
@@ -170,7 +170,7 @@
 <script src="js/dados_triagem.js?v=3"></script>
 <script src="js/dados_comparacao.js?v=3"></script>
 <script src="js/planilha.js?v=1"></script>
-<script src="js/leitura_publicos.js?v=4"></script>
-<script src="js/conformidade.js?v=4"></script>
+<script src="js/leitura_publicos.js?v=5"></script>
+<script src="js/conformidade.js?v=5"></script>
 </body>
 </html>

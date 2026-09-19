@@ -131,7 +131,7 @@
     cartao.appendChild(el("p", "card__note", DESCRICAO_DA_AREA[area] || ""));
     cartao.appendChild(el("p", "card__note card__note--acao",
       avaliados.length + (avaliados.length === 1 ? " ponto medido" : " pontos medidos") +
-      " · clique para ver a peça no modelo"));
+      " · clique para ver a peça em 3D"));
 
     cartao.addEventListener("click", function () { acender(area); });
     cartao.addEventListener("keydown", function (evento) {

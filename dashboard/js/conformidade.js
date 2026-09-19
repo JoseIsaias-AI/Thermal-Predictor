@@ -83,7 +83,13 @@
       ? mat.rodadas + (mat.rodadas === 1 ? " rodada simulada" : " rodadas simuladas")
       : "Nenhuma rodada equivalente");
     item("Modelo", mat.versao_modelo || "—");
-    item("Data-base do treino", mat.data_base_treino || "Não declarada");
+    var dataBase = el("div", "cfg-item");
+    var rotulo = el("dt");
+    rotulo.appendChild(document.createTextNode("Data-base do "));
+    rotulo.appendChild(LP.termo("treino", "treino"));
+    dataBase.appendChild(rotulo);
+    dataBase.appendChild(el("dd", null, mat.data_base_treino || "Não declarada"));
+    lista.appendChild(dataBase);
 
     // A leitura de uma extrapolação não tem o mesmo peso da de uma
     // configuração já rodada, e é o selo que separa as duas.

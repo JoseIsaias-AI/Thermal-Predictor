@@ -203,14 +203,15 @@
       mat.no_historico ? "Configuração já simulada" : "Configuração nova",
       mat.no_historico
         ? "A combinação consta das rodadas anteriores. Entre as leituras disponíveis, é a que menos tende a mudar."
-        : "Nenhuma rodada anterior combina estas escolhas. Esta leitura tende a mudar mais quando a simulação rodar.");
+        : "Nenhuma rodada anterior combina estas escolhas. Esta leitura tende a mudar mais quando o cálculo detalhado da engenharia rodar.");
 
     itemDeMaturidade(lista, "Versão do modelo", mat.versao_modelo || "—",
       "Identifica qual versão gerou os números. Se ela mudar, a leitura precisa ser refeita antes de sustentar peça.",
       { palavra: "modelo", explicacao: "Programa que aprendeu padrões nas simulações já feitas e, a partir deles, estima a temperatura de uma configuração nova sem precisar simular de novo." });
 
     itemDeMaturidade(lista, "Data-base do treino", mat.data_base_treino || "Não declarada",
-      "Até quando vão os dados que treinaram o modelo. Mudança de material ou de fornecedor depois dessa data não está refletida aqui.");
+      "Até quando vão os dados que ensinaram o modelo. Mudança de material ou de fornecedor depois dessa data não está refletida aqui.",
+      { palavra: "treino", explicacao: LP.GLOSSARIO.treino });
 
     document.getElementById("maturidade-nota").textContent = mat.ilustrativo
       ? "Enquanto o painel exibir valores de demonstração, nenhuma leitura desta tela pode sustentar decisão de campanha."
