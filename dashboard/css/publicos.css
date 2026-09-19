@@ -31,6 +31,11 @@
   border-radius: var(--radius);
 }
 
+/* O cartão é flex em coluna: sem isto a pílula de estado estica de ponta a
+   ponta e deixa de parecer um rótulo. */
+.card > .state,
+.card > .config__tag { align-self: flex-start; }
+
 .card__title {
   font-family: var(--font-display);
   font-size: var(--size-body);
@@ -119,3 +124,71 @@
    o respiro abaixo. Aqui ele é uma faixa própria entre o cabeçalho e a tabela,
    e sem margem encostava na primeira linha. */
 .panel > .tally { margin-bottom: var(--space-4); }
+
+/* ----- Tela de design ----- */
+
+/* Cartões e modelo lado a lado: clicar num cartão acende a peça no modelo, e
+   os dois precisam caber no mesmo campo de visão para o gesto fazer sentido. */
+.design-split {
+  display: grid;
+  grid-template-columns: minmax(18rem, 22rem) minmax(0, 1fr);
+  gap: var(--space-4);
+  align-items: start;
+}
+
+@media (max-width: 62rem) {
+  .design-split { grid-template-columns: 1fr; }
+}
+
+.viewport--leitura .viewport__stage { min-height: 22rem; }
+
+.cards--densa { grid-template-columns: repeat(auto-fill, minmax(13rem, 1fr)); }
+
+/* O cartão da peça é um botão: sem o realce de foco e de pressionado, o clique
+   no modelo e o clique no cartão pareceriam gestos diferentes. */
+.card--acionavel {
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 120ms ease;
+}
+
+.card--acionavel:hover { border-color: var(--color-border-strong); }
+
+.card--acionavel:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
+}
+
+.card--acionavel[aria-pressed="true"] {
+  border-left-width: 6px;
+  box-shadow: var(--shadow-card);
+}
+
+.card__note--acao { color: var(--color-text-subtle); }
+
+/* A escolha em vigor tem de saltar entre as opções do mesmo fator. */
+.card--atual { box-shadow: inset 0 0 0 1px var(--color-accent); }
+
+.fator + .fator { margin-top: var(--space-5); }
+
+.fator__titulo {
+  font-family: var(--font-display);
+  font-size: var(--size-subhead);
+  font-weight: 600;
+  color: var(--color-text);
+  margin: 0 0 var(--space-3);
+}
+
+/* Cartão de opção de fator: as opções são lidas em paralelo, então título,
+   selo e número precisam nascer na mesma altura nos três cartões. */
+.card--opcao .card__title {
+  min-height: calc(2 * var(--size-body) * var(--leading-tight));
+}
+
+.config__tag--reservado { visibility: hidden; }
+
+/* A nota que explica a leitura vinha encostada na fileira de cartões. */
+.fator .panel__note {
+  margin-top: var(--space-4);
+  margin-bottom: 0;
+}

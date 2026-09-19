@@ -168,6 +168,154 @@ var LEITURA_PUBLICOS = (function () {
     }));
   }
 
+  /* ----- Leitura do histórico para a tela de design -----
+   *
+   * As funções abaixo leem js/dados_comparacao.js, que traz as configurações
+   * já rodadas. São leitura observacional: as rodadas não variam um fator de
+   * cada vez, então o que sai daqui é o que se viu na base, e não o efeito
+   * isolado de um fator. A tela diz isso em palavras. */
+
+  // Posição, em `catalogo.pontos`, dos pontos de contato com limite declarado.
+  function indicesDeContato(catalogo) {
+    var indices = [];
+    (catalogo.pontos || []).forEach(function (ponto, i) {
+      if (!ponto.mono && AREAS_DE_CONTATO.indexOf(ponto.area) >= 0) indices.push(i);
+    });
+    return indices;
+  }
+
+  function codigoDoEstado(catalogo, indice) {
+    var par = (catalogo.estados || [])[indice];
+    return par ? par[0] : null;
+  }
+
+  /* Resume as peças de contato de uma configuração do histórico. Mesma regra de
+     RN-02 da triagem: pior estado, com o ponto que o sustenta. */
+  function leituraDeContato(catalogo, configuracao, indices) {
+    var alvos = indices || indicesDeContato(catalogo);
+    var contagem = {};
+    ORDEM_ESTADOS.forEach(function (e) { contagem[e] = 0; });
+
+    var pior = null;
+    var piorMargem = null;
+    var piorPonto = null;
+
+    alvos.forEach(function (i) {
+      var estado = codigoDoEstado(catalogo, configuracao.e[i]);
+      var margem = configuracao.m[i];
+      if (contagem[estado] !== undefined) contagem[estado] += 1;
+      if (estado === "monitoramento" || margem === null) return;
+
+      if (pior === null || indiceEstado(estado) < indiceEstado(pior) ||
+          (estado === pior && margem < piorMargem)) {
+        pior = estado;
+        piorMargem = margem;
+        piorPonto = catalogo.pontos[i];
+      }
+    });
+
+    return {
+      estado: pior,
+      pior_margem_c: piorMargem,
+      pior_ponto: piorPonto,
+      contagem: contagem,
+      total: alvos.length
+    };
+  }
+
+  /* O que se observou nas peças de contato para cada nível de um fator. Só os
+     fatores que o design controla passam por aqui. */
+  function efeitoDoFator(catalogo, chave) {
+    var indices = indicesDeContato(catalogo);
+    var ordem = [];
+    var porNivel = {};
+
+    (catalogo.configuracoes || []).forEach(function (config) {
+      var nivel = config.fatores[chave];
+      if (nivel === undefined || nivel === null) return;
+
+      if (!porNivel[nivel]) {
+        porNivel[nivel] = { nivel: nivel, configuracoes: 0, rodadas: 0, pior_margem_c: null, pior_ponto: null, estado: null, criticas: 0 };
+        ordem.push(nivel);
+      }
+
+      var resumo = porNivel[nivel];
+      var leitura = leituraDeContato(catalogo, config, indices);
+
+      resumo.configuracoes += 1;
+      resumo.rodadas += config.rodadas || 0;
+      if (leitura.estado === "acima_do_limite") resumo.criticas += 1;
+
+      if (leitura.pior_margem_c !== null &&
+          (resumo.pior_margem_c === null || leitura.pior_margem_c < resumo.pior_margem_c)) {
+        resumo.pior_margem_c = leitura.pior_margem_c;
+        resumo.pior_ponto = leitura.pior_ponto;
+        resumo.estado = leitura.estado;
+      }
+    });
+
+    return ordem.map(function (nivel) { return porNivel[nivel]; });
+  }
+
+  /* As alternativas que mudam só o que o design decide: os outros quatro
+     fatores categóricos ficam parados e variam apenas a abertura do defletor e
+     o material do suporte. É a comparação que se lê sem pedir tradução, porque
+     a diferença entre as linhas é a escolha do próprio design.
+
+     Agrupa por par de fatores: rodadas que diferem só no arranjo de bobinas
+     descrevem a mesma escolha de design e viravam linhas repetidas. Dentro do
+     grupo vale a mesma regra de RN-02, o pior estado. */
+  function alternativasDeDesign(catalogo, fatores) {
+    var fixos = FATORES_CATEGORICOS.filter(function (chave) {
+      return FATORES_DE_DESIGN.indexOf(chave) < 0;
+    });
+    var indices = indicesDeContato(catalogo);
+    var ordem = [];
+    var grupos = {};
+
+    (catalogo.configuracoes || []).forEach(function (config) {
+      var comparavel = fixos.every(function (chave) {
+        return config.fatores[chave] === (fatores || {})[chave];
+      });
+      if (!comparavel) return;
+
+      var escolha = FATORES_DE_DESIGN.map(function (chave) { return config.fatores[chave]; });
+      var chaveDoGrupo = escolha.join(" | ");
+
+      if (!grupos[chaveDoGrupo]) {
+        grupos[chaveDoGrupo] = {
+          escolha: escolha,
+          fatores: {},
+          configuracoes: [],
+          rodadas: 0,
+          contato: null,
+          igual_a_consulta: FATORES_DE_DESIGN.every(function (chave) {
+            return config.fatores[chave] === (fatores || {})[chave];
+          })
+        };
+        FATORES_DE_DESIGN.forEach(function (chave, k) { grupos[chaveDoGrupo].fatores[chave] = escolha[k]; });
+        ordem.push(chaveDoGrupo);
+      }
+
+      var grupo = grupos[chaveDoGrupo];
+      var leitura = leituraDeContato(catalogo, config, indices);
+
+      grupo.configuracoes.push(config.id);
+      grupo.rodadas += config.rodadas || 0;
+
+      if (!grupo.contato || indiceEstado(leitura.estado) < indiceEstado(grupo.contato.estado) ||
+          (leitura.estado === grupo.contato.estado && leitura.pior_margem_c < grupo.contato.pior_margem_c)) {
+        grupo.contato = leitura;
+      }
+    });
+
+    return ordem.map(function (chave) { return grupos[chave]; }).sort(function (a, b) {
+      var d = indiceEstado(a.contato.estado) - indiceEstado(b.contato.estado);
+      if (d !== 0) return d;
+      return b.contato.pior_margem_c - a.contato.pior_margem_c;
+    });
+  }
+
   /* Rótulo do estado no vocabulário do público. Cai no rótulo canônico quando
      falta mapeamento, para a tela nunca exibir vazio; é o teste que cobra a
      tabela completa. */
@@ -333,6 +481,10 @@ var LEITURA_PUBLICOS = (function () {
     contarEstados: contarEstados,
     porSubsistema: porSubsistema,
     pecasDeContato: pecasDeContato,
+    indicesDeContato: indicesDeContato,
+    leituraDeContato: leituraDeContato,
+    efeitoDoFator: efeitoDoFator,
+    alternativasDeDesign: alternativasDeDesign,
     traduzirEstado: traduzirEstado,
     maturidade: maturidade,
     configuracaoDaUrl: configuracaoDaUrl,

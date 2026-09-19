@@ -286,3 +286,106 @@ test("RN-05: é a configuração avaliada que se procura no histórico, não a d
   // Os metadados do modelo continuam vindo do payload.
   assert.equal(LP.maturidade(M.DADOS, M.CATALOGO, daUrl).versao_modelo, "stub");
 });
+
+test("os pontos de contato do catálogo são os mesmos dez da triagem", function () {
+  var indices = LP.indicesDeContato(M.CATALOGO);
+  var daTriagem = LP.pecasDeContato(TODOS);
+
+  assert.equal(indices.length, 10);
+  assert.equal(daTriagem.length, 10);
+
+  indices.forEach(function (i) {
+    var ponto = M.CATALOGO.pontos[i];
+    assert.ok(LP.AREAS_DE_CONTATO.indexOf(ponto.area) >= 0, ponto.id);
+    assert.equal(ponto.mono, false, "ponto sem limite não entra no semáforo de contato");
+  });
+});
+
+test("a leitura de contato de uma configuração bate com a triagem daquela configuração", function () {
+  var cfg = M.CATALOGO.configuracoes.filter(function (c) {
+    return c.id === M.CATALOGO.config_referencia_triagem;
+  })[0];
+  var leitura = LP.leituraDeContato(M.CATALOGO, cfg);
+  var daTriagem = LP.pecasDeContato(TODOS).filter(function (p) { return p.estado !== "monitoramento"; });
+
+  // A configuração de referência reproduz o payload da triagem ponto a ponto.
+  assert.equal(leitura.total, 10);
+  assert.equal(leitura.estado, daTriagem[0].estado);
+  // Os dois arquivos guardam a mesma folga com arredondamentos diferentes: o
+  // catálogo já vem em duas casas, a triagem traz o ponto flutuante inteiro.
+  assert.ok(Math.abs(leitura.pior_margem_c - daTriagem[0].margem_c) < 0.005,
+    leitura.pior_margem_c + " contra " + daTriagem[0].margem_c);
+  assert.equal(leitura.pior_ponto.nome, daTriagem[0].TC_Name);
+});
+
+test("RN-02 vale também no semáforo de contato", function () {
+  var catalogo = {
+    pontos: [
+      { id: "a", nome: "A", area: "CT Knobs", mono: false },
+      { id: "b", nome: "B", area: "Oven HMI", mono: false },
+      { id: "c", nome: "C", area: "Mainback", mono: false }
+    ],
+    estados: M.CATALOGO.estados
+  };
+  // B está acima do limite; A tem folga larga. O conjunto não fica na média.
+  var leitura = LP.leituraDeContato(catalogo, { e: [2, 0, 0], m: [40, -3, -99] });
+
+  assert.equal(leitura.total, 2, "Mainback não é peça de contato");
+  assert.equal(leitura.estado, "acima_do_limite");
+  assert.equal(leitura.pior_ponto.nome, "B", "o ponto fora do contato não pode ser o que decide");
+  assert.equal(leitura.pior_margem_c, -3);
+});
+
+test("o efeito por fator cobre todos os níveis presentes na base", function () {
+  LP.FATORES_DE_DESIGN.forEach(function (chave) {
+    var niveis = LP.efeitoDoFator(M.CATALOGO, chave);
+    var soma = niveis.reduce(function (acc, n) { return acc + n.configuracoes; }, 0);
+
+    assert.ok(niveis.length >= 2, chave + " precisa de mais de um nível para haver escolha");
+    assert.equal(soma, M.CATALOGO.total_configuracoes, chave);
+
+    niveis.forEach(function (n) {
+      assert.ok(n.configuracoes > 0, chave + " / " + n.nivel);
+      assert.ok(n.criticas <= n.configuracoes, chave + " / " + n.nivel);
+      if (n.pior_ponto) {
+        assert.ok(LP.AREAS_DE_CONTATO.indexOf(n.pior_ponto.area) >= 0, n.pior_ponto.id);
+      }
+    });
+  });
+});
+
+test("as alternativas mudam só o que o design decide", function () {
+  var alternativas = LP.alternativasDeDesign(M.CATALOGO, M.DADOS.configuracao);
+  var fixos = ["blower_direction", "housing", "board_position", "run_case"];
+  var vistas = {};
+
+  assert.ok(alternativas.length >= 2, "sem segunda opção não há o que comparar");
+
+  alternativas.forEach(function (a) {
+    fixos.forEach(function (chave) {
+      assert.equal(a.fatores[chave], undefined, chave + " não é escolha de design e não entra na linha");
+    });
+    assert.equal(a.escolha.length, 2);
+
+    // Um par de níveis por linha: rodadas que diferem só no arranjo de bobinas
+    // descrevem a mesma escolha de design.
+    var chave = a.escolha.join("|");
+    assert.equal(vistas[chave], undefined, "par repetido: " + chave);
+    vistas[chave] = true;
+
+    assert.ok(a.configuracoes.length >= 1);
+    assert.ok(a.rodadas >= a.configuracoes.length);
+  });
+
+  var consultadas = alternativas.filter(function (a) { return a.igual_a_consulta; });
+  assert.equal(consultadas.length, 1, "a própria consulta aparece uma vez entre as alternativas");
+  assert.equal(consultadas[0].fatores.deflector_hole, M.DADOS.configuracao.deflector_hole);
+  assert.equal(consultadas[0].fatores.material_coil_support, M.DADOS.configuracao.material_coil_support);
+});
+
+test("configuração sem par no histórico não inventa alternativa", function () {
+  var alternativas = LP.alternativasDeDesign(M.CATALOGO, {
+    blower_direction: "To Back", housing: "Open - Updated", board_position: "Right", run_case: "Broil C1"
+  });
+  assert.equal(alternativas.length, 0);
+});
