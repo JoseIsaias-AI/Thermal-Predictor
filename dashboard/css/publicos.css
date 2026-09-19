@@ -1,0 +1,216 @@
+/* Estilos das áreas por público: conformidade, design e marketing.
+ *
+ * Carrega depois de css/triagem.css e reaproveita o que já existe lá:
+ * .page-head, .panel, .config, .data-table, .state, .tally e .btn. Aqui só
+ * entra o que essas telas têm e as quatro anteriores não têm. Nenhuma cor
+ * nova: "acima do limite" precisa ser a mesma coisa nas sete telas.
+ */
+
+/* ----- Cartões de leitura (design e marketing) -----
+ *
+ * Substituem a tabela onde o público não lê dado bruto (RF-25, RF-27). Mesma
+ * regra de cor da triagem: só o estado que exige ação recebe cor forte. */
+
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  background: var(--color-surface);
+  border: var(--border-width) solid var(--color-border);
+  border-left: 3px solid var(--color-border-strong);
+  border-radius: var(--radius);
+}
+
+/* O cartão é flex em coluna: sem isto a pílula de estado estica de ponta a
+   ponta e deixa de parecer um rótulo. */
+.card > .state,
+.card > .config__tag { align-self: flex-start; }
+
+.card__title {
+  font-family: var(--font-display);
+  font-size: var(--size-body);
+  font-weight: 600;
+  line-height: var(--leading-tight);
+  color: var(--color-text);
+  margin: 0;
+}
+
+.card__note {
+  font-size: var(--size-small);
+  color: var(--color-text-muted);
+  line-height: var(--leading-body);
+  margin: 0;
+}
+
+/* Número grande só onde ele decide; o rótulo textual continua obrigatório. */
+.card__metric {
+  font-family: var(--font-display);
+  font-size: var(--size-metric);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  color: var(--color-text);
+}
+
+.card__metric--negative { color: var(--color-critical); }
+
+.card--acima_do_limite { border-left-color: var(--color-critical); background: var(--color-critical-bg); }
+.card--banda_de_incerteza { border-left-color: var(--color-accent); background: var(--color-surface-accent); }
+.card--dentro_do_limite { border-left-color: var(--color-positive); }
+.card--monitoramento { border-left-style: dashed; }
+
+/* ----- Faixa de avisos (conformidade) -----
+ *
+ * RF-15, RF-16 e RF-17 ficam abertos nesta tela. O .scope-notice da triagem é
+ * recolhível, e é justamente aqui que a saída mais tenderia a ser lida como
+ * parecer de conformidade. */
+
+.avisos {
+  margin: 0 0 var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-surface-sunken);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius);
+  list-style: none;
+  font-size: var(--size-small);
+  color: var(--color-text-muted);
+  line-height: var(--leading-body);
+}
+
+.avisos li + li { margin-top: var(--space-2); }
+.avisos strong { color: var(--color-text); font-weight: var(--weight-semibold); }
+
+/* ----- Ajustes sobre componentes da triagem ----- */
+
+/* A triagem limita a tabela a 34rem porque tem 68 linhas. Aqui as tabelas têm
+   33 e 7: com o recorte, sobrava uma linha cortada sob o cabeçalho fixo e a
+   leitura ficava presa num painel rolando dentro da página. */
+.table-scroll--inteira { max-height: none; }
+
+/* Dois selos no mesmo título: o primeiro classifica a configuração, o segundo
+   só avisa a procedência. Pesos diferentes para não competirem. */
+.config__tag--nota {
+  color: var(--color-text-muted);
+  background: var(--color-surface-sunken);
+  box-shadow: inset 0 0 0 1px var(--color-border);
+}
+
+/* Na triagem o resumo de contagem mora dentro do .panel__head, que já reserva
+   o respiro abaixo. Aqui ele é uma faixa própria entre o cabeçalho e a tabela,
+   e sem margem encostava na primeira linha. */
+.panel > .tally { margin-bottom: var(--space-4); }
+
+/* ----- Tela de design ----- */
+
+/* Cartões e modelo lado a lado: clicar num cartão acende a peça no modelo, e
+   os dois precisam caber no mesmo campo de visão para o gesto fazer sentido. */
+.design-split {
+  display: grid;
+  grid-template-columns: minmax(18rem, 22rem) minmax(0, 1fr);
+  gap: var(--space-4);
+  align-items: start;
+}
+
+@media (max-width: 62rem) {
+  .design-split { grid-template-columns: 1fr; }
+}
+
+.viewport--leitura .viewport__stage { min-height: 22rem; }
+
+.cards--densa { grid-template-columns: repeat(auto-fill, minmax(13rem, 1fr)); }
+
+/* O cartão da peça é um botão: sem o realce de foco e de pressionado, o clique
+   no modelo e o clique no cartão pareceriam gestos diferentes. */
+.card--acionavel {
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 120ms ease;
+}
+
+.card--acionavel:hover { border-color: var(--color-border-strong); }
+
+.card--acionavel:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
+}
+
+.card--acionavel[aria-pressed="true"] {
+  border-left-width: 6px;
+  box-shadow: var(--shadow-card);
+}
+
+.card__note--acao { color: var(--color-text-subtle); }
+
+/* A escolha em vigor tem de saltar entre as opções do mesmo fator. */
+.card--atual { box-shadow: inset 0 0 0 1px var(--color-accent); }
+
+.fator + .fator { margin-top: var(--space-5); }
+
+.fator__titulo {
+  font-family: var(--font-display);
+  font-size: var(--size-subhead);
+  font-weight: 600;
+  color: var(--color-text);
+  margin: 0 0 var(--space-3);
+}
+
+/* Cartão de opção de fator: as opções são lidas em paralelo, então título,
+   selo e número precisam nascer na mesma altura nos três cartões. */
+.card--opcao .card__title {
+  min-height: calc(2 * var(--size-body) * var(--leading-tight));
+}
+
+.config__tag--reservado { visibility: hidden; }
+
+/* A nota que explica a leitura vinha encostada na fileira de cartões. */
+.fator .panel__note {
+  margin-top: var(--space-4);
+  margin-bottom: 0;
+}
+
+/* ----- Tela de marketing ----- */
+
+/* A faixa de avisos da conformidade informa; esta impede. É onde uma leitura
+   otimista viraria promessa publicada, então ela sai do cinza. */
+.avisos--forte {
+  background: var(--color-critical-bg);
+  border-color: var(--color-critical-line);
+  color: var(--color-text);
+}
+
+.avisos--forte strong { color: var(--color-critical); }
+
+/* A consequência é o que a pessoa leva da tela; o resto do cartão é apoio. */
+.card__consequencia {
+  margin: 0;
+  font-size: var(--size-body);
+  line-height: var(--leading-body);
+  color: var(--color-text);
+}
+
+.maturidade {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+  gap: var(--space-4);
+  margin: 0 0 var(--space-4);
+}
+
+.maturidade .cfg-item dd { margin-top: var(--space-1); }
+
+.maturidade__nota {
+  display: block;
+  margin-top: var(--space-1);
+  font-size: var(--size-small);
+  font-weight: var(--weight-regular);
+  color: var(--color-text-muted);
+  line-height: var(--leading-body);
+}

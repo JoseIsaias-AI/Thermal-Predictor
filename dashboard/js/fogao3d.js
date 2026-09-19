@@ -119,19 +119,60 @@ var FOGAO3D = (function () {
     });
   }
 
+  /* O que o display do forno mostra em cada caso de operação. Representação
+     esquemática, como o resto do modelo: o rótulo acompanha o regime escolhido
+     no formulário, e a temperatura é a ordem de grandeza do ciclo, não uma
+     especificação de produto. */
+  var DISPLAY_POR_CASO = {
+    "Broil Qualitative": { modo: "BROIL", valor: "180°" },
+    "Broil C1": { modo: "BROIL C1", valor: "180°" },
+    "Broil C2": { modo: "BROIL C2", valor: "180°" },
+    "Pyro": { modo: "PYRO", valor: "480°" }
+  };
+  var DISPLAY_PADRAO = { modo: "BROIL", valor: "180°" };
+
+  function pintarDisplay(c, w, h, caso) {
+    var leitura = DISPLAY_POR_CASO[caso] || DISPLAY_PADRAO;
+
+    c.clearRect(0, 0, w, h);
+    c.fillStyle = "#050607"; c.fillRect(0, 0, w, h);
+    c.shadowColor = "rgba(90,200,255,0.9)"; c.shadowBlur = 14;
+    c.fillStyle = "#8fdcff";
+    c.font = "bold 92px 'Segoe UI', Arial, sans-serif";
+    c.textAlign = "center"; c.textBaseline = "middle";
+    c.fillText(leitura.valor, w / 2, h / 2 + 4);
+    c.font = "600 26px 'Segoe UI', Arial, sans-serif";
+    c.fillStyle = "rgba(143,220,255,0.75)";
+    // À esquerda, e não centrado num ponto fixo: "BROIL C2" é bem mais largo
+    // que "PYRO" e escaparia do vidro.
+    c.textAlign = "left";
+    c.fillText(leitura.modo, 26, h / 2);
+    c.textAlign = "right";
+    c.fillText("12:45", w - 26, h / 2);
+  }
+
+  /* O display é a única textura que muda depois de pronta, e por isso não passa
+     por `textura`: cada peça clona os seus materiais ao ser construída, então
+     trocar o mapa do material original não alcançaria os clones. Repintar o
+     canvas da textura alcança, porque a instância é a mesma em todos. */
   function texDisplay() {
-    return textura(512, 208, function (c, w, h) {
-      c.fillStyle = "#050607"; c.fillRect(0, 0, w, h);
-      c.shadowColor = "rgba(90,200,255,0.9)"; c.shadowBlur = 14;
-      c.fillStyle = "#8fdcff";
-      c.font = "bold 92px 'Segoe UI', Arial, sans-serif";
-      c.textAlign = "center"; c.textBaseline = "middle";
-      c.fillText("180°", w / 2, h / 2 + 4);
-      c.font = "600 26px 'Segoe UI', Arial, sans-serif";
-      c.fillStyle = "rgba(143,220,255,0.75)";
-      c.fillText("BROIL", 70, h / 2);
-      c.fillText("12:45", w - 72, h / 2);
-    });
+    var largura = 512, altura = 208;
+    var cv = document.createElement("canvas");
+    cv.width = largura; cv.height = altura;
+
+    var ctx = cv.getContext("2d");
+    pintarDisplay(ctx, largura, altura, null);
+
+    var tx = new T.CanvasTexture(cv);
+    tx.colorSpace = T.SRGBColorSpace;
+    tx.anisotropy = 8;
+    tx.userData.repintar = function (caso) {
+      if (tx.userData.caso === caso) return;
+      tx.userData.caso = caso;
+      pintarDisplay(ctx, largura, altura, caso);
+      tx.needsUpdate = true;
+    };
+    return tx;
   }
 
   // Mapa de transparência de chapa perfurada: aberta vira venezianas largas.
@@ -2208,6 +2249,11 @@ var FOGAO3D = (function () {
         // Só o nível mudou: as peças já existem, basta atualizar quem aparece.
         var nova = FOGAO.pecas(op);
         nova.forEach(function (pc) { estado.pecas[pc.id].pc.present = pc.present; });
+      }
+
+      // Só o rótulo do display depende do caso de operação; a geometria, não.
+      if (M.display.map && M.display.map.userData.repintar) {
+        M.display.map.userData.repintar(op.caso);
       }
 
       var campo = op.modo === "calor" && op.vista === "campo";

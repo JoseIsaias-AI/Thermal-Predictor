@@ -294,6 +294,7 @@
       placa: input.board_position === "Right" ? "right" : "center",
       soprador: input.blower_direction === "To Back" ? "back" : input.blower_direction ? "front" : null,
       alojamento: input.housing && input.housing !== "Closed" ? "open" : "closed",
+      caso: input.run_case,
       material: input.material_coil_support === "Plastic" ? "plastic"
         : input.material_coil_support === "Aluminium Plate" ? "plate" : "aluminium",
       novo: destaque
@@ -355,7 +356,18 @@
       return;
     }
 
-    window.location.href = TELA_RESULTADO + "?" + paraQueryString(input);
+    /* A passagem leva o mesmo modelo que o formulário montou para o centro da
+       tela e navega ao terminar. O destino já sai calculado daqui: o que a
+       animação faz é ocupar o intervalo, não escolher para onde ir. */
+    ANALISE.executar({
+      palco: palco,
+      destino: TELA_RESULTADO + "?" + paraQueryString(input),
+      aoExplodir: function (valor) {
+        explodido = valor;
+        redesenhar({ arrastando: true });
+      },
+      aoMudarCamera: function (nome) { modelo.preset(nome); }
+    });
   });
 
   buildForm();

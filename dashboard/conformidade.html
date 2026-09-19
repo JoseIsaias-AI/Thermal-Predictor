@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Conformidade — Thermal Predictor</title>
+
+  <!-- triagem.css vem junto: .page-head, .config, .data-table, .state e .btn
+       são os mesmos componentes das telas anteriores, e é o que impede esta
+       parecer outro sistema. publicos.css só acrescenta o que falta. -->
+  <link rel="stylesheet" href="css/tokens.css?v=3">
+  <link rel="stylesheet" href="css/app.css?v=5">
+  <link rel="stylesheet" href="css/triagem.css?v=3">
+  <link rel="stylesheet" href="css/publicos.css?v=8">
+</head>
+<body>
+
+<header class="masthead">
+  <div class="masthead__inner">
+    <!-- O amarelo do anel é da marca e não se recolore. A proibição de
+         misturar paletas vale para a interface, não para o logotipo. -->
+    <img class="masthead__logo" src="img/logo-whirlpool.png"
+         alt="Whirlpool Corporation" width="1259" height="419">
+
+    <div class="masthead__identity">
+      <p class="masthead__kicker">Conformidade</p>
+      <h1 class="masthead__system-name">Thermal Predictor</h1>
+    </div>
+
+    <nav class="nav" aria-label="Telas do painel">
+    <a class="nav__link" href="index.html">Consulta</a>
+    <a class="nav__link" href="triagem.html">Triagem</a>
+    <a class="nav__link" href="comparacao.html">Comparação</a>
+    <a class="nav__link" href="conformidade.html" aria-current="page">Conformidade</a>
+    <a class="nav__link" href="design.html">Design</a>
+    <a class="nav__link" href="marketing.html">Marketing</a>
+    <a class="nav__link" href="engenharia.html">Engenharia</a>
+    </nav>
+
+    <span class="masthead__push"></span>
+
+    <!-- Sai quando houver modelo treinado. Até lá, é o que impede que um
+         número sintético seja lido como previsão. Fica na barra, e não no
+         corpo da página, para valer nas sete telas. -->
+    <p class="model-chip termo" title="Identificador do preditor que gerou os números. Enquanto for de demonstração, os valores são sintéticos e não saem de um modelo treinado." id="stub-banner">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.3" aria-hidden="true"><circle cx="7" cy="7" r="5.6"></circle><path d="M7 4.2v3.4"></path><circle cx="7" cy="9.9" r="0.6" fill="currentColor" stroke="none"></circle></svg>
+      <span><strong>Modelo <span id="model-version">—</span></strong> · valores sintéticos, não previsões</span>
+    </p>
+  </div>
+</header>
+
+<main class="page">
+
+  <div class="page-head">
+    <div class="page-head__text">
+      <h2 class="page-head__title">Conformidade térmica</h2>
+      <p class="page-head__sub">Leitura por componente contra o limite admissível · insumo para decidir quando iniciar a validação formal</p>
+    </div>
+    <div class="page-head__actions">
+      <details class="scope-notice">
+        <summary>Como ler</summary>
+        <div class="scope-notice__body">
+          <p>
+            <strong>Folga</strong> é a distância entre a temperatura prevista e
+            o limite admissível do componente. Folga negativa significa
+            previsão acima do limite.
+          </p>
+          <p>
+            <strong>Inconclusivo</strong>: folga menor que
+            <span id="tolerance-fraction">10%</span> do limite. O componente
+            vai para verificação, não é descartado nem declarado conforme.
+          </p>
+          <p>
+            O estado de cada subsistema é o <strong>pior</strong> dos seus
+            componentes avaliados, nunca a média. Um único componente acima do
+            limite torna o subsistema crítico.
+          </p>
+        </div>
+      </details>
+      <!-- RF-22. Rotulado no próprio botão, e não só no arquivo: é onde a
+           pessoa decide exportar. -->
+      <button class="btn btn--ghost" type="button" id="export-csv" disabled>Exportar planilha</button>
+      <a class="btn btn--ghost" href="index.html">Alterar configuração</a>
+    </div>
+  </div>
+
+  <!-- RF-15, RF-16 e RF-17 ficam abertos nesta tela, e não recolhidos como na
+       triagem: é aqui que a saída mais tenderia a ser lida como parecer. -->
+  <ul class="avisos">
+    <li><strong>Triagem pré-simulação.</strong> A saída estima o comportamento térmico para ordenar o que simular primeiro. Não substitui a <abbr class="termo" title="Cálculo detalhado do comportamento térmico feito por dinâmica de fluidos computacional. Leva semanas, e esta ferramenta ajuda a priorizar quais configurações merecem passar por ele.">simulação</abbr> nem o ensaio físico.</li>
+    <li><strong>Não é parecer de conformidade.</strong> A ferramenta não declara atendimento a norma e não gera evidência formal para auditoria ou certificação.</li>
+    <li><strong>Arquitetura única.</strong> Esta prova de conceito cobre a arquitetura presente na base disponível, sem distinguir os requisitos de Brasil e México.</li>
+  </ul>
+
+  <section class="config" id="config-panel" hidden>
+    <h2 class="config__title">Configuração avaliada
+      <span class="config__tag" id="config-origin" hidden></span>
+      <span class="config__tag config__tag--nota" id="config-default-note" hidden
+            title="Nenhuma configuração foi informada. Estes são os fatores de referência do conjunto de dados de exemplo.">referência do conjunto de dados</span>
+    </h2>
+    <dl class="config__list" id="config-list"></dl>
+  </section>
+
+  <p class="status-line" id="loading">Carregando leitura de conformidade…</p>
+
+  <section class="error" id="error" hidden>
+    <span class="error__label">Leitura indisponível</span>
+    <span id="error-message"></span>
+  </section>
+
+  <!-- RF-24: o componente que reprova, e não o resultado do conjunto. -->
+  <section class="panel" id="reprovados-panel" hidden>
+    <div class="panel__head">
+      <h2 class="panel__title">Componentes que travam a decisão</h2>
+      <p class="panel__meta"><span id="reprovados-count">—</span> de <span id="avaliados-count">—</span> componentes avaliados · da folga mais apertada para a menos</p>
+    </div>
+
+    <ul class="tally" id="tally"></ul>
+
+    <div class="table-scroll table-scroll--inteira">
+      <table class="data-table">
+        <caption>Componentes acima do limite admissível ou inconclusivos. Os demais não aparecem aqui, o que não os declara conformes.</caption>
+        <thead>
+          <tr>
+            <th scope="col">Componente</th>
+            <th scope="col" class="num">Prevista (°C)</th>
+            <th scope="col" class="num">Limite (°C)</th>
+            <th scope="col" class="num"><abbr class="termo" title="Quanto ainda falta para o componente chegar ao seu limite de temperatura. Valor negativo significa que a estimativa já passou do limite.">Folga</abbr> (°C)</th>
+            <th scope="col" class="num"><abbr class="termo" title="A mesma distância até o limite, expressa como fração do próprio limite do componente.">Folga</abbr> (%)</th>
+            <th scope="col">Estado</th>
+          </tr>
+        </thead>
+        <tbody id="reprovados-body"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- RN-02: pior estado por subsistema, com o componente que o sustenta. -->
+  <section class="panel" id="subsistemas-panel" hidden>
+    <div class="panel__head">
+      <h2 class="panel__title">Onde antecipar a checagem</h2>
+      <p class="panel__meta">Os sete subsistemas, do mais crítico para o menos</p>
+    </div>
+
+    <div class="table-scroll table-scroll--inteira">
+      <table class="data-table">
+        <caption>O estado do subsistema é o pior dos seus componentes avaliados. Pontos sem limite declarado entram na contagem de monitorados e não recebem estado.</caption>
+        <thead>
+          <tr>
+            <th scope="col">Subsistema</th>
+            <th scope="col">Estado</th>
+            <th scope="col">Componente que decide</th>
+            <th scope="col" class="num">Pior <abbr class="termo" title="Quanto ainda falta para o componente chegar ao seu limite de temperatura. Valor negativo significa que a estimativa já passou do limite.">folga</abbr> (°C)</th>
+            <th scope="col" class="num">Acima</th>
+            <th scope="col" class="num">Inconclusivos</th>
+            <th scope="col" class="num">Dentro</th>
+            <th scope="col" class="num">Monitorados</th>
+          </tr>
+        </thead>
+        <tbody id="subsistemas-body"></tbody>
+      </table>
+    </div>
+  </section>
+
+</main>
+
+<!-- schema.js traduz a configuração em rótulos legíveis; dados_comparacao.js
+     é o histórico que RN-05 consulta. Ambos antes de leitura_publicos.js. -->
+<script src="js/schema.js?v=3"></script>
+<script src="js/dados_triagem.js?v=3"></script>
+<script src="js/dados_comparacao.js?v=3"></script>
+<script src="js/planilha.js?v=1"></script>
+<script src="js/leitura_publicos.js?v=5"></script>
+<script src="js/conformidade.js?v=5"></script>
+</body>
+</html>

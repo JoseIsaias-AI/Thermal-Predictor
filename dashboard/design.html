@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Design — Thermal Predictor</title>
+
+  <!-- Mesmos componentes das telas anteriores: .page-head, .config,
+       .data-table, .state e .btn vêm de triagem.css; o modelo 3D, de
+       fogao.css. publicos.css só acrescenta o que falta. -->
+  <link rel="stylesheet" href="css/tokens.css?v=3">
+  <link rel="stylesheet" href="css/app.css?v=5">
+  <link rel="stylesheet" href="css/triagem.css?v=3">
+  <link rel="stylesheet" href="css/fogao.css?v=4">
+  <link rel="stylesheet" href="css/publicos.css?v=8">
+</head>
+<body>
+
+<header class="masthead">
+  <div class="masthead__inner">
+    <!-- O amarelo do anel é da marca e não se recolore. A proibição de
+         misturar paletas vale para a interface, não para o logotipo. -->
+    <img class="masthead__logo" src="img/logo-whirlpool.png"
+         alt="Whirlpool Corporation" width="1259" height="419">
+
+    <div class="masthead__identity">
+      <p class="masthead__kicker">Design</p>
+      <h1 class="masthead__system-name">Thermal Predictor</h1>
+    </div>
+
+    <nav class="nav" aria-label="Telas do painel">
+    <a class="nav__link" href="index.html">Consulta</a>
+    <a class="nav__link" href="triagem.html">Triagem</a>
+    <a class="nav__link" href="comparacao.html">Comparação</a>
+    <a class="nav__link" href="conformidade.html">Conformidade</a>
+    <a class="nav__link" href="design.html" aria-current="page">Design</a>
+    <a class="nav__link" href="marketing.html">Marketing</a>
+    <a class="nav__link" href="engenharia.html">Engenharia</a>
+    </nav>
+
+    <span class="masthead__push"></span>
+
+    <!-- Sai quando houver modelo treinado. Até lá, é o que impede que um
+         número sintético seja lido como previsão. Fica na barra, e não no
+         corpo da página, para valer nas sete telas. -->
+    <p class="model-chip termo" title="Identificador do preditor que gerou os números. Enquanto for de demonstração, os valores são sintéticos e não saem de um modelo treinado." id="stub-banner">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.3" aria-hidden="true"><circle cx="7" cy="7" r="5.6"></circle><path d="M7 4.2v3.4"></path><circle cx="7" cy="9.9" r="0.6" fill="currentColor" stroke="none"></circle></svg>
+      <span><strong>Modelo <span id="model-version">—</span></strong> · valores sintéticos, não previsões</span>
+    </p>
+  </div>
+</header>
+
+<main class="page">
+
+  <div class="page-head">
+    <div class="page-head__text">
+      <h2 class="page-head__title">Calor nas peças que a pessoa toca</h2>
+      <p class="page-head__sub">Leitura das escolhas de acabamento antes de fechar o desenho · manípulos, console e o efeito do que o design controla</p>
+    </div>
+    <div class="page-head__actions">
+      <details class="scope-notice">
+        <summary>Como ler</summary>
+        <div class="scope-notice__body">
+          <p>
+            Cada peça recebe o resultado do <strong>seu componente mais
+            quente</strong>. Uma peça só é viável quando todos os seus
+            componentes estão, não na média deles.
+          </p>
+          <p>
+            <strong>Folga</strong> é quanto ainda sobra até o <abbr class="termo" title="Temperatura máxima que a peça pode atingir, definida na especificação do produto.">limite</abbr> de
+            temperatura da peça. Quanto menor, mais apertado o desenho.
+          </p>
+          <p>
+            <em>A verificar</em> não é reprovação: significa que a estimativa
+            chegou perto demais do limite para decidir sozinha, e a engenharia
+            precisa confirmar.
+          </p>
+        </div>
+      </details>
+      <a class="btn btn--ghost" href="index.html">Alterar configuração</a>
+    </div>
+  </div>
+
+  <ul class="avisos">
+    <li><strong>Estimativa, não medição.</strong> A leitura serve para escolher o que vale levar à engenharia primeiro. Não substitui a <abbr class="termo" title="Cálculo detalhado do comportamento térmico feito por dinâmica de fluidos computacional. Leva semanas, e esta ferramenta ajuda a priorizar quais configurações merecem passar por ele.">simulação</abbr> nem o ensaio do protótipo.</li>
+    <li><strong>Não é aprovação de peça.</strong> Uma peça viável nesta leitura ainda passa pela verificação formal antes de entrar no desenho final.</li>
+  </ul>
+
+  <section class="config" id="config-panel" hidden>
+    <h2 class="config__title">Configuração avaliada
+      <span class="config__tag config__tag--nota" id="config-default-note" hidden
+            title="Nenhuma configuração foi informada. Estes são os fatores de referência do conjunto de dados de exemplo.">referência do conjunto de dados</span>
+    </h2>
+    <dl class="config__list" id="config-list"></dl>
+  </section>
+
+  <p class="status-line" id="loading">Carregando leitura de design…</p>
+
+  <section class="error" id="error" hidden>
+    <span class="error__label">Leitura indisponível</span>
+    <span id="error-message"></span>
+  </section>
+
+  <!-- Cartões e modelo lado a lado: clicar no cartão acende a peça no modelo. -->
+  <section class="panel" id="contato-panel" hidden>
+    <div class="panel__head">
+      <h2 class="panel__title">Peças que a pessoa toca</h2>
+      <p class="panel__meta"><span id="contato-count">—</span> pontos de medição nessas peças</p>
+    </div>
+
+    <div class="design-split">
+      <ul class="cards" id="contato-cards"></ul>
+
+      <div class="viewport viewport--leitura">
+        <div class="viewport__bar viewport__bar--camera">
+          <span class="bar-label">Câmera</span>
+          <span class="toggle" id="view-preset" role="group" aria-label="Vistas de câmera">
+            <button type="button" data-preset="isometrica" aria-pressed="true">Isométrica</button>
+            <button type="button" data-preset="frontal" aria-pressed="false">Frontal</button>
+            <button type="button" data-preset="lateral" aria-pressed="false">Lateral</button>
+            <button type="button" data-preset="superior" aria-pressed="false">Superior</button>
+          </span>
+        </div>
+
+        <div class="viewport__stage">
+          <div class="viewport__3d" id="design-3d" role="application" tabindex="0"
+               aria-roledescription="modelo 3D navegável"
+               aria-label="Modelo do fogão montado conforme a configuração avaliada"></div>
+        </div>
+
+        <p class="viewport__disclaimer">
+          <strong>Representação esquemática</strong>
+          Sem CAD · proporções aproximadas · não dimensional
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Os dois fatores sob influência do design, e só eles. -->
+  <section class="panel" id="fatores-panel" hidden>
+    <div class="panel__head">
+      <h2 class="panel__title">O que está na sua mão</h2>
+      <p class="panel__meta">Como cada escolha apareceu nas rodadas já simuladas</p>
+    </div>
+
+    <p class="panel__note">
+      As rodadas da base não variam uma escolha de cada vez. O que aparece aqui
+      é <strong>o que se observou</strong> junto de cada opção, e não o efeito
+      isolado dela.
+    </p>
+
+    <div id="fatores-blocos"></div>
+  </section>
+
+  <!-- Mesmas condições de operação, variando só o que o design decide. -->
+  <section class="panel" id="alternativas-panel" hidden>
+    <div class="panel__head">
+      <h2 class="panel__title">Alternativas com as mesmas condições</h2>
+      <p class="panel__meta">Rodadas que mudam só a abertura do defletor e o material do suporte</p>
+    </div>
+
+    <div class="table-scroll table-scroll--inteira">
+      <table class="data-table">
+        <caption>Os demais fatores de projeto ficam parados nestas linhas, então a diferença entre elas é a escolha do design.</caption>
+        <thead>
+          <tr>
+            <th scope="col">Abertura do defletor</th>
+            <th scope="col">Material do suporte</th>
+            <th scope="col">Leitura das peças de contato</th>
+            <th scope="col">Peça mais apertada</th>
+            <th scope="col" class="num"><abbr class="termo" title="Quanto ainda falta para a peça chegar ao seu limite de temperatura. Valor negativo significa que a estimativa já passou do limite.">Folga</abbr> (°C)</th>
+            <th scope="col" class="num">Rodadas</th>
+          </tr>
+        </thead>
+        <tbody id="alternativas-body"></tbody>
+      </table>
+    </div>
+
+    <p class="panel__note" id="alternativas-vazio" hidden>
+      Nenhuma rodada da base mantém estas condições de operação variando só as
+      escolhas de design. Sem par de comparação, a leitura acima vale sozinha.
+    </p>
+  </section>
+
+</main>
+
+<script src="js/schema.js?v=3"></script>
+<script src="js/dados_triagem.js?v=3"></script>
+<script src="js/dados_comparacao.js?v=3"></script>
+<script src="vendor/three.min.js"></script>
+<script src="js/fogao.js?v=4"></script>
+<script src="js/fogao3d.js?v=6"></script>
+<script src="js/leitura_publicos.js?v=5"></script>
+<script src="js/design.js?v=7"></script>
+</body>
+</html>
