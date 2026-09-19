@@ -20,12 +20,13 @@ var JS = path.join(__dirname, "..", "js");
 
 function carregar() {
   var ctx = vm.createContext({ window: {} });
-  ["dados_triagem.js", "dados_comparacao.js", "leitura_publicos.js"].forEach(function (f) {
+  ["schema.js", "dados_triagem.js", "dados_comparacao.js", "leitura_publicos.js"].forEach(function (f) {
     vm.runInContext(fs.readFileSync(path.join(JS, f), "utf8"), ctx, { filename: f });
   });
   return {
     DADOS: vm.runInContext("DADOS_TRIAGEM", ctx),
     CATALOGO: vm.runInContext("DADOS_COMPARACAO", ctx),
+    SCHEMA: vm.runInContext("SCHEMA", ctx),
     LP: vm.runInContext("LEITURA_PUBLICOS", ctx)
   };
 }
@@ -189,34 +190,34 @@ test("configuração fora do vocabulário da base é sinalizada como nova", func
   assert.equal(mat.rodadas, 0);
 });
 
-test("RF-22: o CSV sai rotulado como registro de trabalho e nega ser evidência", function () {
-  var colunas = [
-    { titulo: "Componente", valor: function (p) { return p.TC_Name; } },
-    { titulo: "Folga (°C)", valor: function (p) { return LP.numero(p.margem_c); } }
-  ];
-  var mat = LP.maturidade(M.DADOS, M.CATALOGO);
-  var csv = LP.paraCsv(LP.reprovados(TODOS), colunas, LP.preambuloDeRegistro(mat));
-  var linhas = csv.split("\r\n");
-  var preambulo = linhas.filter(function (l) { return l.indexOf("# ") === 0; });
+test("a procedência do registro tem campo curto e diz o que o arquivo não é", function () {
+  var meta = LP.metadadosDoRegistro(LP.maturidade(M.DADOS, M.CATALOGO));
+  var campos = meta.map(function (par) { return par[0]; });
 
-  assert.ok(preambulo.length >= 3);
-  assert.ok(csv.indexOf("registro de trabalho") > 0);
-  assert.ok(csv.indexOf("RF-16") > 0, "o aviso de que não é evidência formal tem de viajar com o arquivo");
-  assert.ok(csv.indexOf("RF-15") > 0, "o aviso de triagem tem de viajar com o arquivo");
+  meta.forEach(function (par) {
+    assert.equal(par.length, 2, par[0]);
+    assert.ok(par[0].length <= 24, "campo longo: " + par[0]);
+    assert.ok(String(par[1]).length <= 46, "valor maior que a largura da coluna: " + par[1]);
+  });
 
-  // Cabeçalho logo após o preâmbulo, depois uma linha por ponto exportado.
-  assert.equal(linhas[preambulo.length], "Componente;Folga (°C)");
-  assert.equal(linhas.length, preambulo.length + 1 + LP.reprovados(TODOS).length + 1);
+  assert.ok(campos.indexOf("Tipo de registro") >= 0);
+  assert.ok(campos.indexOf("Ressalva") >= 0, "o arquivo tem de dizer o que não é");
+  assert.ok(campos.indexOf("Modelo") >= 0);
+  assert.ok(campos.indexOf("Data-base do treino") >= 0);
+  assert.ok(campos.indexOf("Configuração") >= 0);
 });
 
-test("o CSV escapa separador, aspas e quebra de linha", function () {
-  var colunas = [{ titulo: "t", valor: function (l) { return l.v; } }];
-  var csv = LP.paraCsv([{ v: 'IPC; "A"' }, { v: "linha\nquebrada" }], colunas, []);
+test("nenhum código de requisito vaza para o arquivo exportado", function () {
+  var meta = LP.metadadosDoRegistro(LP.maturidade(M.DADOS, M.CATALOGO));
+  var texto = meta.map(function (par) { return par.join(" "); }).join(" ");
 
-  assert.ok(csv.indexOf('"IPC; ""A"""') > 0, csv);
-  assert.ok(csv.indexOf('"linha\nquebrada"') > 0, csv);
-  assert.equal(LP.numero(-89.671), "-89,67");
-  assert.equal(LP.numero(null), "");
+  // RF-22, RN-03 e afins são vocabulário do projeto, não de quem recebe o arquivo.
+  assert.equal(/\b(RF|RN|RNF)-\d+/.test(texto), false, texto);
+});
+
+test("a data do registro sai legível, e não em formato de máquina", function () {
+  assert.equal(LP.dataLegivel(new Date(2026, 8, 19, 9, 5)), "19/09/2026 09:05");
+  assert.equal(LP.dataLegivel(new Date(2026, 11, 31, 23, 59)), "31/12/2026 23:59");
 });
 
 test("ler para um público não altera o dado nem o estado de risco", function () {
@@ -229,4 +230,59 @@ test("ler para um público não altera o dado nem o estado de risco", function (
   LP.ordenarPorRisco(TODOS);
 
   assert.equal(JSON.stringify(M.DADOS), antes);
+});
+
+test("RF-23: o cabeçalho de rastreabilidade lista os fatores na ordem do esquema", function () {
+  var linhas = LP.linhasDaConfiguracao(M.DADOS.configuracao, M.SCHEMA);
+  var rotulos = linhas.map(function (l) { return l[0]; });
+
+  // Sete fatores, mas `losses` é composto: entra pelos subcampos preenchidos.
+  assert.equal(rotulos[0], "Direção do soprador");
+  assert.ok(rotulos.indexOf("Perda declarada") > 0);
+  assert.ok(rotulos.indexOf("Material do suporte da bobina") > 0);
+
+  // Rótulo legível, não o valor cru da coluna de origem.
+  var direcao = linhas[0][1];
+  assert.notEqual(direcao, "To Front");
+  assert.ok(direcao.indexOf("To Front") === 0, direcao);
+});
+
+test("RN-04: valor fora do vocabulário aparece cru e marcado, não por aproximação", function () {
+  var linhas = LP.linhasDaConfiguracao({ blower_direction: "To Side" }, M.SCHEMA);
+
+  assert.equal(linhas.length, 1);
+  assert.equal(linhas[0][1], "To Side (fora do vocabulário)");
+  assert.equal(LP.rotuloDoNivel([], "qualquer"), "qualquer (fora do vocabulário)");
+
+  // Campo que não se aplica sai da lista, como sai do formulário.
+  assert.equal(LP.linhasDaConfiguracao({ housing: "" }, M.SCHEMA).length, 0);
+});
+
+test("a configuração chega da querystring com o fator composto aninhado", function () {
+  var config = LP.configuracaoDaUrl("?run_case=Broil+C2&losses.present=declared&losses.config=Config+S");
+
+  // JSON: cada contexto vm tem o próprio Object.prototype, e deepEqual
+  // estrito compara protótipos.
+  assert.equal(JSON.stringify(config), JSON.stringify({
+    run_case: "Broil C2",
+    losses: { present: "declared", config: "Config S" }
+  }));
+
+  assert.equal(LP.configuracaoDaUrl(""), null);
+  assert.equal(LP.configuracaoDaUrl("?"), null);
+});
+
+test("RN-05: é a configuração avaliada que se procura no histórico, não a do payload", function () {
+  // Pyro com soprador para trás, alojamento aberto, placa à direita, defletor
+  // aberto e suporte plástico não é nenhuma das 32 rodadas da base.
+  var daUrl = LP.configuracaoDaUrl(
+    "?run_case=Pyro&blower_direction=To+Back&housing=Open&board_position=Right" +
+    "&deflector_hole=Open&material_coil_support=Plastic&losses.present=none");
+
+  assert.equal(LP.maturidade(M.DADOS, M.CATALOGO).no_historico, true, "a do payload consta");
+  assert.equal(LP.maturidade(M.DADOS, M.CATALOGO, daUrl).no_historico, false,
+    "a da querystring não pode herdar o selo da configuração do payload");
+
+  // Os metadados do modelo continuam vindo do payload.
+  assert.equal(LP.maturidade(M.DADOS, M.CATALOGO, daUrl).versao_modelo, "stub");
 });

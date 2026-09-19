@@ -187,8 +187,10 @@ var LEITURA_PUBLICOS = (function () {
      registro (RF-23).
      `data_base_treino` fica nulo até existir modelo treinado: a tela mostra o
      traço, não uma data inventada (RF-18, RNF-06). */
-  function maturidade(dados, catalogo) {
-    var cfg = dados && dados.configuracao;
+  function maturidade(dados, catalogo, configuracao) {
+    // A configuração avaliada pode vir da querystring e ser outra que a do
+    // payload; é ela que RN-05 localiza, não a do dado de exemplo.
+    var cfg = configuracao || (dados && dados.configuracao);
     var lista = (catalogo && catalogo.configuracoes) ||
       (typeof DADOS_COMPARACAO === "undefined" ? [] : DADOS_COMPARACAO.configuracoes) || [];
 
@@ -207,61 +209,112 @@ var LEITURA_PUBLICOS = (function () {
     };
   }
 
+  /* A configuração que a tela de consulta passou na querystring, no formato
+     `fator=valor` e `losses.present=valor`. Compartilhada por triagem e
+     conformidade: as duas mostram o mesmo cabeçalho de rastreabilidade. */
+  function configuracaoDaUrl(busca) {
+    var texto = (busca === undefined ? window.location.search : busca).replace(/^\?/, "");
+    if (!texto) return null;
+
+    var config = {};
+    texto.split("&").forEach(function (par) {
+      if (!par) return;
+      var corte = par.indexOf("=");
+      var chave = decodeURIComponent(par.slice(0, corte < 0 ? par.length : corte));
+      var valor = corte < 0 ? "" : decodeURIComponent(par.slice(corte + 1).replace(/\+/g, " "));
+
+      var partes = chave.split(".");
+      if (partes.length === 1) {
+        config[partes[0]] = valor;
+      } else {
+        if (!config[partes[0]]) config[partes[0]] = {};
+        config[partes[0]][partes[1]] = valor;
+      }
+    });
+
+    return Object.keys(config).length > 0 ? config : null;
+  }
+
+  /* Valor fora do vocabulário aparece cru e marcado: RN-04 manda rejeitar, não
+     interpretar por aproximação. */
+  function rotuloDoNivel(niveis, valor) {
+    var encontrado = null;
+    (niveis || []).forEach(function (nivel) {
+      if (nivel.value === valor) encontrado = nivel.label;
+    });
+    return encontrado || valor + " (fora do vocabulário)";
+  }
+
+  /* A configuração avaliada em pares rótulo/valor, na ordem de js/schema.js.
+     Nasceu em js/triagem.js e subiu para cá quando a tela de conformidade
+     passou a precisar do mesmo cabeçalho de rastreabilidade (RF-23). */
+  function linhasDaConfiguracao(config, esquema) {
+    var fatores = ((esquema || (typeof SCHEMA === "undefined" ? null : SCHEMA)) || {}).factors || [];
+    var linhas = [];
+
+    fatores.forEach(function (fator) {
+      if (fator.subfields && fator.subfields.length > 0) {
+        var aninhado = (config || {})[fator.key] || {};
+        fator.subfields.forEach(function (sub) {
+          var valor = aninhado[sub.key];
+          // Campo que não se aplica sai da lista, como sai do formulário.
+          if (valor === undefined || valor === null || valor === "") return;
+          linhas.push([sub.label, rotuloDoNivel(sub.levels, valor)]);
+        });
+        return;
+      }
+
+      var valor = (config || {})[fator.key];
+      if (valor === undefined || valor === null || valor === "") return;
+      linhas.push([fator.label, rotuloDoNivel(fator.levels, valor)]);
+    });
+
+    return linhas;
+  }
+
   // Vírgula decimal, como o resto do painel já exibe em pt-BR.
   function numero(valor, casas) {
     if (valor === null || valor === undefined) return "";
     return valor.toFixed(casas === undefined ? 2 : casas).replace(".", ",");
   }
 
-  function celula(valor) {
-    var texto = valor === null || valor === undefined ? "" : String(valor);
-    if (/["\r\n;]/.test(texto)) return '"' + texto.replace(/"/g, '""') + '"';
-    return texto;
+  // Data do registro no formato que quem recebe o arquivo lê, e não o de
+  // máquina.
+  function dataLegivel(quando) {
+    function dois(n) { return (n < 10 ? "0" : "") + n; }
+    return dois(quando.getDate()) + "/" + dois(quando.getMonth() + 1) + "/" + quando.getFullYear() +
+      " " + dois(quando.getHours()) + ":" + dois(quando.getMinutes());
   }
 
-  /* CSV do resultado da consulta em curso, e só dele (RNF-05). O preâmbulo em
-     `#` carrega o rótulo que RF-22 exige: sem ele o arquivo circula solto e
-     vira a evidência formal que RF-16 nega emitir. Separador `;` porque a
-     vírgula já é o decimal. */
-  function paraCsv(linhas, colunas, preambulo) {
-    var partes = (preambulo || []).map(function (linha) { return "# " + linha; });
-
-    partes.push(colunas.map(function (c) { return celula(c.titulo); }).join(";"));
-    linhas.forEach(function (linha) {
-      partes.push(colunas.map(function (c) { return celula(c.valor(linha)); }).join(";"));
-    });
-
-    return partes.join("\r\n") + "\r\n";
-  }
-
-  /* Sem acento no preâmbulo: ele atravessa planilha, editor de texto e anexo
-     de e-mail, e é o rótulo que não pode chegar ilegível do outro lado. */
-  function preambuloDeRegistro(mat) {
+  /* A procedência que acompanha cada linha do arquivo exportado. Vira coluna
+     fixa, repetida em toda linha: assim nenhuma linha perde o contexto se
+     alguém filtrar a planilha ou colar um trecho em outro lugar.
+     Valores curtos de propósito, para caberem na largura da coluna. */
+  function metadadosDoRegistro(mat) {
     return [
-      "Thermal Predictor - registro de trabalho, nao e evidencia de conformidade (RF-22, RF-16)",
-      "Triagem pre-simulacao: nao substitui a simulacao por dinamica de fluidos computacional (RF-15)",
-      "Arquitetura unica coberta pela base; sem distincao entre mercados (RN-06)",
-      "Modelo: " + ((mat && mat.versao_modelo) || "-") +
-        " | data-base do treino: " + ((mat && mat.data_base_treino) || "nao declarada"),
-      "Configuracao: " + (mat && mat.no_historico
-        ? "consta do historico de rodadas (" + mat.configuracao_id + ")"
-        : "fora do historico de rodadas"),
-      "Gerado em: " + new Date().toISOString()
+      ["Tipo de registro", "Registro de trabalho"],
+      ["Natureza", "Triagem anterior à simulação"],
+      ["Ressalva", "Não é parecer de conformidade"],
+      ["Abrangência", "Arquitetura única, sem distinção de mercado"],
+      ["Modelo", (mat && mat.versao_modelo) || "não informado"],
+      ["Data-base do treino", (mat && mat.data_base_treino) || "não declarada"],
+      ["Configuração", mat && mat.no_historico
+        ? "Já simulada, " + mat.rodadas + (mat.rodadas === 1 ? " rodada" : " rodadas")
+        : "Nova, sem rodada equivalente"],
+      ["Gerado em", dataLegivel(new Date())]
     ];
   }
 
-  // Só aqui há DOM; `paraCsv` fica puro para o teste.
-  function baixarCsv(nomeArquivo, texto) {
-    // BOM: sem ele o Excel lê os acentos como ruído.
-    var url = URL.createObjectURL(new Blob(["﻿" + texto], { type: "text/csv;charset=utf-8" }));
-    var a = document.createElement("a");
-
-    a.href = url;
-    a.download = nomeArquivo;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+  /* As mesmas colunas, no formato que o gerador de planilha consome. O valor é
+     constante na coluna inteira. */
+  function colunasDeProcedencia(mat) {
+    return metadadosDoRegistro(mat).map(function (par) {
+      return {
+        titulo: par[0],
+        tipo: "texto",
+        valor: function () { return par[1]; }
+      };
+    });
   }
 
   return {
@@ -282,9 +335,12 @@ var LEITURA_PUBLICOS = (function () {
     pecasDeContato: pecasDeContato,
     traduzirEstado: traduzirEstado,
     maturidade: maturidade,
+    configuracaoDaUrl: configuracaoDaUrl,
+    rotuloDoNivel: rotuloDoNivel,
+    linhasDaConfiguracao: linhasDaConfiguracao,
     numero: numero,
-    paraCsv: paraCsv,
-    preambuloDeRegistro: preambuloDeRegistro,
-    baixarCsv: baixarCsv
+    metadadosDoRegistro: metadadosDoRegistro,
+    colunasDeProcedencia: colunasDeProcedencia,
+    dataLegivel: dataLegivel
   };
 })();

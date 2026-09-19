@@ -99,3 +99,23 @@
   outline: 2px solid var(--color-focus-ring);
   outline-offset: 2px;
 }
+
+/* ----- Ajustes sobre componentes da triagem ----- */
+
+/* A triagem limita a tabela a 34rem porque tem 68 linhas. Aqui as tabelas têm
+   33 e 7: com o recorte, sobrava uma linha cortada sob o cabeçalho fixo e a
+   leitura ficava presa num painel rolando dentro da página. */
+.table-scroll--inteira { max-height: none; }
+
+/* Dois selos no mesmo título: o primeiro classifica a configuração, o segundo
+   só avisa a procedência. Pesos diferentes para não competirem. */
+.config__tag--nota {
+  color: var(--color-text-muted);
+  background: var(--color-surface-sunken);
+  box-shadow: inset 0 0 0 1px var(--color-border);
+}
+
+/* Na triagem o resumo de contagem mora dentro do .panel__head, que já reserva
+   o respiro abaixo. Aqui ele é uma faixa própria entre o cabeçalho e a tabela,
+   e sem margem encostava na primeira linha. */
+.panel > .tally { margin-bottom: var(--space-4); }

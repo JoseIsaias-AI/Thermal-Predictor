@@ -1309,68 +1309,13 @@
   }
 
   // A configuração chega na query string, montada pela tela de consulta.
-  function lerConfiguracaoDaUrl() {
-    var busca = window.location.search.replace(/^\?/, "");
-    if (!busca) return null;
-
-    var config = {};
-    busca.split("&").forEach(function (par) {
-      if (!par) return;
-      var corte = par.indexOf("=");
-      var chave = decodeURIComponent(par.slice(0, corte < 0 ? par.length : corte));
-      var valor = corte < 0 ? "" : decodeURIComponent(par.slice(corte + 1).replace(/\+/g, " "));
-
-      var partes = chave.split(".");
-      if (partes.length === 1) {
-        config[partes[0]] = valor;
-      } else {
-        if (!config[partes[0]]) config[partes[0]] = {};
-        config[partes[0]][partes[1]] = valor;
-      }
-    });
-
-    return Object.keys(config).length > 0 ? config : null;
-  }
-
-  // Valor fora do vocabulário aparece cru e marcado: RN-04 manda rejeitar,
-  // não interpretar por aproximação.
-  function rotuloDoNivel(niveis, valor) {
-    var encontrado = null;
-    (niveis || []).forEach(function (nivel) {
-      if (nivel.value === valor) encontrado = nivel.label;
-    });
-    return encontrado || valor + " (fora do vocabulário)";
-  }
-
-  function linhasDaConfiguracao(config) {
-    var linhas = [];
-
-    SCHEMA.factors.forEach(function (fator) {
-      if (fator.subfields && fator.subfields.length > 0) {
-        var aninhado = config[fator.key] || {};
-        fator.subfields.forEach(function (sub) {
-          var valor = aninhado[sub.key];
-          // Campo que não se aplica sai da lista, como sai do formulário.
-          if (valor === undefined || valor === null || valor === "") return;
-          linhas.push([sub.label, rotuloDoNivel(sub.levels, valor)]);
-        });
-        return;
-      }
-
-      var valor = config[fator.key];
-      if (valor === undefined || valor === null || valor === "") return;
-      linhas.push([fator.label, rotuloDoNivel(fator.levels, valor)]);
-    });
-
-    return linhas;
-  }
 
   function renderConfiguracao(config, veioDaUrl) {
     var lista = document.getElementById("config-list");
 
     // Cada fator num bloco próprio: a lista é grade, e não nove linhas
     // empilhadas empurrando o mapa para fora da tela.
-    linhasDaConfiguracao(config).forEach(function (linha) {
+    LEITURA_PUBLICOS.linhasDaConfiguracao(config).forEach(function (linha) {
       var item = document.createElement("div");
       item.className = "cfg-item";
 
@@ -1400,7 +1345,7 @@
     return;
   }
 
-  var configDaUrl = lerConfiguracaoDaUrl();
+  var configDaUrl = LEITURA_PUBLICOS.configuracaoDaUrl();
   var configAtiva = configDaUrl || DADOS_TRIAGEM.configuracao;
   geometria = geometriaDaConfig(configAtiva);
   renderConfiguracao(configAtiva, configDaUrl !== null);
