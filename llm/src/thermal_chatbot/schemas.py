@@ -25,32 +25,60 @@ class ConversationMessage(BaseModel):
     content: str = Field(min_length=1, max_length=8_000)
 
 
+class ComparisonInput(BaseModel):
+    """Comparação estruturada enviada pelo frontend quando disponível."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    factor: str = Field(min_length=1, max_length=100)
+    levels: tuple[str, str]
+
+
 class ChatRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     message: str = Field(min_length=1, max_length=8_000)
     history: list[ConversationMessage] = Field(default_factory=list, max_length=20)
+    configuration: dict[str, Any] | None = None
+    comparison: ComparisonInput | None = None
 
 
-class ChatDecision(BaseModel):
-    """Saída estruturada exigida do modelo antes de responder ao cliente."""
+class RoutingDecision(BaseModel):
+    """Primeira etapa: escolher a fonte, sem redigir resposta.
+
+    O schema não tem campo de texto livre de propósito. O modelo roda em CPU a
+    poucos tokens por segundo, e uma resposta escrita aqui seria descartada
+    assim que a ferramenta fosse executada — o usuário pagaria por ela em
+    tempo de espera sem nunca vê-la.
+    """
 
     model_config = ConfigDict(extra="forbid")
 
     action: ChatAction
-    answer: str = Field(max_length=12_000)
-    tool_name: ToolName | None
-    tool_arguments: dict[str, Any]
-    sources: list[str] = Field(max_length=10)
-    reason: str = Field(min_length=1, max_length=1_000)
+    tool_name: ToolName | None = None
+    tool_arguments: dict[str, Any] = Field(default_factory=dict)
+    # Campo de auditoria, sem limite apertado de propósito: a gramática do
+    # Ollama não impõe tamanho de string, então um motivo prolixo invalidaria
+    # uma decisão perfeitamente boa e derrubaria a resposta inteira.
+    reason: str = Field(default="", max_length=4_000)
 
     @model_validator(mode="after")
-    def validate_action_fields(self) -> "ChatDecision":
+    def validate_action_fields(self) -> "RoutingDecision":
         if self.action == ChatAction.USE_TOOL and self.tool_name is None:
             raise ValueError("tool_name é obrigatório quando action=use_tool")
-        if self.action != ChatAction.USE_TOOL and not self.answer.strip():
-            raise ValueError("answer é obrigatório para a ação selecionada")
         return self
+
+
+class AnswerDecision(BaseModel):
+    """Segunda etapa: redigir a resposta, já com o contexto em mãos."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    action: Literal[ChatAction.ANSWER, ChatAction.INSUFFICIENT_DATA]
+    # Resposta vazia é inutilizável e precisa mesmo ser recusada. Já o excesso
+    # de fontes é aparado depois, contra o que foi realmente entregue.
+    answer: str = Field(min_length=1, max_length=12_000)
+    sources: list[str] = Field(default_factory=list, max_length=50)
 
 
 class ChatResponse(BaseModel):
@@ -59,6 +87,10 @@ class ChatResponse(BaseModel):
     model: str
     tool_name: ToolName | None = None
     sources: list[str] = Field(default_factory=list)
+    # Resultado bruto da ferramenta, quando houver. O texto de `answer` passou
+    # pelo modelo; este campo não. É por ele que o frontend deve exibir
+    # temperatura medida ou prevista.
+    data: dict[str, Any] | None = None
 
 
 class SourceStatus(BaseModel):

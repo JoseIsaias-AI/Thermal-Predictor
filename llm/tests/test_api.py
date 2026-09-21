@@ -1,34 +1,19 @@
-import json
-from typing import Any
-
+from fakes import ScriptedProvider, answer, routing
 from fastapi.testclient import TestClient
 
 from thermal_chatbot.api import create_app
-from thermal_chatbot.providers.base import LLMProvider
 from thermal_chatbot.schemas import ToolName
 from thermal_chatbot.settings import Settings
 from thermal_chatbot.tools import Tool, ToolResult
 
 
-class ApiFakeProvider(LLMProvider):
-    async def complete(
-        self,
-        messages: list[dict[str, str]],
-        response_schema: dict[str, Any],
-    ) -> str:
-        return json.dumps(
-            {
-                "action": "answer",
-                "answer": "Resposta local de teste.",
-                "tool_name": None,
-                "tool_arguments": {},
-                "sources": [],
-                "reason": "Pergunta geral.",
-            }
-        )
+def ApiFakeProvider() -> ScriptedProvider:
+    """Decide responder direto e escreve a resposta, sem consultar fonte."""
 
-    async def healthcheck(self) -> tuple[bool, str]:
-        return True, "Provedor de teste disponível."
+    return ScriptedProvider(
+        routings=[routing(action="answer", tool_name=None)],
+        answers=[answer("Resposta local de teste.")],
+    )
 
 
 class ApiFakeTool(Tool):
@@ -67,6 +52,7 @@ def test_chat_endpoint() -> None:
         "model": "test-model",
         "tool_name": None,
         "sources": [],
+        "data": None,
     }
 
 

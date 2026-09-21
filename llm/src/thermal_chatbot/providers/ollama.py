@@ -32,6 +32,7 @@ class OllamaProvider(LLMProvider):
             "stream": False,
             "think": False,
             "format": response_schema,
+            "keep_alive": self.settings.ollama_keep_alive,
             "options": {
                 "temperature": self.settings.ollama_temperature,
                 "num_predict": self.settings.ollama_max_output_tokens,

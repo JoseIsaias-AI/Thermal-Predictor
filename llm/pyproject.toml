@@ -10,8 +10,12 @@ requires-python = ">=3.11"
 dependencies = [
   "fastapi>=0.115,<1.0",
   "httpx>=0.27,<1.0",
+  "joblib>=1.4,<2.0",
   "psycopg[binary]>=3.2,<4.0",
   "pydantic>=2.10,<3.0",
+  # Os modelos foram serializados com a 1.7.2; versoes posteriores mudaram os
+  # modulos internos do sklearn e nao conseguem carregar os .joblib exportados.
+  "scikit-learn>=1.7,<1.8",
   "uvicorn[standard]>=0.32,<1.0",
 ]
 

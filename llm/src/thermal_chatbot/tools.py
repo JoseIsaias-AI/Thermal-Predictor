@@ -21,6 +21,14 @@ class ToolResult:
     context: str
     sources: list[str] = field(default_factory=list)
     detail: str = ""
+    # Ferramentas com resultado inteiramente estruturado podem fornecer uma
+    # resposta final auditável. Isso evita uma segunda geração lenta e impede
+    # que o LLM altere sinais, números ou ressalvas já validados em código.
+    direct_answer: str | None = None
+    # Os mesmos números do contexto, em forma estruturada. O texto passa pelo
+    # modelo; este campo não. É por ele que o frontend exibe valor medido ou
+    # previsto sem depender do que o LLM escreveu.
+    data: dict[str, Any] | None = None
 
 
 class Tool(ABC):

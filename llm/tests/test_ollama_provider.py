@@ -57,3 +57,31 @@ def test_healthcheck_detects_installed_model() -> None:
     ready, detail = asyncio.run(scenario())
     assert ready is True
     assert "disponíveis" in detail
+
+
+def test_mantem_o_modelo_residente_entre_perguntas() -> None:
+    """Recarregar o modelo do disco custava ~25 s por pergunta em CPU."""
+
+    async def handler(request: httpx.Request) -> httpx.Response:
+        payload = json.loads(request.content)
+        assert payload["keep_alive"] == "45m"
+        return httpx.Response(
+            200,
+            json={"message": {"role": "assistant", "content": '{"ok":true}'}},
+        )
+
+    async def scenario() -> str:
+        settings = Settings(
+            ollama_base_url="http://ollama.test:11434",
+            ollama_model="qwen3:4b",
+            ollama_keep_alive="45m",
+        )
+        async with httpx.AsyncClient(
+            transport=httpx.MockTransport(handler),
+            base_url="http://ollama.test:11434",
+        ) as client:
+            return await OllamaProvider(settings, client=client).complete(
+                [{"role": "user", "content": "Olá"}], {"type": "object"}
+            )
+
+    assert asyncio.run(scenario()) == '{"ok":true}'

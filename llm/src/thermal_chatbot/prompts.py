@@ -11,10 +11,17 @@ TOOL_DESCRIPTIONS: dict[ToolName, str] = {
         'argumentos: {"query": "termo a procurar"}'
     ),
     ToolName.DATASET_QUERY: (
-        "consulta métricas e agregações no dataset autorizado"
+        "consulta as leituras já medidas em ensaio; argumentos opcionais: "
+        '{"tc_name", "key_area", "run_id", "run_case", "blower_direction", '
+        '"housing", "board_position", "deflector_hole", "material_coil_support"}'
     ),
     ToolName.THERMAL_PREDICTION: (
-        "calcula uma previsão térmica para uma configuração fornecida"
+        "executa os modelos treinados para uma configuração completa ou compara "
+        "dois níveis alterando um único fator; previsão simples: "
+        'argumentos: {"run_case", "blower_direction", "housing", '
+        '"board_position", "deflector_hole", "material_coil_support", '
+        '"losses": {"present", "config", "order"}}; comparação: acrescente '
+        '"mode": "compare" e "comparison": {"factor", "levels": [A, B]}'
     ),
 }
 
@@ -69,16 +76,58 @@ DECISÃO
    autorizada para esses itens: os nomes se parecem com termos genéricos, mas
    os valores usados aqui são específicos do parceiro. Na dúvida entre 1 e 2,
    escolha 2.
+
+   Qual fonte pedir:
+   - documentation_search: o que um termo, fator ou nível significa.
+   - dataset_query: o que já foi medido em ensaio (temperaturas observadas,
+     faixas, quantas rodadas, quais ficaram acima do limite).
+   - thermal_prediction: o que o modelo prevê para uma configuração que o
+     usuário descreveu. Exige os seis fatores mais as perdas; se algum estiver
+     faltando, peça ao usuário o que falta em vez de supor um nível.
+
+   Perguntas comparativas:
+   - Para "aumenta ou diminui", "qual configuração é mais quente", "o que muda
+     se eu trocar" ou comparação equivalente entre níveis de projeto, use
+     thermal_prediction em modo de comparação. Não use médias de rodadas
+     diferentes do dataset para atribuir o efeito a um fator: os demais fatores
+     poderiam ser diferentes e confundiriam a conclusão.
+   - Envie mode="compare" e comparison={{"factor": nome_do_fator,
+     "levels": [nivel_a, nivel_b]}}. Inclua somente os demais fatores que o
+     usuário realmente informou; nunca escolha uma configuração-base por ele.
+     A ferramenta dirá exatamente o que falta quando a configuração estiver
+     incompleta.
+     Exemplo para o soprador: comparison={{"factor": "blower_direction",
+     "levels": ["To Front", "To Back"]}}.
+   - dataset_query só responde o que foi observado sob filtros. Ele não prova
+     sozinho que a mudança de um fator causou aumento ou redução de temperatura.
+
+   Nunca calcule, estime ou complete uma temperatura por conta própria —
+   nem por interpolação, nem por analogia com outro ponto, nem para um
+   termopar ausente do resultado. Número de temperatura só entra na resposta
+   se tiver vindo de dataset_query ou de thermal_prediction.
 3. Use action="insufficient_data" quando depender de uma ferramenta
    indisponível, faltarem parâmetros essenciais, não houver evidência suficiente
    ou a solicitação estiver fora do escopo. Diga o que falta sem inventar.
    Se faltar uma fonte ou ferramenta, declare claramente que ela não está
    acessível nesta execução; não afirme que o dado inexiste na fonte.
 4. Só liste uma fonte em sources se ela tiver sido fornecida de fato.
-5. O campo reason deve justificar a decisão para auditoria, sem expor raciocínio
-   interno detalhado.
+5. O campo reason deve justificar a decisão para auditoria em no máximo uma
+   frase curta, sem expor raciocínio interno detalhado.
 6. Para action="answer" ou action="insufficient_data", use tool_name=null e
    tool_arguments={{}}.
+
+DUAS ETAPAS
+Uma pergunta é atendida em duas chamadas, e o formato JSON pedido diz em qual
+delas você está:
+
+- Sem campo "answer": é a etapa de decisão. Escolha a fonte e pare. O texto
+  que você escrevesse aqui seria descartado.
+- Com campo "answer": é a etapa de redação, e o resultado da fonte já está na
+  conversa. Escreva a resposta final; não peça ferramenta nesta etapa.
+
+Preencha apenas os campos do formato desta chamada. O modelo roda em CPU e
+gera poucos tokens por segundo: cada palavra desnecessária vira espera real
+para quem perguntou.
 
 FERRAMENTAS NESTA EXECUÇÃO
 {availability}
@@ -103,15 +152,21 @@ CONTEXTO>>>
 COMO USAR ESTE CONTEXTO
 - Responda com action="answer" apenas com o que estiver sustentado pelo bloco
   acima ou por conhecimento geral já permitido pelo escopo.
+- Seja breve: no máximo cinco frases. A interface já recebe a tabela completa
+  em separado, então reproduzi-la aqui apenas faz o usuário esperar mais.
+  Diga o que responde à pergunta e os números que importam para ela.
 - Responda à pergunta que foi feita. Se o usuário pediu uma definição ou uma
   explicação, explique o conceito com base no contexto; não devolva um valor
   solto de tabela no lugar da explicação. Cite números apenas quando o usuário
   pedir um valor específico ou quando eles forem necessários para o sentido.
-- Em sources, copie exatamente as linhas FONTE dos trechos que você usou.
-  Não cite trecho que não tenha sustentado a resposta e não invente fonte.
+- Deixe sources=[]: o backend registra sozinho os trechos entregues a você.
 - Se o contexto não cobrir a pergunta, use action="insufficient_data" e diga
-  que o dado não consta nos documentos autorizados.
+  o que faltou. Este é o momento de escrever a resposta: não peça outra
+  ferramenta aqui, porque esta etapa não executa ferramenta nenhuma.
 - Se o trecho marcar algo como inferência a verificar, apresente isso como
   pendência, nunca como fato confirmado.
+- Em comparação preditiva, preserve a direção do delta informada no contexto,
+  diferencie as regiões e declare que os demais fatores foram mantidos fixos.
+  Não transforme o resultado de uma configuração em regra geral.
 - Não solicite outra ferramenta agora: responda com o que foi recuperado.
 """.strip()

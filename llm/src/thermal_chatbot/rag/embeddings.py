@@ -76,6 +76,7 @@ class OllamaEmbedder(Embedder):
         payload = {
             "model": self.settings.ollama_embedding_model,
             "input": inputs,
+            "keep_alive": self.settings.ollama_keep_alive,
         }
 
         try:

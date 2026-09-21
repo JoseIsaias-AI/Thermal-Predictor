@@ -1,5 +1,7 @@
 """API HTTP do chatbot, destinada ao frontend do Thermal Predictor."""
 
+from pathlib import Path
+
 from fastapi import FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -20,15 +22,29 @@ from thermal_chatbot.schemas import (
 )
 from thermal_chatbot.settings import Settings, get_settings
 from thermal_chatbot.tools import Tool, ToolRegistry
+from thermal_chatbot.triage import build_dataset_tool, build_prediction_tool
 
 
 def build_tool_registry(settings: Settings) -> dict[ToolName, Tool]:
     """Registra apenas ferramentas realmente configuradas nesta execução."""
 
     tools: dict[ToolName, Tool] = {}
+
     if settings.rag_enabled:
         documentacao = build_documentation_tool(settings)
         tools[documentacao.name] = documentacao
+
+    if settings.dataset_enabled:
+        consulta = build_dataset_tool(Path(settings.dataset_path))
+        tools[consulta.name] = consulta
+
+    if settings.prediction_enabled:
+        previsao = build_prediction_tool(
+            Path(settings.models_dir),
+            Path(settings.dataset_path),
+        )
+        tools[previsao.name] = previsao
+
     return tools
 
 
