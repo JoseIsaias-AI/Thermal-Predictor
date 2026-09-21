@@ -12,7 +12,7 @@
   <link rel="stylesheet" href="css/triagem.css?v=3">
   <link rel="stylesheet" href="css/fogao.css?v=4">
   <link rel="stylesheet" href="css/grafico.css?v=3">
-  <link rel="stylesheet" href="css/comparacao.css?v=3">
+  <link rel="stylesheet" href="css/comparacao.css?v=4">
 </head>
 <body>
 
@@ -167,6 +167,59 @@
         comparação.
       </p>
     </div>
+  </section>
+
+  <!-- ---------- Configuração mais próxima dentro do limite ---------- -->
+  <!-- Não é "what-if": combinação fora da base não ganha predição aqui. E não
+       diz "segura", que soaria como aprovação. A sugestão é sempre uma
+       configuração da base, com predição já calculada. -->
+
+  <section class="panel" id="wf-panel" aria-labelledby="wf-title">
+    <h2 class="panel__title" id="wf-title">
+      Configuração mais próxima dentro do limite
+      <span class="panel__title-sub">o que mudar no projeto, buscando nas <span id="wf-total">—</span> configurações conhecidas</span>
+    </h2>
+
+    <p class="legend-note">
+      Parta da configuração que você está avaliando e ajuste os fatores se
+      quiser. A busca mede a distância dela para cada configuração conhecida,
+      fica só com as que têm todos os pontos com limite <em>dentro do limite</em>
+      pelo critério de <span id="wf-tol">10%</span>, e sugere a mais próxima.
+    </p>
+
+    <div class="wf-tools">
+      <label class="field wf-start">
+        <span class="field__label">Partir de</span>
+        <select id="wf-start"></select>
+      </label>
+    </div>
+
+    <div class="field-grid wf-form" id="wf-form"></div>
+
+    <p class="wf-ref" id="wf-ref" role="status" aria-live="polite"></p>
+
+    <div class="wf-result" id="wf-result" aria-live="polite"></div>
+
+    <details class="more">
+      <summary>Como a distância é calculada</summary>
+      <p>
+        Cada configuração vira o mesmo vetor de 13 colunas binárias que os
+        modelos recebem (um nível por coluna, sem a categoria de referência). Cada
+        coluna é padronizada em <em>z-score</em> com a média e o desvio padrão
+        populacional das configurações conhecidas, e a distância é a euclidiana
+        entre os dois vetores padronizados.
+      </p>
+      <p>
+        A padronização faz um nível raro pesar mais que um comum: trocar para
+        ele afasta a configuração do que a base cobre. Coluna constante na base
+        não separa ninguém e fica fora da soma.
+      </p>
+      <p>
+        A sugestão é uma configuração que já existe na base, não um ponto
+        otimizado no espaço dos fatores. Continua sendo previsão: a confirmação
+        é a simulação.
+      </p>
+    </details>
   </section>
 
   <!-- ---------- Bandeja ---------- -->
@@ -336,6 +389,7 @@
 <script src="js/dados_comparacao.js?v=3"></script>
 <script src="js/fogao.js?v=4"></script>
 <script src="js/grafico.js?v=3"></script>
-<script src="js/comparacao.js?v=3"></script>
+<script src="js/segura_proxima.js?v=1"></script>
+<script src="js/comparacao.js?v=4"></script>
 </body>
 </html>

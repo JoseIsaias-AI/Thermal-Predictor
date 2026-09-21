@@ -1341,6 +1341,286 @@
   }
 
 
+  /* ----- Configuração mais próxima dentro do limite -----
+     A busca mora em js/segura_proxima.js; aqui fica o formulário e a leitura
+     do resultado. O lado a lado não é refeito: a sugestão entra na comparação
+     acima, com as mesmas colunas e o mesmo destaque de fatores divergentes. */
+
+  var SP = typeof SEGURA_PROXIMA !== "undefined" ? SEGURA_PROXIMA : null;
+  var wf = { fatores: null };
+
+  function fatorPorChave(chave) {
+    for (var k = 0; k < FATORES.length; k++) if (FATORES[k].chave === chave) return FATORES[k];
+    return null;
+  }
+
+  function copiarFatores(f) {
+    var c = {};
+    Object.keys(f).forEach(function (k) {
+      c[k] = typeof f[k] === "object" && f[k] !== null ? copiarFatores(f[k]) : f[k];
+    });
+    return c;
+  }
+
+  function gravarFator(chave, valor) {
+    var corte = chave.indexOf(".");
+    if (corte < 0) { wf.fatores[chave] = valor; return; }
+    var sub = wf.fatores[chave.slice(0, corte)] || (wf.fatores[chave.slice(0, corte)] = {});
+    if (valor) sub[chave.slice(corte + 1)] = valor;
+    else delete sub[chave.slice(corte + 1)];
+  }
+
+  function perdaDeclarada() { return valorDoFator(wf, "losses.present") === "declared"; }
+
+  // Arranjo e ordem só se aplicam com perda declarada; fora disso, somem do dado.
+  function limparPerdasSemEfeito() {
+    if (perdaDeclarada()) {
+      if (!wf.fatores.losses.config) wf.fatores.losses.config = "Config S";
+      return;
+    }
+    delete wf.fatores.losses.config;
+    delete wf.fatores.losses.order;
+  }
+
+  function montarFormularioWhatIf() {
+    var caixa = document.getElementById("wf-form");
+    caixa.innerHTML = "";
+
+    FATORES.forEach(function (f) {
+      var ehPerdaDependente = f.chave === "losses.config" || f.chave === "losses.order";
+      var inativo = ehPerdaDependente && !perdaDeclarada();
+
+      var campo = el("label", "field" + (inativo ? " field--inactive" : ""));
+      campo.appendChild(el("span", "field__label", f.label));
+
+      var sel = el("select");
+      sel.dataset.chave = f.chave;
+      sel.disabled = inativo;
+      if (f.chave === "losses.order" || inativo) {
+        var vazio = el("option", null, inativo ? "não se aplica" : "não declarada");
+        vazio.value = "";
+        sel.appendChild(vazio);
+      }
+      (f.niveis || []).forEach(function (n) {
+        var op = el("option", null, n.label);
+        op.value = n.value;
+        sel.appendChild(op);
+      });
+      sel.value = valorDoFator(wf, f.chave);
+
+      sel.addEventListener("change", function () {
+        gravarFator(f.chave, this.value);
+        limparPerdasSemEfeito();
+        document.getElementById("wf-start").value = "";
+        montarFormularioWhatIf();
+        avaliarWhatIf();
+      });
+
+      campo.appendChild(sel);
+      caixa.appendChild(campo);
+    });
+  }
+
+  function partirDe(id) {
+    wf.fatores = copiarFatores(POR_ID[id].fatores);
+    document.getElementById("wf-start").value = id;
+    montarFormularioWhatIf();
+    avaliarWhatIf();
+  }
+
+  function distanciaTexto(d) { return d.toFixed(2); }
+
+  // Ordem vazia com perda declarada é dado ausente, não campo sem efeito.
+  function rotuloNoWhatIf(f, valor, fatores) {
+    if (valor === "" && f.chave === "losses.order" && fatores.losses.present === "declared") {
+      return "não declarada";
+    }
+    return rotuloDoNivel(f, valor);
+  }
+
+  function contagemFora(cfg) {
+    return cfg.resumo[0] + " acima do limite, " + cfg.resumo[1] + " na banda";
+  }
+
+  function avaliarWhatIf() {
+    var linhaRef = document.getElementById("wf-ref");
+    var saida = document.getElementById("wf-result");
+    linhaRef.innerHTML = "";
+    saida.innerHTML = "";
+
+    var ref = SP.localizar(wf.fatores, CFGS);
+
+    if (ref) {
+      var fora = SP.pontosFora(ref, D);
+      linhaRef.appendChild(document.createTextNode("Referência: "));
+      linhaRef.appendChild(el("b", null, ref.id));
+      linhaRef.appendChild(document.createTextNode(fora === 0
+        ? " · todos os pontos com limite dentro do limite."
+        : " · " + fora + " pontos fora de “dentro do limite” (" + contagemFora(ref) + ")."));
+    } else {
+      linhaRef.appendChild(el("b", null, "Combinação fora das configurações conhecidas."));
+      linhaRef.appendChild(document.createTextNode(
+        " Não há predição para ela nesta tela; a busca abaixo usa só os fatores, e o lado a lado " +
+        "fica disponível quando a referência é uma configuração da base."));
+    }
+
+    if (ref && SP.ehSegura(ref, D)) {
+      saida.appendChild(el("p", "wf-msg wf-msg--ok",
+        ref.id + " já está dentro do limite em todos os pontos: não há o que corrigir a partir dela."));
+      return;
+    }
+
+    var res = SP.buscar(wf.fatores, D, ref ? ref.id : null);
+
+    if (!res.sugestao) {
+      montarSemSegura(saida, res);
+    } else {
+      montarSugestao(saida, res, ref);
+    }
+    saida.appendChild(montarRanking(res));
+  }
+
+  /* Nenhuma configuração inteira dentro do limite na base: dito com todas as
+     letras, em vez de uma sugestão vazia. A que menos estoura é contexto, não
+     sugestão. */
+  function montarSemSegura(saida, res) {
+    var caixa = el("div", "wf-msg wf-msg--none");
+    caixa.setAttribute("role", "alert");
+    caixa.appendChild(el("b", null, "Nenhuma configuração conhecida está dentro do limite em todos os pontos."));
+    caixa.appendChild(el("p", null,
+      "As " + CFGS.length + " configurações têm ao menos um ponto com limite fora de " +
+      "“dentro do limite”. Não há sugestão a fazer sem sair da base: a próxima " +
+      "etapa é simular combinações novas, fora do escopo desta busca."));
+
+    var menos = res.todas.slice().sort(function (a, b) {
+      return a.fora - b.fora || a.distancia - b.distancia;
+    })[0];
+    caixa.appendChild(el("p", "legend-note",
+      "Para referência, a que menos estoura é " + menos.id + " (" + menos.fora +
+      " pontos fora, distância " + distanciaTexto(menos.distancia) + ") — também fora do limite."));
+    saida.appendChild(caixa);
+  }
+
+  function montarSugestao(saida, res, ref) {
+    var sug = res.sugestao;
+    var cartao = el("div", "wf-sug");
+
+    var topo = el("div", "wf-sug__top");
+    topo.appendChild(el("span", "lead-card__kicker", "Mais próxima dentro do limite"));
+    topo.appendChild(el("b", "lead-card__cfg", sug.id));
+    topo.appendChild(el("span", "wf-sug__meta",
+      "distância " + distanciaTexto(sug.distancia) + " · " + res.seguras.length + " de " +
+      CFGS.length + " configurações estão dentro do limite em todos os pontos"));
+    cartao.appendChild(topo);
+
+    var difs = SP.camposDivergentes(wf.fatores, sug.cfg.fatores, res.padronizacao);
+    var total = 0;
+    difs.forEach(function (d) { total += d.peso; });
+
+    cartao.appendChild(el("p", "wf-sug__lead", difs.length === 0
+      ? "Mesmos fatores da referência."
+      : "O que muda no projeto, do que mais pesa na distância ao que menos pesa:"));
+
+    var lista = el("div", "cmp-factors wf-diffs");
+    difs.forEach(function (d) {
+      var f = fatorPorChave(d.campo);
+      var linha = el("div", "cmp-factor");
+      linha.appendChild(el("span", "cmp-factor__name", f ? f.label : d.campo));
+
+      var vals = el("span", "cmp-factor__vals");
+      vals.appendChild(el("span", "cmp-factor__val wf-de", rotuloNoWhatIf(f, d.de, wf.fatores)));
+      vals.appendChild(el("span", "wf-seta", "→"));
+      vals.appendChild(el("span", "cmp-factor__val wf-para", rotuloNoWhatIf(f, d.para, sug.cfg.fatores)));
+      if (total > 0) {
+        vals.appendChild(el("span", "wf-peso", Math.round(d.peso / total * 100) + "% da distância"));
+      }
+      linha.appendChild(vals);
+      lista.appendChild(linha);
+    });
+    cartao.appendChild(lista);
+
+    var acoes = el("div", "wf-sug__acts");
+    var botao = el("button", "button", "Comparar lado a lado");
+    botao.type = "button";
+    if (!ref) {
+      botao.disabled = true;
+      acoes.appendChild(botao);
+      acoes.appendChild(el("span", "legend-note",
+        "Sem predição para a combinação simulada, não há coluna de referência para justapor."));
+    } else {
+      botao.addEventListener("click", function () {
+        estado.sel = [ref.id, sug.id];
+        estado.ref = ref.id;
+        sincronizar();
+        var alvo = document.getElementById("comparison");
+        if (alvo.scrollIntoView) alvo.scrollIntoView({ behavior: "smooth", block: "start" });
+      });
+      acoes.appendChild(botao);
+    }
+    var link = el("a", "vbtn", "Abrir " + sug.id + " na triagem");
+    link.href = "triagem.html?" + parametrosDaConfig(sug.cfg);
+    acoes.appendChild(link);
+    cartao.appendChild(acoes);
+
+    saida.appendChild(cartao);
+  }
+
+  // As distâncias para todas, com a classificação ao lado: é a conta inteira.
+  function montarRanking(res) {
+    var det = el("details", "more wf-rank");
+    det.appendChild(el("summary", null, "Distância às " + res.todas.length + " configurações conhecidas"));
+
+    var rolo = el("div", "table-scroll");
+    var tab = el("table", "data-table");
+    var cab = el("tr");
+    ["Configuração", "Distância", "Pontos fora", "Classificação"].forEach(function (t, k) {
+      var th = el("th", k === 1 || k === 2 ? "num" : null, t);
+      th.setAttribute("scope", "col");
+      cab.appendChild(th);
+    });
+    var thead = el("thead");
+    thead.appendChild(cab);
+    tab.appendChild(thead);
+
+    var corpo = el("tbody");
+    res.todas.forEach(function (x) {
+      var tr = el("tr", res.sugestao && x.id === res.sugestao.id ? "wf-rank__sug" : null);
+      tr.appendChild(celula(x.id));
+      tr.appendChild(celula(distanciaTexto(x.distancia), "num"));
+      tr.appendChild(celula(String(x.fora), "num"));
+      tr.appendChild(celula(x.segura ? "dentro do limite" : "fora do limite"));
+      corpo.appendChild(tr);
+    });
+    tab.appendChild(corpo);
+    rolo.appendChild(tab);
+    det.appendChild(rolo);
+    return det;
+  }
+
+  function iniciarWhatIf() {
+    var painel = document.getElementById("wf-panel");
+    if (!SP) { painel.hidden = true; return; }
+
+    document.getElementById("wf-total").textContent = CFGS.length;
+    document.getElementById("wf-tol").textContent = (D.tolerancia_fracao * 100).toFixed(0) + "%";
+
+    var inicio = document.getElementById("wf-start");
+    var livre = el("option", null, "— combinação editada —");
+    livre.value = "";
+    livre.disabled = true;
+    inicio.appendChild(livre);
+    CFGS.forEach(function (c) {
+      var op = el("option", null, c.id + " · " +
+        impressaoDigital(c).map(function (t) { return t[1]; }).join(" · "));
+      op.value = c.id;
+      inicio.appendChild(op);
+    });
+    inicio.addEventListener("change", function () { if (this.value) partirDe(this.value); });
+
+    partirDe(estado.ref || CFGS[0].id);
+  }
+
+
   /* ----- Sincronização ----- */
 
   function sincronizar() {
@@ -1456,4 +1736,5 @@
   estado.ref = inicial[0];
 
   sincronizar();
+  iniciarWhatIf();
 })();
