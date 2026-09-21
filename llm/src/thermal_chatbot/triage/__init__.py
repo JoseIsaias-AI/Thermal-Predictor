@@ -21,6 +21,7 @@ from thermal_chatbot.triage.prediction import (
     build_prediction_tool,
     classify,
 )
+from thermal_chatbot.triage.smalltalk import help_answer, smalltalk_answer
 
 __all__ = [
     "Configuration",
@@ -38,5 +39,7 @@ __all__ = [
     "build_prediction_tool",
     "classify",
     "encode",
+    "help_answer",
     "parse_configuration",
+    "smalltalk_answer",
 ]

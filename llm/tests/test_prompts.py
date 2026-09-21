@@ -2,6 +2,10 @@ from thermal_chatbot.prompts import build_system_prompt
 from thermal_chatbot.schemas import ToolName
 
 
+def test_prompt_apresenta_o_agente_pelo_nome() -> None:
+    assert "Robertão" in build_system_prompt([])
+
+
 def test_prompt_defines_scope_safety_and_simplification() -> None:
     prompt = build_system_prompt([])
 

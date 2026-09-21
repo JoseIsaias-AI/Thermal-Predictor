@@ -7,11 +7,11 @@ LLM como fallback.
 """
 
 import re
-import unicodedata
 from collections.abc import Mapping
 from typing import Any
 
 from thermal_chatbot.triage.factors import LEVELS
+from thermal_chatbot.triage.text import normalize
 
 COMPARISON_MARKERS = (
     "compare",
@@ -89,7 +89,7 @@ def fast_comparison_arguments(
             "comparison": dict(comparison),
         }
 
-    text = _normalize(message)
+    text = normalize(message)
     if not any(marker in f" {text} " for marker in COMPARISON_MARKERS):
         return None
 
@@ -120,12 +120,6 @@ def fast_comparison_arguments(
     if losses is not None:
         arguments["losses"] = losses
     return arguments
-
-
-def _normalize(value: str) -> str:
-    decomposed = unicodedata.normalize("NFKD", value.casefold())
-    without_accents = "".join(char for char in decomposed if not unicodedata.combining(char))
-    return re.sub(r"\s+", " ", without_accents).strip()
 
 
 def _mentions_factor(text: str, factor: str) -> bool:

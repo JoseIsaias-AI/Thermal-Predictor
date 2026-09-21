@@ -11,6 +11,11 @@ vira espera para o usuário.
 Quando a documentação tem algo a dizer sobre a pergunta, o trecho entra na
 etapa 2 mesmo que o modelo não tenha pedido: sem isso, ele responde de cabeça
 sobre termos do projeto e inventa níveis de fator.
+
+Antes das duas etapas há dois atalhos locais, ambos com resposta montada em
+código: cortesia (saudação, agradecimento, despedida, "o que você faz") e
+comparação com vocabulário controlado. Qualquer ambiguidade cai no fluxo
+normal — nenhum dos dois adivinha o que o usuário quis dizer.
 """
 
 from collections.abc import Mapping
@@ -31,6 +36,7 @@ from thermal_chatbot.schemas import (
 )
 from thermal_chatbot.tools import Tool, ToolRegistry, ToolResult
 from thermal_chatbot.triage.intents import fast_comparison_arguments
+from thermal_chatbot.triage.smalltalk import smalltalk_answer
 
 # Trechos do histórico mantidos no prompt. Seis mensagens cobrem o vaivém
 # recente de uma conversa sem arrastar o contexto inteiro a cada pergunta.
@@ -77,6 +83,20 @@ class ChatbotService:
         self.always_retrieve = always_retrieve
 
     async def reply(self, request: ChatRequest) -> ChatResponse:
+        # Saudação e cortesia não dependem de fonte nenhuma: a resposta é
+        # sempre a mesma, então escrevê-la em código poupa as duas gerações do
+        # fluxo normal. Uma comparação estruturada tem intenção explícita e
+        # nunca é tratada como cortesia.
+        if request.comparison is None:
+            cortesia = smalltalk_answer(request.message, self.available_tools.keys())
+            if cortesia is not None:
+                return ChatResponse(
+                    answer=cortesia,
+                    action=ChatAction.ANSWER,
+                    model=self.model_name,
+                    sources=[],
+                )
+
         messages = self._build_messages(request)
         comparison_arguments = fast_comparison_arguments(
             request.message,

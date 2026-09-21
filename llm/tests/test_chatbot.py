@@ -1,11 +1,12 @@
 import asyncio
 
 import pytest
-from fakes import ScriptedProvider, answer, routing
+from fakes import FakeTool, ScriptedProvider, answer, routing
 
 from thermal_chatbot.chatbot import ChatbotService
 from thermal_chatbot.providers.base import ProviderResponseError
-from thermal_chatbot.schemas import ChatAction, ChatRequest
+from thermal_chatbot.schemas import ChatAction, ChatRequest, ToolName
+from thermal_chatbot.tools import ToolResult
 
 
 def test_returns_direct_answer_and_sends_system_prompt() -> None:
@@ -86,7 +87,7 @@ def test_routing_stage_never_offers_a_text_field() -> None:
     )
     service = ChatbotService(provider, model_name="test-model")
 
-    asyncio.run(service.reply(ChatRequest(message="Olá")))
+    asyncio.run(service.reply(ChatRequest(message="O que é margem térmica?")))
 
     assert len(provider.routing_calls) == 1
     assert len(provider.answer_calls) == 1
@@ -102,7 +103,7 @@ def test_motivo_longo_nao_invalida_a_decisao() -> None:
     )
     service = ChatbotService(provider, model_name="test-model")
 
-    response = asyncio.run(service.reply(ChatRequest(message="Olá")))
+    response = asyncio.run(service.reply(ChatRequest(message="O que é margem térmica?")))
 
     assert response.action == ChatAction.ANSWER
 
@@ -114,7 +115,9 @@ def test_decisao_sem_motivo_continua_valida() -> None:
     )
     service = ChatbotService(provider, model_name="test-model")
 
-    assert asyncio.run(service.reply(ChatRequest(message="Olá"))).action == ChatAction.ANSWER
+    response = asyncio.run(service.reply(ChatRequest(message="O que é margem térmica?")))
+
+    assert response.action == ChatAction.ANSWER
 
 
 def test_recorta_historico_longo_preservando_o_prompt_de_sistema() -> None:
@@ -143,3 +146,63 @@ def test_recorta_historico_longo_preservando_o_prompt_de_sistema() -> None:
     historico = enviadas[1:-1]
     assert len(historico) < 20
     assert "mensagem 19" in historico[-1]["content"]
+
+
+def test_saudacao_e_respondida_sem_chamar_o_modelo() -> None:
+    """Dizer "olá" não depende de fonte nenhuma e não deve custar geração."""
+
+    provider = ScriptedProvider()
+    service = ChatbotService(provider, model_name="test-model")
+
+    response = asyncio.run(service.reply(ChatRequest(message="Oi, tudo bem?")))
+
+    assert response.action == ChatAction.ANSWER
+    assert response.tool_name is None
+    assert response.sources == []
+    assert response.answer.rstrip().endswith("Qual é a sua dúvida?")
+    assert provider.calls == []
+
+
+def test_saudacao_com_pergunta_segue_o_fluxo_normal() -> None:
+    """A pergunta é o que importa: responder só "olá" a deixaria sem resposta."""
+
+    provider = ScriptedProvider(
+        routings=[routing(action="answer", tool_name=None)],
+        answers=[answer("Margem térmica é a distância até o limite.")],
+    )
+    service = ChatbotService(provider, model_name="test-model")
+
+    response = asyncio.run(
+        service.reply(ChatRequest(message="Oi, o que é margem térmica?"))
+    )
+
+    assert response.answer == "Margem térmica é a distância até o limite."
+    assert len(provider.routing_calls) == 1
+
+
+def test_comparacao_estruturada_nao_vira_cortesia() -> None:
+    """Campos estruturados declaram intenção; o texto ao lado é só rótulo."""
+
+    provider = ScriptedProvider()
+    tool = FakeTool(
+        ToolName.THERMAL_PREDICTION,
+        ToolResult(found=True, context="", direct_answer="Delta de 3,1 °C."),
+    )
+    service = ChatbotService(
+        provider, model_name="test-model", available_tools={tool.name: tool}
+    )
+
+    response = asyncio.run(
+        service.reply(
+            ChatRequest(
+                message="Oi",
+                comparison={
+                    "factor": "blower_direction",
+                    "levels": ["To Front", "To Back"],
+                },
+            )
+        )
+    )
+
+    assert response.answer == "Delta de 3,1 °C."
+    assert tool.runs == 1

@@ -43,7 +43,7 @@ def test_health_endpoint() -> None:
 
 
 def test_chat_endpoint() -> None:
-    response = make_client().post("/api/chat", json={"message": "Olá"})
+    response = make_client().post("/api/chat", json={"message": "O que é margem térmica?"})
 
     assert response.status_code == 200
     assert response.json() == {
@@ -54,6 +54,27 @@ def test_chat_endpoint() -> None:
         "sources": [],
         "data": None,
     }
+
+
+def test_chat_endpoint_responde_saudacao_sem_provedor() -> None:
+    """A cortesia sai pelo mesmo endpoint, sem nenhuma chamada ao modelo."""
+
+    # Filas vazias: qualquer chamada ao provedor estouraria o teste.
+    client = TestClient(
+        create_app(
+            settings=Settings(ollama_model="test-model"),
+            provider=ScriptedProvider(),
+            tools={ToolName.DOCUMENTATION_SEARCH: ApiFakeTool()},
+        )
+    )
+
+    response = client.post("/api/chat", json={"message": "Oi, tudo bem?"})
+
+    assert response.status_code == 200
+    corpo = response.json()
+    assert corpo["action"] == "answer"
+    assert corpo["tool_name"] is None
+    assert corpo["answer"].rstrip().endswith("Qual é a sua dúvida?")
 
 
 def test_rejects_empty_message() -> None:

@@ -129,6 +129,22 @@ O texto controlado também usa esse caminho rápido. Se houver ambiguidade, o
 backend não tenta adivinhar: mantém o roteamento pelo Qwen ou informa quais
 campos estão faltando.
 
+### Cortesia também é respondida em código
+
+"Oi, tudo bem?", "obrigado", "tchau", "qual é o seu nome?" e "o que você faz?"
+não dependem de documentação, dataset nem previsão: a resposta é sempre a
+mesma. O backend reconhece essas mensagens localmente e responde na hora — a
+saudação devolve um cumprimento e pergunta qual é a dúvida; a pergunta de
+identidade devolve o nome do agente, **Robertão**; "o que você faz" lista
+apenas as fontes realmente conectadas nesta execução, com a ressalva de
+triagem preliminar.
+
+O reconhecimento é estreito de propósito: só dispara quando a mensagem inteira
+é cortesia. Uma palavra fora do vocabulário de saudação já devolve a pergunta
+ao fluxo normal, então "Oi, o que é Blower Direction?" continua indo para a
+documentação em vez de virar um "olá" que ignora a pergunta. Comparação enviada
+em campos estruturados nunca é tratada como cortesia.
+
 ### Os números não passam pelo modelo
 
 `POST /api/chat` devolve, além do texto, o campo `data` com o resultado bruto
@@ -165,7 +181,10 @@ llm/
 │       ├── factors.py      # vocabulário dos fatores e codificação dos modelos
 │       ├── catalog.py      # dataset auditado e catálogo de pontos
 │       ├── dataset.py      # ferramenta dataset_query
-│       └── prediction.py   # ferramenta thermal_prediction
+│       ├── prediction.py   # ferramenta thermal_prediction
+│       ├── text.py         # normalização compartilhada pelos reconhecedores
+│       ├── intents.py      # comparação reconhecida sem LLM
+│       └── smalltalk.py    # saudação e cortesia respondidas sem LLM
 └── tests/                  # testes sem banco, sem modelo e sem rede
 ```
 
@@ -313,6 +332,10 @@ Se `size_vram` for `0`, a execução é em CPU.
   teste local, o mesmo pedido caiu de 269,13 s para 8,28 s na primeira chamada
   e 0,033 s com os modelos já carregados. RAG e explicações livres continuam
   usando a LLM.
+- **Cortesia responde sem geração nenhuma.** Saudação, agradecimento,
+  despedida, nome e "o que você faz" são reconhecidos por vocabulário e
+  respondidos em código, em milissegundos e sem nenhuma chamada ao Ollama.
+  Antes, dizer "oi" custava as duas etapas completas do fluxo.
 - **`OLLAMA_KEEP_ALIVE`** mantém o modelo residente. Recarregá-lo do disco
   custava cerca de 25 s na primeira pergunta depois de um tempo parado.
 - **Resposta curta por instrução.** A tabela completa vai para o cliente em
