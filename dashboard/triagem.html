@@ -8,7 +8,7 @@
   <link rel="stylesheet" href="css/tokens.css?v=3">
   <link rel="stylesheet" href="css/app.css?v=5">
   <link rel="stylesheet" href="css/triagem.css?v=3">
-  <link rel="stylesheet" href="css/fogao.css?v=4">
+  <link rel="stylesheet" href="css/fogao.css?v=6">
   <link rel="stylesheet" href="css/grafico.css?v=3">
 </head>
 <body>
@@ -205,6 +205,20 @@
         </span>
       </div>
 
+      <!-- Paradas vêm do estado já calculado; o tour só ordena e navega. -->
+      <div class="viewport__bar viewport__bar--tour" id="tour-bar" role="group" aria-label="Tour pelos pontos críticos">
+        <span class="bar-label">Tour</span>
+        <button type="button" class="vbtn" id="tour-iniciar"
+                title="Percorre no modelo os pontos acima do limite e na banda de incerteza, do mais grave ao menos grave">Percorrer pontos críticos</button>
+        <span class="tour__ctrl" id="tour-ctrl" hidden>
+          <button type="button" class="vbtn" id="tour-anterior" aria-label="Parada anterior">‹</button>
+          <button type="button" class="vbtn vbtn--toggle" id="tour-pausa" aria-pressed="false">Pausar</button>
+          <button type="button" class="vbtn" id="tour-proximo" aria-label="Próxima parada">›</button>
+          <button type="button" class="vbtn" id="tour-encerrar" title="Encerra o tour e volta à vista isométrica (Esc)">Encerrar</button>
+        </span>
+        <p class="tour__status" id="tour-status" role="status" aria-live="polite"></p>
+      </div>
+
       <div class="viewport__frame">
         <div class="viewport__stage">
           <div class="viewport__3d" id="heat-3d" role="application" tabindex="0"
@@ -371,12 +385,13 @@
 <script src="js/dados_triagem.js?v=3"></script>
 <script src="vendor/three.min.js"></script>
 <script src="js/fogao.js?v=4"></script>
-<script src="js/fogao3d.js?v=6"></script>
+<script src="js/fogao3d.js?v=8"></script>
 <script src="js/painel_peca.js?v=4"></script>
+<script src="js/tour.js?v=1"></script>
 <!-- Stub da confiança por ponto: valor ilustrativo, não métrica do modelo. -->
 <script src="js/confianca.js?v=4"></script>
 <script src="js/grafico.js?v=3"></script>
 <script src="js/leitura_publicos.js?v=5"></script>
-<script src="js/triagem.js?v=5"></script>
+<script src="js/triagem.js?v=7"></script>
 </body>
 </html>

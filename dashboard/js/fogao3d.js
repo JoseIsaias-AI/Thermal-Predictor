@@ -559,7 +559,7 @@ var FOGAO3D = (function () {
       renderer = new T.WebGLRenderer({ antialias: true, alpha: true, powerPreference: "high-performance" });
     } catch (erro) {
       host.innerHTML = "<p class=\"viewport__sem3d\">Este navegador não oferece WebGL, necessário para o modelo 3D.</p>";
-      return { atualizar: function () { return {}; }, preset: function () {}, presetAtual: function () { return null; } };
+      return { atualizar: function () { return {}; }, preset: function () {}, presetAtual: function () { return null; }, focarPonto: function () { return false; } };
     }
 
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
@@ -1687,6 +1687,48 @@ var FOGAO3D = (function () {
       }, null, 900);
     }
 
+    // Peças opacas entre a câmera e o ponto: 0 é vista livre.
+    var raioVista = new T.Raycaster();
+    function obstrucoes(destino) {
+      var olho = destino.t.clone().addScaledVector(direcao(destino.az, destino.el), destino.dist);
+      var ate = destino.t.clone().sub(olho), longe = ate.length();
+      raioVista.set(olho, ate.normalize());
+      // Folga no fim: o marcador encosta na própria peça e não conta como obstáculo.
+      raioVista.far = Math.max(0, longe - 0.08);
+      var alvos = [];
+      estado.lista.forEach(function (pc) {
+        var p = estado.pecas[pc.id];
+        if (pc.present && p.corpo.visible && p.opacidadeAlvo > 0.5) alvos.push(p.corpo);
+      });
+      return raioVista.intersectObjects(alvos, true).length;
+    }
+
+    /* Aproxima do marcador de um ponto, pela mesma transição dos presets.
+       Testa ângulos em volta do ponto e fica com o de vista livre mais perto
+       da câmera atual: o lado da peça não basta, porque o termopar pode estar
+       na face interna dela, como os da traseira. Mira a posição de destino do
+       explodido, não a do quadro corrente. */
+    function enquadrarPonto(id, duracao) {
+      if (estado.foco) return false;
+      var m = estado.marcadores.filter(function (x) { return x.ponto.measurement_id === id; })[0];
+      if (!m) return false;
+      var peca = estado.pecas[m.peca];
+      var t = m.base.clone().add(desloc(peca.pc.ex).multiplyScalar(estado.explodeAlvo));
+      var dist = distanciaQueEnquadra(uniao(caixasVisiveis()), 1.04) * 0.5;
+      var iso = PRESETS.isometrica, melhor = null;
+      [iso.el, 48 * GRAU, 8 * GRAU].forEach(function (el) {
+        for (var k = 0; k < 12; k++) {
+          var c = { az: iso.az + k * 30 * GRAU, el: el, dist: dist, t: t.clone() };
+          limitarCamera(c);
+          var giro = Math.abs(Math.atan2(Math.sin(c.az - cam.atual.az), Math.cos(c.az - cam.atual.az)));
+          var nota = obstrucoes(c) * 10 + giro + Math.abs(el - iso.el);
+          if (!melhor || nota < melhor.nota) melhor = { nota: nota, destino: c };
+        }
+      });
+      irPara(melhor.destino, null, duracao || 1100);
+      return true;
+    }
+
     function manipular() {
       if (cam.transicao) { cam.alvo = copiaCam(cam.atual); cam.transicao = null; }
       if (cam.preset) { cam.preset = null; avisarCamera(); }
@@ -2358,6 +2400,7 @@ var FOGAO3D = (function () {
       atualizar: atualizar,
       preset: function (nome) { if (!estado.foco) aplicarPreset(nome); },
       presetAtual: function () { return cam.preset; },
+      focarPonto: enquadrarPonto,
       _depurar: {
         camera: function () { return { atual: copiaCam(cam.atual), alvo: copiaCam(cam.alvo), transicao: !!cam.transicao }; },
         tempos: function () { return tempos.slice(); },
@@ -2385,6 +2428,11 @@ var FOGAO3D = (function () {
           return { x: r.left + s.x, y: r.top + s.y };
         },
         marcadores: function () { return estado.marcadores.map(function (m) { return m.ponto.measurement_id; }); },
+        // Peças opacas entre a câmera desenhada e o marcador; 0 é vista livre.
+        obstrucoes: function (id) {
+          var m = estado.marcadores.filter(function (x) { return x.ponto.measurement_id === id; })[0];
+          return m ? obstrucoes(cam.atual) : null;
+        },
         // Halos desenhados no último quadro: raio em unidades de marcador e raio na tela, em px.
         halos: function () {
           var r = renderer.domElement.getBoundingClientRect();
