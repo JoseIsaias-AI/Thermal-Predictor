@@ -1,9 +1,12 @@
 /* Tela de triagem térmica. Estado, folga e ordem das linhas já vêm prontos
- * em js/dados_triagem.js; aqui só há formatação e montagem de DOM.
+ * no dado (LEITURA_PUBLICOS.fonte); aqui só há formatação e montagem de DOM.
  */
 
 (function () {
   "use strict";
+
+  // Payload da configuração avaliada, resolvido uma vez na montagem.
+  var DADOS = null;
 
   var loading = document.getElementById("loading");
   var errorSection = document.getElementById("error");
@@ -23,12 +26,20 @@
     dentro_do_limite: "Dentro do limite"
   };
 
+  // Na tela, pt-BR: vírgula decimal e sinal de menos tipográfico, com a mesma
+  // casa decimal para a mesma grandeza. A planilha exportada guarda o número cru.
+  function fmt(valor, casas) {
+    var t = valor.toFixed(casas);
+    if (Number(t) === 0) t = t.replace("-", "");
+    return t.replace(".", ",").replace("-", "−");
+  }
+
   function grausC(valor) {
-    return valor.toFixed(2);
+    return fmt(valor, 1);
   }
 
   function percentual(fracao) {
-    return (fracao * 100).toFixed(1) + "%";
+    return fmt(fracao * 100, 1) + "%";
   }
 
   function el(tag, classe, texto) {
@@ -128,9 +139,22 @@
     });
   }
 
+  /* O título da tela é a conclusão, e não o nome dela: quantos dos pontos com
+     limite passam dele. Conta o que a tabela lista, sem regra nova. */
+  function tituloConclusao(pontos) {
+    var total = pontos.length;
+    var acima = pontos.filter(function (p) { return p.estado === "acima_do_limite"; }).length;
+    var banda = pontos.filter(function (p) { return p.estado === "banda_de_incerteza"; }).length;
+    if (acima) return acima + " de " + total + (acima === 1 ? " ponto acima do limite" : " pontos acima do limite");
+    if (banda) return "Nenhum ponto acima do limite; " + banda + " na banda de incerteza";
+    return "Nenhum dos " + total + " pontos acima do limite";
+  }
+
   function render(dados) {
     document.getElementById("tolerance-fraction").textContent =
       (dados.tolerancia_fracao * 100).toFixed(0) + "%";
+
+    document.getElementById("page-title").textContent = tituloConclusao(dados.pontos);
 
     if (dados.preditor_e_stub) {
       document.getElementById("model-version").textContent = dados.versao_modelo;
@@ -195,7 +219,7 @@
   var RANKING_TOPO = 14;
 
   function classificadosVisiveis() {
-    return DADOS_TRIAGEM.pontos.filter(passaNoFiltro);
+    return DADOS.pontos.filter(passaNoFiltro);
   }
 
   function rampaAtual() {
@@ -205,10 +229,10 @@
   function dicaDoPonto(p) {
     return "<b class=\"tip__name\">" + p.TC_Name + "</b>" +
       "<span class=\"tip__state\">" + p.Key_Area + "</span><br>" +
-      "<span class=\"tip__num\">" + p.temperatura_prevista_c.toFixed(1) + " °C</span>" +
-      " de <span class=\"tip__num\">" + p.limit_c.toFixed(0) + " °C</span>" +
-      " · <span class=\"tip__num\">folga " + p.margem_c.toFixed(1) + " °C</span>" +
-      " (" + (p.margem_percentual * 100).toFixed(1) + "%)" +
+      "<span class=\"tip__num\">" + grausC(p.temperatura_prevista_c) + " °C</span>" +
+      " de <span class=\"tip__num\">" + grausC(p.limit_c) + " °C</span>" +
+      " · <span class=\"tip__num\">folga " + grausC(p.margem_c) + " °C</span>" +
+      " (" + percentual(p.margem_percentual) + ")" +
       "<span class=\"tip__state\"> · " + p.estado_rotulo + "</span>";
   }
 
@@ -262,20 +286,8 @@
     var pior = null;
     pts.forEach(function (p) { if (!pior || p.margem_c < pior.margem_c) pior = p; });
 
-    // Subsistema mais crítico é o de maior proporção acima, e não o de maior
-    // contagem: sete pontos de um subsistema de trinta e sete não é o mesmo
-    // que seis de oito.
-    var porArea = {};
-    pts.forEach(function (p) {
-      var a = porArea[p.Key_Area] || (porArea[p.Key_Area] = { n: 0, acima: 0 });
-      a.n += 1;
-      if (p.estado === "acima_do_limite") a.acima += 1;
-    });
-    var critico = null;
-    Object.keys(porArea).forEach(function (a) {
-      var r = porArea[a].acima / porArea[a].n;
-      if (!critico || r > critico.r) critico = { area: a, r: r, d: porArea[a] };
-    });
+    // Mesma regra que o resumo executivo usa para nomear o subsistema.
+    var critico = LEITURA_PUBLICOS.subsistemaMaisCritico(pts);
 
     function cartao(rotulo, valor, unidade, nota, classe) {
       var c = el("div", "kpi" + (classe ? " " + classe : ""));
@@ -288,22 +300,24 @@
     }
 
     caixa.appendChild(cartao("Acima do limite", String(acima.length),
-      "de " + pts.length, "previsão acima do próprio limite",
+      "de " + pts.length,
+      LEITURA_PUBLICOS.percentual(acima.length, pts.length) + " · previsão acima do próprio limite",
       acima.length ? "kpi--alerta" : null));
 
     caixa.appendChild(cartao("Inconclusivos", String(banda.length),
-      "na banda", "folga menor que a tolerância",
+      "na banda",
+      LEITURA_PUBLICOS.percentual(banda.length, pts.length) + " · folga menor que a tolerância",
       banda.length ? "kpi--atencao" : null));
 
     caixa.appendChild(cartao("Pior folga",
-      pior ? pior.margem_c.toFixed(1) : "—", "°C",
+      pior ? grausC(pior.margem_c) : "—", "°C",
       pior ? pior.TC_Name : "sem pontos no recorte",
       pior && pior.margem_c < 0 ? "kpi--alerta" : null));
 
     caixa.appendChild(cartao("Subsistema mais crítico",
-      critico ? (critico.r * 100).toFixed(0) : "—", "%",
-      critico ? critico.area + " · " + critico.d.acima + " de " + critico.d.n + " acima" : "—",
-      critico && critico.r > 0 ? "kpi--alerta" : null));
+      critico ? (critico.proporcao_acima * 100).toFixed(0) : "—", "%",
+      critico ? critico.area + " · " + critico.acima + " de " + critico.n + " acima" : "—",
+      critico && critico.acima > 0 ? "kpi--alerta" : null));
   }
 
 
@@ -347,7 +361,7 @@
     // Escala fixa nos 68, e não no recorte: assim a mesma folga ocupa sempre
     // o mesmo lugar, e dois recortes se comparam.
     var lo = 0, hi = 0;
-    DADOS_TRIAGEM.pontos.forEach(function (p) {
+    DADOS.pontos.forEach(function (p) {
       lo = Math.min(lo, p.margem_percentual);
       hi = Math.max(hi, p.margem_percentual);
     });
@@ -356,9 +370,9 @@
     var X = GRAFICO.eixoDeFolga(svgRanking, {
       lo: lo, hi: hi, x0: ML, largura: PW,
       topo: MT - 12, base: H - MB, yRotulo: MT - 18,
-      tolerancia: DADOS_TRIAGEM.tolerancia_fracao
+      tolerancia: DADOS.tolerancia_fracao
     });
-    svgRanking.appendChild(GRAFICO.texto(ML, 10, "FOLGA RELATIVA AO LIMITE", "ax-rotulo"));
+    svgRanking.appendChild(GRAFICO.texto(ML, 12, "Folga relativa ao limite", "ax-rotulo"));
 
     var zero = X(0);
     mostrados.forEach(function (p, k) {
@@ -385,7 +399,7 @@
         GRAFICO.corta(p.TC_Name, 28),
         p.measurement_id === mapa.sel ? "ax-text ax-text--forte" : "ax-text", "end"));
       svgRanking.appendChild(GRAFICO.texto(ML + PW + 8, y + 3.5,
-        p.margem_c.toFixed(1), "ax-text", "start"));
+        grausC(p.margem_c), "ax-text", "start"));
     });
   }
 
@@ -409,7 +423,7 @@
     svgCritério.setAttribute("height", ALT);
 
     var maxLim = 0, maxTemp = 0;
-    DADOS_TRIAGEM.pontos.forEach(function (p) {
+    DADOS.pontos.forEach(function (p) {
       maxLim = Math.max(maxLim, p.limit_c);
       maxTemp = Math.max(maxTemp, p.temperatura_prevista_c);
     });
@@ -430,7 +444,7 @@
     /* A banda entre a reta do limite e 90% dela é a banda de incerteza vista
        neste par de eixos: abaixo dela o ponto está dentro, dentro dela a
        folga não supera a tolerância, acima dela ultrapassa o limite. */
-    var tol = DADOS_TRIAGEM.tolerancia_fracao;
+    var tol = DADOS.tolerancia_fracao;
     svgCritério.appendChild(GRAFICO.el("path", {
       d: "M" + X(0) + " " + Y(0) + " L" + X(topo) + " " + Y(topo) +
          " L" + X(topo) + " " + Y(topo * (1 - tol)) + " Z",
@@ -444,9 +458,9 @@
     svgCritério.appendChild(GRAFICO.texto(X(topo) - 6, Y(topo) + 16,
       "previsão = limite", "ax-text ax-text--forte", "end"));
     svgCritério.appendChild(GRAFICO.texto(ML, MT - 10,
-      "TEMPERATURA PREVISTA (°C)", "ax-rotulo"));
+      "Temperatura prevista (°C)", "ax-rotulo"));
     svgCritério.appendChild(GRAFICO.texto(ML + PW, ALT - 8,
-      "LIMITE DECLARADO (°C)", "ax-rotulo", "end"));
+      "Limite declarado (°C)", "ax-rotulo", "end"));
     svgCritério.appendChild(GRAFICO.texto(ML, ALT - 8,
       "acima da reta = ultrapassa o limite", "ax-text ax-text--eixo"));
 
@@ -479,7 +493,7 @@
     }
 
     var lo = 0, hi = 0;
-    DADOS_TRIAGEM.pontos.forEach(function (p) {
+    DADOS.pontos.forEach(function (p) {
       lo = Math.min(lo, p.margem_percentual);
       hi = Math.max(hi, p.margem_percentual);
     });
@@ -506,9 +520,9 @@
     var X = GRAFICO.eixoDeFolga(svgSubsistema, {
       lo: lo, hi: hi, x0: ML, largura: PW,
       topo: MT - 12, base: H - MB, yRotulo: MT - 18,
-      tolerancia: DADOS_TRIAGEM.tolerancia_fracao
+      tolerancia: DADOS.tolerancia_fracao
     });
-    svgSubsistema.appendChild(GRAFICO.texto(ML, 10, "FOLGA RELATIVA AO LIMITE", "ax-rotulo"));
+    svgSubsistema.appendChild(GRAFICO.texto(ML, 12, "Folga relativa ao limite", "ax-rotulo"));
 
     function quantil(ordenados, q) {
       var i = (ordenados.length - 1) * q, b = Math.floor(i), r = i - b;
@@ -547,9 +561,9 @@
       }
 
       var acima = f.pontos.filter(function (p) { return p.estado === "acima_do_limite"; }).length;
-      g.appendChild(GRAFICO.texto(ML - 12, meio - 1, f.area,
+      g.appendChild(GRAFICO.texto(ML - 12, meio - 2, f.area,
         isolado && mapa.isolar !== "todos" ? "ax-text ax-text--forte" : "ax-text", "end"));
-      g.appendChild(GRAFICO.texto(ML - 12, meio + 11,
+      g.appendChild(GRAFICO.texto(ML - 12, meio + 12,
         acima + " acima de " + f.pontos.length, "ax-text ax-text--eixo", "end"));
 
       f.pontos.forEach(function (p, i) {
@@ -584,7 +598,7 @@
 
 
   function todosOsPontos() {
-    return DADOS_TRIAGEM.pontos.concat(DADOS_TRIAGEM.monitoramento);
+    return DADOS.pontos.concat(DADOS.monitoramento);
   }
 
   function svgEl(tag, attrs) {
@@ -616,7 +630,7 @@
     var caixa = document.getElementById("ramp");
     var rampa = mapa.escala === "b" ? FOGAO.RAMPA_B : FOGAO.RAMPA_A;
     var contagem = [0, 0, 0, 0, 0, 0, 0, 0];
-    DADOS_TRIAGEM.pontos.forEach(function (p) { contagem[FOGAO.faixaDaRampa(p.margem_percentual)] += 1; });
+    DADOS.pontos.forEach(function (p) { contagem[FOGAO.faixaDaRampa(p.margem_percentual)] += 1; });
 
     caixa.innerHTML = "";
     FOGAO.FAIXAS.forEach(function (rotulo, i) {
@@ -652,7 +666,7 @@
       caixa.appendChild(b);
     });
 
-    document.getElementById("mono-count").textContent = DADOS_TRIAGEM.total_monitoramento;
+    document.getElementById("mono-count").textContent = DADOS.total_monitoramento;
   }
 
   function montarSubsistemas() {
@@ -666,7 +680,7 @@
     var areas = Object.keys(total).sort(function (a, b) { return total[b] - total[a]; });
     caixa.innerHTML = "";
 
-    var linhas = [["todos", "Todos", DADOS_TRIAGEM.total_pontos, null]];
+    var linhas = [["todos", "Todos", DADOS.total_pontos, null]];
     areas.forEach(function (a) { linhas.push([a, a, total[a], acima[a] || 0]); });
 
     linhas.forEach(function (linha) {
@@ -758,7 +772,7 @@
             (p.is_monitor_only ? " stroke-dasharray=\"2.5 2\"" : "") + "></path>" +
         "</svg>" +
         "<dl class=\"conf__dados\">" +
-          "<div><dt>Temperatura prevista</dt><dd class=\"conf__temp\">" + p.temperatura_prevista_c.toFixed(2) + " °C</dd></div>" +
+          "<div><dt>Temperatura prevista</dt><dd class=\"conf__temp\">" + grausC(p.temperatura_prevista_c) + " °C</dd></div>" +
           "<div><dt>Confiança</dt><dd class=\"conf__nivel\"><span class=\"conf__passos\" aria-hidden=\"true\">" + passos + "</span>" + conf.rotulo + "</dd></div>" +
         "</dl>" +
       "</div>" +
@@ -792,11 +806,11 @@
         linhaDetalhe("Estado de risco", "não se aplica", true) + "</dl>" +
         "<p class=\"legend-note\">Sem limite, não recebe estado nem entra na escala.</p>";
     } else {
-      var tol = DADOS_TRIAGEM.tolerancia_fracao * p.limit_c;
-      html += linhaDetalhe("Limite do componente", p.limit_c.toFixed(2) + " °C") +
-        linhaDetalhe("Folga", p.margem_c.toFixed(2) + " °C") +
-        linhaDetalhe("Folga relativa", (p.margem_percentual * 100).toFixed(1) + "%") +
-        linhaDetalhe("Tolerância (10% do limite)", tol.toFixed(2) + " °C") + "</dl>";
+      var tol = DADOS.tolerancia_fracao * p.limit_c;
+      html += linhaDetalhe("Limite do componente", grausC(p.limit_c) + " °C") +
+        linhaDetalhe("Folga", grausC(p.margem_c) + " °C") +
+        linhaDetalhe("Folga relativa", percentual(p.margem_percentual)) +
+        linhaDetalhe("Tolerância (10% do limite)", grausC(tol) + " °C") + "</dl>";
 
       // Onde a previsão cai em relação ao limite.
       var frac = Math.max(0, Math.min(1, p.temperatura_prevista_c / (p.limit_c * 1.6)));
@@ -863,11 +877,11 @@
 
   function desenharPainelPeca() {
     var zona = mapa.zona && FOGAO.ZONA_POR_ID[mapa.zona];
-    var sel = zona ? { resumo: PAINEL_PECA.resumir(zona, DADOS_TRIAGEM) }
+    var sel = zona ? { resumo: PAINEL_PECA.resumir(zona, DADOS) }
       : mapa.semDado ? { semDado: mapa.semDado } : null;
     PAINEL_PECA.desenhar(document.getElementById("part-detail"), sel, {
       rampa: rampaAtual(),
-      dados: DADOS_TRIAGEM,
+      dados: DADOS,
       pontoSel: mapa.sel,
       aoEscolherPonto: selecionar,
       aoLimpar: limparSelecao
@@ -1008,8 +1022,8 @@
       if (tr) tr.hidden = !ok;
     });
 
-    var total = DADOS_TRIAGEM.total_classificados;
-    var mono = DADOS_TRIAGEM.total_monitoramento;
+    var total = DADOS.total_classificados;
+    var mono = DADOS.total_monitoramento;
     var ativo = mapa.nome || !mapa.mono ||
       Object.keys(mapa.faixas).length || Object.keys(mapa.estados).length;
 
@@ -1220,7 +1234,7 @@
       desenharRanking();
     });
 
-    document.getElementById("viz-mono-count").textContent = DADOS_TRIAGEM.total_monitoramento;
+    document.getElementById("viz-mono-count").textContent = DADOS.total_monitoramento;
     // A faixa de KPIs mora no topo da página, e não mais dentro de `visuais`.
     document.getElementById("kpis").hidden = false;
     document.getElementById("visuais").hidden = false;
@@ -1239,7 +1253,7 @@
   }
 
   /* ----- Tour pelos pontos críticos -----
-     A lista sai do estado já rotulado em DADOS_TRIAGEM (TOUR.paradas só
+     A lista sai do estado já rotulado em DADOS (TOUR.paradas só
      escolhe e ordena). Cada parada é a mesma seleção de um clique, então os
      painéis da peça e do ponto abrem sem o usuário tocar no modelo. */
   var tour = null;
@@ -1308,7 +1322,7 @@
 
     // A lista é lida no clique, do dado que a triagem mostra naquele momento.
     iniciar.addEventListener("click", function () {
-      var lista = TOUR.paradas(DADOS_TRIAGEM);
+      var lista = TOUR.paradas(DADOS);
       status.classList.toggle("tour__status--vazio", !lista.length);
       if (!lista.length) {
         escrever(["Nenhum ponto acima do limite ou na banda de incerteza nesta configuração: não há paradas para o tour."]);
@@ -1452,8 +1466,14 @@
 
   var configDaUrl = LEITURA_PUBLICOS.configuracaoDaUrl();
   var configAtiva = configDaUrl || DADOS_TRIAGEM.configuracao;
+  DADOS = LEITURA_PUBLICOS.fonte(configAtiva);
   geometria = geometriaDaConfig(configAtiva);
   renderConfiguracao(configAtiva, configDaUrl !== null);
 
-  render(DADOS_TRIAGEM);
+  // Mesmo payload da tabela: o resumo não tem outra fonte de número.
+  RESUMO_EXECUTIVO.montar(document.getElementById("resumo-exec"), DADOS,
+    { configuracao: configAtiva, prioridades: 3 });
+  MODO_LEITURA.iniciar();
+
+  render(DADOS);
 })();

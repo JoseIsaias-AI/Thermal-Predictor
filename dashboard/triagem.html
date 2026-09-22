@@ -5,11 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Triagem térmica — Thermal Predictor</title>
 
-  <link rel="stylesheet" href="css/tokens.css?v=3">
-  <link rel="stylesheet" href="css/app.css?v=5">
-  <link rel="stylesheet" href="css/triagem.css?v=3">
-  <link rel="stylesheet" href="css/fogao.css?v=7">
-  <link rel="stylesheet" href="css/grafico.css?v=3">
+  <link rel="stylesheet" href="css/tokens.css?v=4">
+  <link rel="stylesheet" href="css/app.css?v=6">
+  <link rel="stylesheet" href="css/triagem.css?v=4">
+  <link rel="stylesheet" href="css/fogao.css?v=8">
+  <link rel="stylesheet" href="css/grafico.css?v=4">
+  <link rel="stylesheet" href="css/executivo.css?v=3">
+  <link rel="stylesheet" href="css/historico.css?v=2">
 </head>
 <body>
 
@@ -51,7 +53,10 @@
 
   <div class="page-head">
     <div class="page-head__text">
-      <h2 class="page-head__title">Triagem térmica</h2>
+      <!-- O nome da tela vira sobretítulo; o título é a conclusão, preenchida
+           por triagem.js com a contagem da própria tabela. -->
+      <p class="page-head__kicker">Triagem térmica</p>
+      <h2 class="page-head__title" id="page-title">Triagem térmica</h2>
       <p class="page-head__sub">Pontos de medição ordenados por risco estimado · apoio à fila de simulação, não substitui CFD</p>
     </div>
     <div class="page-head__actions">
@@ -75,13 +80,25 @@
           </p>
         </div>
       </details>
+      <!-- Executiva: só o resumo e o que decide. Técnica: a tela inteira. -->
+      <div class="leitura">
+        <span class="leitura__rotulo" id="modo-leitura-rotulo">Leitura</span>
+        <span class="leitura-toggle" id="modo-leitura" role="group" aria-labelledby="modo-leitura-rotulo">
+          <button type="button" data-modo="tecnico" aria-pressed="true">Técnica</button>
+          <button type="button" data-modo="executivo" aria-pressed="false">Executiva</button>
+        </span>
+      </div>
+      <button class="btn btn--ghost" type="button" data-exportar-pdf disabled title="Registro desta análise em PDF, com o resumo e as tabelas das telas de triagem, conformidade e marketing">Exportar PDF</button>
       <a class="btn btn--ghost" href="index.html">Alterar configuração</a>
     </div>
   </div>
 
-  <div class="kpis" id="kpis" hidden></div>
+  <!-- Primeiro elemento do modo executivo, antes de qualquer tabela ou gráfico. -->
+  <section id="resumo-exec" data-leitura="executiva" data-titulo-na-pagina hidden></section>
 
-  <section class="config" id="config-panel" hidden>
+  <div class="kpis" id="kpis" data-leitura="tecnica" hidden></div>
+
+  <section class="config" id="config-panel" data-leitura="tecnica" hidden>
     <h2 class="config__title">Configuração avaliada
       <span class="config__tag" id="config-default-note" hidden title="Nenhuma configuração foi informada. Estes são os fatores de referência do conjunto de dados de exemplo.">referência do dataset</span>
     </h2>
@@ -96,7 +113,7 @@
   </section>
 
   <!-- Nasce explodido: assentado, 48 dos 78 pontos ficam ocultos. -->
-  <section class="heat" id="heat" hidden>
+  <section class="heat" id="heat" data-leitura="tecnica" hidden>
 
     <aside class="heat__side">
       <div class="heat__block heat__block--folga">
@@ -268,7 +285,7 @@
   </section>
 
   <!-- Leem o mesmo recorte da tabela e apontam para a mesma seleção. -->
-  <section class="panel" id="visuais" hidden>
+  <section class="panel" id="visuais" data-leitura="tecnica" hidden>
     <div class="panel__head">
       <h2 class="panel__title">Onde está o risco</h2>
       <p class="panel__meta">Segue os filtros · passe o ponteiro para cruzar os gráficos</p>
@@ -281,6 +298,7 @@
           Folga por ponto
           <span class="viz__sub">do mais crítico ao menos crítico</span>
           <button type="button" class="viz__acao" id="viz-ranking-todos" hidden></button>
+          <a class="ver-tabela" href="#screening-panel">Ver como tabela</a>
         </h3>
         <div class="chart__scroll">
           <svg class="chart__svg" id="viz-ranking" role="img"
@@ -293,6 +311,7 @@
           <h3 class="viz__titulo">
             Folga por subsistema
             <span class="viz__sub">quartis e pontos</span>
+            <a class="ver-tabela viz__acao--fim" href="#screening-panel">Ver como tabela</a>
           </h3>
           <div class="chart__scroll">
             <svg class="chart__svg" id="viz-subsistema" role="img"
@@ -303,6 +322,7 @@
           <h3 class="viz__titulo">
             Previsão contra limite
             <span class="viz__sub">acima da reta ultrapassa</span>
+            <a class="ver-tabela viz__acao--fim" href="#screening-panel">Ver como tabela</a>
           </h3>
           <div class="chart__scroll">
             <svg class="chart__svg" id="viz-criterio" role="img"
@@ -329,7 +349,7 @@
     </details>
   </section>
 
-  <section class="panel" id="screening-panel" hidden>
+  <section class="panel" id="screening-panel" data-leitura="tecnica" hidden>
     <div class="panel__head">
       <h2 class="panel__title">Pontos com limite declarado</h2>
       <ul class="tally" id="tally"></ul>
@@ -357,7 +377,7 @@
   </section>
 
   <!-- RN-03: sem colunas de limite, folga ou estado. -->
-  <section class="panel panel--monitoring" id="monitoring-panel" hidden>
+  <section class="panel panel--monitoring" id="monitoring-panel" data-leitura="tecnica" hidden>
     <div class="panel__head">
       <h2 class="panel__title">Pontos só monitorados</h2>
       <p class="panel__meta"><span id="monitoring-count">—</span> de 78 · sem limite declarado, sem estado de risco</p>
@@ -383,15 +403,24 @@
      dados_triagem.js precisa vir antes de triagem.js. -->
 <script src="js/schema.js?v=3"></script>
 <script src="js/dados_triagem.js?v=3"></script>
+<!-- Catálogo das configurações já simuladas: a triagem lê dele quando a
+     configuração da URL consta do histórico. -->
+<script src="js/dados_comparacao.js?v=3"></script>
 <script src="vendor/three.min.js"></script>
 <script src="js/fogao.js?v=5"></script>
 <script src="js/fogao3d.js?v=9"></script>
-<script src="js/painel_peca.js?v=5"></script>
+<script src="js/painel_peca.js?v=6"></script>
 <script src="js/tour.js?v=1"></script>
 <!-- Stub da confiança por ponto: valor ilustrativo, não métrica do modelo. -->
 <script src="js/confianca.js?v=4"></script>
-<script src="js/grafico.js?v=3"></script>
-<script src="js/leitura_publicos.js?v=5"></script>
-<script src="js/triagem.js?v=7"></script>
+<script src="js/grafico.js?v=4"></script>
+<script src="js/leitura_publicos.js?v=8"></script>
+<script src="js/resumo_executivo.js?v=3"></script>
+<script src="js/modo_leitura.js?v=1"></script>
+<script src="js/planilha.js?v=2"></script>
+<script src="js/documento_pdf.js?v=1"></script>
+<script src="js/registro_pdf.js?v=1"></script>
+<script src="js/historico_sessao.js?v=2"></script>
+<script src="js/triagem.js?v=9"></script>
 </body>
 </html>

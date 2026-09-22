@@ -33,6 +33,19 @@ var LEITURA_PUBLICOS = (function () {
     "run_case", "deflector_hole", "material_coil_support"
   ];
 
+  /* Nome do subsistema para quem não lê a sigla. A sigla continua na tela
+     técnica; no texto corrido vai a função da peça, e nenhum componente
+     individual é citado. O gênero decide o artigo e a contração no texto. */
+  var NOME_SUBSISTEMA = {
+    "CT Knobs": { nome: "conjunto de manípulos do cooktop", genero: "m" },
+    "Oven HMI": { nome: "painel de comando do forno", genero: "m" },
+    "Main Vent Sys": { nome: "sistema de ventilação", genero: "m" },
+    "IPC Comp": { nome: "placa de potência", genero: "f" },
+    "IPC Cooling": { nome: "resfriamento da placa de potência", genero: "m" },
+    "Coil Temps": { nome: "conjunto de indução", genero: "m" },
+    "Mainback": { nome: "estrutura interna do produto", genero: "f" }
+  };
+
   var ROTULO_CANONICO = {
     acima_do_limite: "Acima do limite",
     banda_de_incerteza: "Banda de incerteza",
@@ -95,9 +108,88 @@ var LEITURA_PUBLICOS = (function () {
     return i < 0 ? ORDEM_ESTADOS.length : i;
   }
 
-  // Global de js/dados_triagem.js hoje; amanhã, a resposta da API.
-  function fonte() {
-    return typeof DADOS_TRIAGEM === "undefined" ? null : DADOS_TRIAGEM;
+  /* Mesma configuração nos sete fatores, `losses` inclusive. Campo vazio e
+     campo ausente contam como iguais: o formulário omite o que não se aplica. */
+  function mesmosSeteFatores(a, b) {
+    if (!a || !b) return false;
+    function vazio(v) { return v === undefined || v === null || v === ""; }
+    function iguais(x, y) { return (vazio(x) && vazio(y)) || x === y; }
+
+    if (!FATORES_CATEGORICOS.every(function (k) { return iguais(a[k], b[k]); })) return false;
+
+    var la = a.losses || {};
+    var lb = b.losses || {};
+    return Object.keys(la).concat(Object.keys(lb)).every(function (k) { return iguais(la[k], lb[k]); });
+  }
+
+  // A entrada do catálogo com exatamente esta configuração, ou null.
+  function configuracaoNoCatalogo(config, catalogo) {
+    var cat = catalogo || (typeof DADOS_COMPARACAO === "undefined" ? null : DADOS_COMPARACAO);
+    var achada = null;
+    ((cat && cat.configuracoes) || []).forEach(function (c) {
+      if (!achada && mesmosSeteFatores(config, c.fatores)) achada = c;
+    });
+    return achada;
+  }
+
+  /* Monta, a partir de uma configuração do catálogo, o mesmo formato de
+     js/dados_triagem.js. Não reclassifica: o estado vem pronto no vetor `e`. */
+  function payloadDoCatalogo(catalogo, entrada) {
+    var pontos = [];
+    var monitorados = [];
+
+    catalogo.pontos.forEach(function (ponto, i) {
+      var par = catalogo.estados[entrada.e[i]];
+      var mono = ponto.mono || par[0] === "monitoramento";
+      var p = {
+        measurement_id: ponto.id,
+        TC_Name: ponto.nome,
+        Key_Area: ponto.area,
+        temperatura_prevista_c: entrada.t[i],
+        limit_c: mono ? null : ponto.limite,
+        is_monitor_only: mono,
+        margem_c: mono ? null : entrada.m[i],
+        margem_percentual: mono ? null : entrada.m[i] / ponto.limite,
+        estado: par[0],
+        estado_rotulo: par[1]
+      };
+      (mono ? monitorados : pontos).push(p);
+    });
+
+    // A ordem que a triagem espera pronta no dado: estado, depois folga.
+    pontos.sort(function (a, b) {
+      return indiceEstado(a.estado) - indiceEstado(b.estado) || a.margem_c - b.margem_c;
+    });
+
+    return {
+      versao_modelo: catalogo.versao_modelo,
+      preditor_e_stub: catalogo.preditor_e_stub,
+      configuracao: entrada.fatores,
+      configuracao_id: entrada.id,
+      tolerancia_fracao: catalogo.tolerancia_fracao,
+      pontos: pontos,
+      monitoramento: monitorados,
+      total_pontos: pontos.length + monitorados.length,
+      total_classificados: pontos.length,
+      total_monitoramento: monitorados.length
+    };
+  }
+
+  /* O dado da configuração avaliada. Se ela consta do catálogo, sai dele; se é
+     nova, cai no payload de referência, como antes, até existir a API.
+     Sem argumento, lê a configuração da querystring: assim todas as telas
+     contam a mesma coisa para a mesma URL. */
+  function fonte(config) {
+    if (typeof DADOS_TRIAGEM === "undefined") return null;
+
+    var cfg = config;
+    if (cfg === undefined && typeof window !== "undefined" && window.location) {
+      cfg = configuracaoDaUrl();
+    }
+    if (!cfg || mesmosSeteFatores(cfg, DADOS_TRIAGEM.configuracao)) return DADOS_TRIAGEM;
+
+    var entrada = configuracaoNoCatalogo(cfg);
+    return entrada ? payloadDoCatalogo(DADOS_COMPARACAO, entrada) : DADOS_TRIAGEM;
   }
 
   // Classificados e monitorados na mesma lista, para quem precisa dos 78.
@@ -185,6 +277,43 @@ var LEITURA_PUBLICOS = (function () {
       if (b.pior_margem_c === null) return -1;
       return a.pior_margem_c - b.pior_margem_c;
     });
+  }
+
+  /* Subsistema mais crítico: maior proporção acima do limite, e não maior
+     contagem, porque sete de trinta e sete não pesa o mesmo que seis de oito.
+     Empate vai para a maior proporção inconclusiva. Regra única para o cartão
+     da triagem e para o resumo executivo, que citam o mesmo subsistema. */
+  function subsistemasPorCriticidade(pontos) {
+    var ordem = [];
+    var grupos = {};
+
+    pontos.forEach(function (p) {
+      if (p.estado === "monitoramento") return;
+      var g = grupos[p.Key_Area];
+      if (!g) { g = grupos[p.Key_Area] = { area: p.Key_Area, n: 0, acima: 0, banda: 0 }; ordem.push(g); }
+      g.n += 1;
+      if (p.estado === "acima_do_limite") g.acima += 1;
+      if (p.estado === "banda_de_incerteza") g.banda += 1;
+    });
+
+    ordem.forEach(function (g) {
+      g.proporcao_acima = g.acima / g.n;
+      g.proporcao_banda = g.banda / g.n;
+    });
+
+    // Sort estável: no empate total, fica a ordem em que o dado trouxe.
+    return ordem.slice().sort(function (a, b) {
+      return (b.proporcao_acima - a.proporcao_acima) || (b.proporcao_banda - a.proporcao_banda);
+    });
+  }
+
+  function subsistemaMaisCritico(pontos) {
+    return subsistemasPorCriticidade(pontos)[0] || null;
+  }
+
+  // Percentual inteiro, no mesmo arredondamento em todo cartão e texto.
+  function percentual(parte, total) {
+    return total ? (parte / total * 100).toFixed(0) + "%" : "—";
   }
 
   // Recorte da tela de design: só o que a pessoa toca.
@@ -342,6 +471,86 @@ var LEITURA_PUBLICOS = (function () {
     });
   }
 
+  /* ----- Temas da tela de marketing -----
+   *
+   * Cada tema é um assunto que a campanha poderia tocar, amarrado aos
+   * subsistemas que sustentam a afirmação. Moram aqui, e não em
+   * js/marketing.js, porque o registro em PDF da sessão lê os mesmos temas. */
+  var TEMAS_MARKETING = [
+    {
+      nome: "Segurança ao toque nos comandos",
+      areas: ["CT Knobs"],
+      significado: "Os manípulos que a pessoa gira durante o preparo."
+    },
+    {
+      nome: "Painel e display do forno",
+      areas: ["Oven HMI"],
+      significado: "A face de comando do forno, onde a pessoa encosta para programar."
+    },
+    {
+      nome: "Ventilação e saída de ar",
+      areas: ["Main Vent Sys"],
+      significado: "O caminho do ar quente até sair do produto."
+    },
+    {
+      nome: "Eletrônica de potência",
+      areas: ["IPC Comp", "IPC Cooling"],
+      significado: "A placa que aciona as bobinas e o sistema que a resfria."
+    },
+    {
+      nome: "Conjunto de indução",
+      areas: ["Coil Temps"],
+      significado: "As bobinas sob o vidro e as peças que as sustentam."
+    },
+    {
+      nome: "Estrutura interna do produto",
+      areas: ["Mainback"],
+      significado: "Fiação, conectores e peças da traseira, fora do alcance da pessoa."
+    }
+  ];
+
+  // O que a leitura significa para quem planeja campanha.
+  var CONSEQUENCIA_MARKETING = {
+    acima_do_limite: "Não leve este tema para a campanha agora. A estimativa passa do limite e a configuração precisa mudar antes de qualquer promessa.",
+    banda_de_incerteza: "Segure este tema. A estimativa ficou perto demais do limite para decidir, e a engenharia precisa confirmar antes de fechar texto.",
+    dentro_do_limite: "O tema se sustenta nesta leitura. Ainda depende da validação formal, mas já dá para planejar a campanha contando com ele.",
+    monitoramento: "Sem limite declarado para estes componentes, a ferramenta não tem o que responder sobre este tema."
+  };
+
+  /* A leitura do tema é a pior entre os subsistemas que o sustentam: um tema
+     não fica liberado porque a maioria dos seus componentes passou. Sai
+     ordenada do que trava a campanha para o que já se sustenta. */
+  function leiturasDeMarketing(pontos) {
+    var porArea = {};
+    pontos.forEach(function (p) {
+      if (!porArea[p.Key_Area]) porArea[p.Key_Area] = [];
+      porArea[p.Key_Area].push(p);
+    });
+
+    return TEMAS_MARKETING.map(function (tema) {
+      var doTema = [];
+      tema.areas.forEach(function (area) {
+        if (porArea[area]) doTema = doTema.concat(porArea[area]);
+      });
+      var avaliados = ordenarPorRisco(doTema).filter(function (p) {
+        return p.estado !== "monitoramento";
+      });
+
+      return {
+        tema: tema,
+        estado: severidade(doTema),
+        pior_ponto: avaliados.length ? avaliados[0] : null,
+        pior_margem_c: avaliados.length ? avaliados[0].margem_c : null,
+        total: doTema.length
+      };
+    }).sort(function (a, b) {
+      var d = indiceEstado(a.estado) - indiceEstado(b.estado);
+      if (d !== 0) return d;
+      return (a.pior_margem_c === null ? 1e9 : a.pior_margem_c) -
+             (b.pior_margem_c === null ? 1e9 : b.pior_margem_c);
+    });
+  }
+
   /* Rótulo do estado no vocabulário do público. Cai no rótulo canônico quando
      falta mapeamento, para a tela nunca exibir vazio; é o teste que cobra a
      tabela completa. */
@@ -496,13 +705,23 @@ var LEITURA_PUBLICOS = (function () {
     ORDEM_ESTADOS: ORDEM_ESTADOS,
     AREAS_DE_CONTATO: AREAS_DE_CONTATO,
     FATORES_DE_DESIGN: FATORES_DE_DESIGN,
+    NOME_SUBSISTEMA: NOME_SUBSISTEMA,
     ROTULO_CANONICO: ROTULO_CANONICO,
     ROTULOS: ROTULOS,
     GLOSSARIO: GLOSSARIO,
+    TEMAS_MARKETING: TEMAS_MARKETING,
+    CONSEQUENCIA_MARKETING: CONSEQUENCIA_MARKETING,
 
     termo: termo,
 
     fonte: fonte,
+    mesmosSeteFatores: mesmosSeteFatores,
+    leiturasDeMarketing: leiturasDeMarketing,
+    configuracaoNoCatalogo: configuracaoNoCatalogo,
+    payloadDoCatalogo: payloadDoCatalogo,
+    subsistemasPorCriticidade: subsistemasPorCriticidade,
+    subsistemaMaisCritico: subsistemaMaisCritico,
+    percentual: percentual,
     todosOsPontos: todosOsPontos,
     ordenarPorRisco: ordenarPorRisco,
     reprovados: reprovados,

@@ -69,9 +69,16 @@
 
   /* ----- Formatação ----- */
 
-  function grausC(v) { return v.toFixed(2); }
-  function percentual(f) { return (f * 100).toFixed(1) + "%"; }
-  function assinado(v) { return (v > 0 ? "+" : "") + v.toFixed(2); }
+  // Na tela, pt-BR: vírgula decimal, sinal de menos tipográfico e uma casa
+  // para temperatura e folga, como nas outras telas.
+  function fmt(v, casas) {
+    var t = v.toFixed(casas);
+    if (Number(t) === 0) t = t.replace("-", "");
+    return t.replace(".", ",").replace("-", "−");
+  }
+  function grausC(v) { return fmt(v, 1); }
+  function percentual(f) { return fmt(f * 100, 1) + "%"; }
+  function assinado(v) { return (Number(v.toFixed(1)) > 0 ? "+" : "") + fmt(v, 1); }
 
   function rampa() { return estado.escala === "b" ? FOGAO.RAMPA_B : FOGAO.RAMPA_A; }
 
@@ -576,9 +583,9 @@
 
     var num = el("b", "diverge__num");
     if (!ehAssinada()) {
-      num.appendChild(document.createTextNode(d.toFixed(2)));
+      num.appendChild(document.createTextNode(grausC(d)));
     } else if (d === 0) {
-      num.appendChild(el("span", "is-nil", "0.00"));
+      num.appendChild(el("span", "is-nil", "0,0"));
     } else {
       num.appendChild(el("span", "diverge__arrow", (d > 0 ? "▲ " : "▼ ")));
       num.appendChild(document.createTextNode(assinado(d)));
@@ -915,7 +922,7 @@
           svgPc.appendChild(GRAFICO.el("line",
             { x1: x - 4, y1: y, x2: x + 4, y2: y, "class": "pc-eixo" }));
           svgPc.appendChild(GRAFICO.texto(x, y - 5,
-            eixo.resposta === "pior" ? (valor * 100).toFixed(0) + "%" : valor.toFixed(0),
+            eixo.resposta === "pior" ? fmt(valor * 100, 0) + "%" : valor.toFixed(0),
             "pc-nivel", "middle"));
         });
       }
@@ -988,7 +995,7 @@
       (cfg.rodadas === 1 ? " rodada" : " rodadas") + " · " +
       cfg.fatores.run_case + "</span><br>" +
       "<span class=\"tip__num\">" + r.acima + "</span> acima do limite · " +
-      "pior folga <span class=\"tip__num\">" + (r.pior * 100).toFixed(1) + "%</span> · " +
+      "pior folga <span class=\"tip__num\">" + percentual(r.pior) + "</span> · " +
       "máx <span class=\"tip__num\">" + r.tmax.toFixed(0) + " °C</span>" +
       "<span class=\"tip__state\"><br>clique para " +
       (posicao(cfg.id) >= 0 ? "tirar da" : "pôr na") + " comparação</span>";
@@ -1103,7 +1110,7 @@
       tolerancia: D.tolerancia_fracao
     });
 
-    svgVista.appendChild(textoSvg(ML, 14, "FOLGA RELATIVA AO LIMITE", "ax-rotulo"));
+    svgVista.appendChild(textoSvg(ML, 14, "Folga relativa ao limite", "ax-rotulo"));
     svgVista.appendChild(textoSvg(ML + PW + 8, 14,
       ehAssinada() ? "DIVERG." : "AMPLIT.", "ax-rotulo"));
 
@@ -1141,7 +1148,7 @@
         l.flip ? "ax-text ax-text--forte" : "ax-text", "end"));
 
       g.appendChild(textoSvg(ML + PW + 8, y + 3.5,
-        ehAssinada() ? assinado(l.d) : l.d.toFixed(2), "ax-text", "start"));
+        ehAssinada() ? assinado(l.d) : grausC(l.d), "ax-text", "start"));
 
       svgVista.appendChild(g);
     });
@@ -1428,7 +1435,7 @@
     avaliarWhatIf();
   }
 
-  function distanciaTexto(d) { return d.toFixed(2); }
+  function distanciaTexto(d) { return fmt(d, 2); }
 
   // Ordem vazia com perda declarada é dado ausente, não campo sem efeito.
   function rotuloNoWhatIf(f, valor, fatores) {
@@ -1702,8 +1709,8 @@
     }
   }
 
-  function graus1(v) { return v.toFixed(1).replace("-", "−"); }
-  function assinado1(v) { return (v > 0 ? "+" : v < 0 ? "−" : "±") + Math.abs(v).toFixed(1); }
+  function graus1(v) { return fmt(v, 1); }
+  function assinado1(v) { return (v > 0 ? "+" : v < 0 ? "−" : "±") + fmt(Math.abs(v), 1); }
 
   /* Legenda com os números da escala em uso. Na diferença, os extremos são
      ±extremo do par, e a nota diz a maior diferença real e onde ela cai. */
@@ -1746,7 +1753,7 @@
       caixa.appendChild(el("p", "cmp3d__legenda-nota",
         "Extremos em ±" + c.escala.extremo + " °C, a maior diferença do par arredondada para cima. " +
         "Maior diferença real: " + assinado1(pior.diferenca_c) + " °C em " + pior.TC_Name + ". " +
-        "Branco até ±" + c.escala.limiar.toFixed(1) + " °C. A cor não indica limite nem estado."));
+        "Branco até ±" + fmt(c.escala.limiar, 1) + " °C. A cor não indica limite nem estado."));
     } else {
       caixa.appendChild(el("p", "cmp3d__legenda-nota",
         "Mesma escala do campo térmico da triagem: equalizada por quantil, os rótulos marcam os quartis. A cor é temperatura, não estado de risco."));
@@ -1810,7 +1817,7 @@
   function criarModelo3d() {
     var palco = document.getElementById("cmp3d-3d");
     var balao = document.getElementById("cmp3d-tip");
-    document.getElementById("cmp3d-limiar").textContent = DIFF_TERMICO.LIMIAR_C.toFixed(1) + " °C";
+    document.getElementById("cmp3d-limiar").textContent = fmt(DIFF_TERMICO.LIMIAR_C, 1) + " °C";
     document.getElementById("cmp3d-piso").textContent = DIFF_TERMICO.PISO_C + " °C";
 
     function posicionar(x, y) {

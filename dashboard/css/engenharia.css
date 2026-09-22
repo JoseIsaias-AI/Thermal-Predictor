@@ -7,37 +7,29 @@
  */
 
 /* ----- Abertura da tela -----
- * Uma linha dizendo o que se decide aqui, e o estado do modelo à direita. */
+ * O título diz a conclusão; o estado do modelo fica à direita. Cabeçalho,
+ * sobretítulo e título vêm de triagem.css, como nas outras telas. */
 
-.page-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-5);
-  flex-wrap: wrap;
-  margin-bottom: var(--space-4);
-}
+.page-head { gap: var(--space-5); }
+.page-head__title { max-width: 48rem; }
 
-.page-head__kicker {
-  font-family: var(--font-body);
+/* O nome da seção vira sobretítulo; o título do painel é a conclusão. */
+.panel__kicker {
+  margin: 0 0 var(--space-1);
+  font-size: var(--size-small);
   font-weight: var(--weight-semibold);
-  font-size: var(--size-small);
   color: var(--color-text-muted);
-  margin: 0 0 2px;
 }
 
-.page-head__lead {
-  margin: 0;
-  font-size: var(--size-small);
-  color: var(--color-text-muted);
-}
+.panel__kicker + .panel__title { margin-bottom: var(--space-5); }
 
 .status-chip {
   display: inline-flex;
   align-items: center;
   gap: var(--space-2);
   flex: none;
-  padding: var(--space-2) var(--space-3);
+  min-height: 32px;
+  padding: 0 var(--space-3);
   background: var(--color-surface-sunken);
   border: var(--border-width) solid var(--color-border-strong);
   border-radius: var(--radius);
@@ -49,32 +41,31 @@
 /* ----- Critério de aceitação ----- */
 
 /* Duas exigências lado a lado, porque a leitura correta é justamente que são
-   independentes: uma coluna só sugeriria sequência ou hierarquia. */
+   independentes: uma coluna só sugeriria sequência ou hierarquia. Sem caixa
+   dentro do painel: um filete neutro separa cada uma. */
 .criteria {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr));
-  gap: var(--space-4);
+  gap: var(--space-5);
   margin-bottom: var(--space-4);
 }
 
 .criterion {
-  border: var(--border-width) solid var(--color-border);
-  border-left: 3px solid var(--color-accent);
-  border-radius: var(--radius);
-  padding: var(--space-4);
+  border-left: 2px solid var(--color-border-strong);
+  padding: 0 0 0 var(--space-4);
 }
 
 .criterion__title {
-  font-family: var(--font-body);
+  font-family: var(--font-display);
   font-weight: var(--weight-semibold);
-  font-size: var(--size-small);
-  color: var(--color-accent);
+  font-size: var(--size-subhead);
+  color: var(--color-text);
   margin: 0 0 var(--space-2);
 }
 
 .criterion__statement {
   margin: 0 0 var(--space-3);
-  font-size: var(--size-small);
+  font-size: var(--size-body);
   line-height: var(--leading-body);
 }
 
@@ -106,20 +97,19 @@
 }
 
 /* Estes números são a leitura da tela, e não uma nota dentro dela: ficavam
-   no mesmo corpo dos parágrafos ao redor, e sumiam no meio da prosa. */
+   no mesmo corpo dos parágrafos ao redor, e sumiam no meio da prosa. Sem
+   caixa: o filete de cima agrupa, e só o número que trava a entrega tem cor. */
 .stat {
-  border: var(--border-width) solid var(--color-border);
-  border-top: 3px solid var(--color-accent);
-  border-radius: var(--radius);
-  padding: var(--space-3) var(--space-4) var(--space-4);
+  border-top: 2px solid var(--color-border-strong);
+  padding: var(--space-3) 0 0;
 }
 
 /* Cobertura abaixo do exigido é o número que trava a entrega. */
 .stat--gap {
-  border-top-color: var(--color-critical);
+  border-top-color: var(--status-critical);
 }
 
-.stat--gap .stat__value { color: var(--color-critical); }
+.stat--gap .stat__value { color: var(--status-critical); }
 
 .stat dt {
   font-family: var(--font-body);
@@ -132,12 +122,12 @@
 .stat__value {
   margin: 0;
   font-family: var(--font-display);
-  font-weight: var(--weight-light);
-  font-size: var(--size-display);
+  font-weight: 600;
+  font-size: var(--size-metric);
   line-height: 1;
   letter-spacing: -0.01em;
   font-variant-numeric: tabular-nums;
-  color: var(--color-accent);
+  color: var(--color-text);
 }
 
 /* Unidade menor que o número: a grandeza é o que se compara. */
@@ -171,32 +161,34 @@
   font-family: var(--font-display);
   font-weight: var(--weight-bold);
   font-size: var(--size-subhead);
-  color: var(--color-accent);
+  color: var(--color-text);
   margin: 0 0 var(--space-2);
 }
 
 .hyp__code span {
+  font-family: var(--font-body);
   font-weight: var(--weight-regular);
-  font-size: var(--size-kicker);
-    color: var(--color-text-muted);
+  font-size: var(--size-small);
+  color: var(--color-text-muted);
   margin-left: var(--space-2);
 }
 
 .hyp__claim {
   margin: 0 0 var(--space-3);
-  font-size: var(--size-small);
+  font-size: var(--size-body);
   line-height: var(--leading-body);
 }
+
+.hyp__intro { margin: 0 0 var(--space-5); }
+.hyp .more { margin-top: 0; }
 
 .hyp__stats {
   display: grid;
   grid-template-columns: max-content 1fr;
   gap: var(--space-1) var(--space-4);
   margin: 0 0 var(--space-3);
-  padding: var(--space-3);
-  background: var(--color-surface-sunken);
-  border-radius: var(--radius);
-  font-size: var(--size-kicker);
+  padding: 0;
+  font-size: var(--size-small);
 }
 
 .hyp__stats dt { color: var(--color-text-muted); }
@@ -223,20 +215,20 @@
 /* ----- Painéis que aguardam o modelo ----- */
 
 /* Contorno tracejado: o mesmo recurso que a tela de triagem usa para o bloco
-   de monitoramento, e que aqui diz que o conteúdo ainda não existe. */
+   de monitoramento, e que aqui diz que o conteúdo ainda não existe. Por
+   dentro, sem caixas: o filete tracejado de cada métrica repete o recado. */
 .panel--pending { border-style: dashed; }
 
 .pending-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
-  gap: var(--space-4);
+  grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+  gap: var(--space-5) var(--space-4);
   margin-bottom: var(--space-4);
 }
 
 .pending {
-  border: var(--border-width) dashed var(--color-border-strong);
-  border-radius: var(--radius);
-  padding: var(--space-4);
+  border-top: 2px dashed var(--color-border-strong);
+  padding: var(--space-3) 0 0;
 }
 
 .pending__title {
@@ -252,11 +244,23 @@
 .pending__value {
   font-family: var(--font-display);
   font-weight: var(--weight-light);
-  font-size: 1.75rem;
+  font-size: var(--size-metric);
   line-height: 1.1;
-  color: var(--wp-gray-medium);
+  color: var(--color-text-subtle);
   margin: var(--space-2) 0;
 }
+
+.pending-defs {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: var(--space-2) var(--space-4);
+  margin: 0;
+  font-size: var(--size-small);
+  max-width: 76ch;
+}
+
+.pending-defs dt { font-weight: var(--weight-semibold); }
+.pending-defs dd { margin: 0; color: var(--color-text-muted); }
 
 .pending__def {
   margin: 0 0 var(--space-2);
@@ -302,11 +306,16 @@
   max-width: 34rem;
 }
 
+.chart-figure figcaption .more { margin-top: var(--space-2); }
+.chart-figure figcaption .table-scroll { max-width: 34rem; }
+
 /* Três papéis de texto dentro do gráfico: rótulo de eixo, rótulo de série e
-   valor. O valor é o único em peso semibold, para a leitura cair nele. */
+   valor. O valor é o único em peso semibold, para a leitura cair nele. Nada
+   abaixo de 12px: o viewBox tem 520 de largura e o gráfico nunca passa de
+   34rem, então a unidade do SVG sai com pelo menos o mesmo tamanho em tela. */
 .chart__label {
   font-family: var(--font-body);
-  font-size: 10px;
+  font-size: 12px;
   fill: var(--color-text-muted);
 }
 
@@ -317,7 +326,7 @@
 
 .chart__valor {
   font-family: var(--font-body);
-  font-size: 11px;
+  font-size: 12px;
   font-weight: var(--weight-semibold);
   fill: var(--color-text);
   font-variant-numeric: tabular-nums;
@@ -325,13 +334,13 @@
 
 .chart__eixo {
   font-family: var(--font-body);
-  font-size: 10.5px;
-  fill: var(--wp-gray-medium);
+  font-size: 12px;
+  fill: var(--color-text-subtle);
 }
 
 .chart__foot {
   font-family: var(--font-body);
-  font-size: 10px;
+  font-size: 12px;
   fill: var(--color-text-muted);
 }
 

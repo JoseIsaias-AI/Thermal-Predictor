@@ -7,12 +7,12 @@
 
   <!-- Fontes hospedadas localmente em css/tokens.css (@font-face), sem
        dependência de rede (RNF-02 e RNF-04, Tabela 48 da documentação). -->
-  <link rel="stylesheet" href="css/tokens.css?v=3">
-  <link rel="stylesheet" href="css/app.css?v=5">
-  <link rel="stylesheet" href="css/triagem.css?v=3">
-  <link rel="stylesheet" href="css/fogao.css?v=7">
-  <link rel="stylesheet" href="css/grafico.css?v=3">
-  <link rel="stylesheet" href="css/comparacao.css?v=5">
+  <link rel="stylesheet" href="css/tokens.css?v=4">
+  <link rel="stylesheet" href="css/app.css?v=6">
+  <link rel="stylesheet" href="css/triagem.css?v=4">
+  <link rel="stylesheet" href="css/fogao.css?v=8">
+  <link rel="stylesheet" href="css/grafico.css?v=4">
+  <link rel="stylesheet" href="css/comparacao.css?v=6">
 </head>
 <body>
 
@@ -78,14 +78,16 @@
     </a>
   </section>
 
-  <section class="notice" aria-labelledby="notice-title">
-    <p class="notice__lead" id="notice-title">
-      <strong>Filtro de triagem pré-CFD.</strong> Ajuda a escolher o que enviar
+  <!-- A frase de enquadramento continua sempre à vista, agora como ressalva
+       de uma linha, sem caixa; o desdobramento, a um clique. -->
+  <details class="ressalva ressalva--quebra" id="notice">
+    <summary>
+      <span id="notice-title"><strong>Filtro de triagem pré-CFD.</strong> Ajuda a escolher o que enviar
       para simulação primeiro. <strong>Não substitui a simulação</strong> nem
-      emite parecer de conformidade.
-    </p>
-    <details class="more">
-      <summary>Enquadramento completo e critério de estado</summary>
+      emite parecer de conformidade.</span>
+      <span class="ressalva__abrir">Enquadramento completo e critério de estado</span>
+    </summary>
+    <div class="ressalva__corpo">
       <p>
         A diferença entre duas colunas é <strong>diferença entre previsões</strong>,
         não entre simulações. Ela indica onde vale olhar, não qual configuração
@@ -101,8 +103,8 @@
         <span id="tolerance-fraction">10%</span> do limite declarado de cada
         ponto — o mesmo critério único de estado usado na tela de triagem.
       </p>
-    </details>
-  </section>
+    </div>
+  </details>
 
   <section class="error" id="error" hidden>
     <span class="error__label">Comparação indisponível</span>
@@ -160,12 +162,17 @@
       </div>
 
       <p class="chart__note" id="pc-conta"></p>
-      <p class="chart__note">
-        Uma linha por configuração. Nos três últimos eixos — as respostas do
-        conjunto — o lado de cima é sempre o melhor. Arraste sobre um eixo para
-        restringi-lo; clique numa linha para pôr ou tirar a configuração da
-        comparação.
-      </p>
+      <!-- A grade de cartões acima é a leitura exata do mesmo catálogo. -->
+      <details class="more">
+        <summary>Como ler este gráfico</summary>
+        <p>
+          Uma linha por configuração. Nos três últimos eixos — as respostas do
+          conjunto — o lado de cima é sempre o melhor. Arraste sobre um eixo para
+          restringi-lo; clique numa linha para pôr ou tirar a configuração da
+          comparação.
+        </p>
+        <p>Os mesmos números, configuração a configuração, estão nos cartões acima.</p>
+      </details>
     </div>
   </section>
 
@@ -179,13 +186,6 @@
       Configuração mais próxima dentro do limite
       <span class="panel__title-sub">o que mudar no projeto, buscando nas <span id="wf-total">—</span> configurações conhecidas</span>
     </h2>
-
-    <p class="legend-note">
-      Parta da configuração que você está avaliando e ajuste os fatores se
-      quiser. A busca mede a distância dela para cada configuração conhecida,
-      fica só com as que têm todos os pontos com limite <em>dentro do limite</em>
-      pelo critério de <span id="wf-tol">10%</span>, e sugere a mais próxima.
-    </p>
 
     <div class="wf-tools">
       <label class="field wf-start">
@@ -201,7 +201,13 @@
     <div class="wf-result" id="wf-result" aria-live="polite"></div>
 
     <details class="more">
-      <summary>Como a distância é calculada</summary>
+      <summary>Como a busca funciona e como a distância é calculada</summary>
+      <p>
+        Parta da configuração que você está avaliando e ajuste os fatores se
+        quiser. A busca mede a distância dela para cada configuração conhecida,
+        fica só com as que têm todos os pontos com limite <em>dentro do limite</em>
+        pelo critério de <span id="wf-tol">10%</span>, e sugere a mais próxima.
+      </p>
       <p>
         Cada configuração vira o mesmo vetor de 13 colunas binárias que os
         modelos recebem (um nível por coluna, sem a categoria de referência). Cada
@@ -463,13 +469,13 @@
 <script src="js/schema.js?v=3"></script>
 <script src="js/dados_comparacao.js?v=3"></script>
 <script src="js/fogao.js?v=5"></script>
-<script src="js/grafico.js?v=3"></script>
+<script src="js/grafico.js?v=4"></script>
 <script src="js/segura_proxima.js?v=1"></script>
 <!-- Passo 4: o mesmo viewport e o mesmo painel de peça da triagem. -->
 <script src="vendor/three.min.js"></script>
 <script src="js/fogao3d.js?v=9"></script>
-<script src="js/painel_peca.js?v=5"></script>
+<script src="js/painel_peca.js?v=6"></script>
 <script src="js/diff_termico.js?v=1"></script>
-<script src="js/comparacao.js?v=5"></script>
+<script src="js/comparacao.js?v=6"></script>
 </body>
 </html>
