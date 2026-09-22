@@ -10,9 +10,9 @@
   <link rel="stylesheet" href="css/tokens.css?v=3">
   <link rel="stylesheet" href="css/app.css?v=5">
   <link rel="stylesheet" href="css/triagem.css?v=3">
-  <link rel="stylesheet" href="css/fogao.css?v=4">
+  <link rel="stylesheet" href="css/fogao.css?v=7">
   <link rel="stylesheet" href="css/grafico.css?v=3">
-  <link rel="stylesheet" href="css/comparacao.css?v=4">
+  <link rel="stylesheet" href="css/comparacao.css?v=5">
 </head>
 <body>
 
@@ -357,6 +357,81 @@
       </details>
     </section>
 
+    <!-- ---------- 4 · No modelo 3D ---------- -->
+    <!-- Lê a mesma bandeja de cima: A é a referência, B uma das outras. Não
+         há seletor próprio de configuração aqui. -->
+
+    <section class="panel" id="cmp3d-panel" aria-labelledby="cmp3d-title">
+      <h2 class="panel__title" id="cmp3d-title">
+        <span class="step">4</span> No modelo 3D
+        <span class="panel__title-sub">temperatura de uma configuração ou diferença entre duas, termopar a termopar</span>
+      </h2>
+
+      <div class="cmp3d">
+        <div class="cmp3d__main">
+          <div class="viewport__bar">
+            <span class="bar-label">Modo</span>
+            <span class="toggle" id="cmp3d-modo" role="group" aria-label="Modo do campo">
+              <button type="button" data-modo="absoluto" aria-pressed="false">Absoluto</button>
+              <button type="button" data-modo="diferenca" aria-pressed="true">Diferença B − A</button>
+            </span>
+            <span class="toggle toggle--mini" id="cmp3d-qual" role="group" aria-label="Configuração exibida no modo absoluto" hidden></span>
+            <span class="push"></span>
+            <span class="bar-label">B</span>
+            <span class="toggle toggle--mini" id="cmp3d-b" role="group" aria-label="Configuração B"></span>
+          </div>
+
+          <!-- O modo ativo dito por extenso, em cima do modelo: a cor muda de
+               sentido entre os dois e não pode ser lida sem saber qual é. -->
+          <p class="cmp3d__modo" id="cmp3d-rotulo" role="status" aria-live="polite"></p>
+
+          <div class="viewport__frame">
+            <div class="viewport__stage">
+              <div class="viewport__3d" id="cmp3d-3d" role="application" tabindex="0"
+                   aria-roledescription="modelo 3D navegável"
+                   aria-label="Campo térmico 3D das configurações comparadas"
+                   aria-describedby="cmp3d-teclas"></div>
+              <p class="sr-only" id="cmp3d-teclas">Setas giram o modelo, mais e menos aproximam, 1 a 5 escolhem as vistas. Clicar numa peça abre o resumo dela ao lado; Esc desfaz a seleção.</p>
+              <p class="stage-hint" id="cmp3d-dica">Passe o cursor para sondar · clique numa peça para o resumo</p>
+            </div>
+            <div class="tip" id="cmp3d-tip" role="status" aria-live="polite"></div>
+          </div>
+
+          <div class="cmp3d__legenda" id="cmp3d-legenda"></div>
+        </div>
+
+        <aside class="cmp3d__side">
+          <h3 class="heat__label">Peça selecionada</h3>
+          <div id="cmp3d-peca" role="region" aria-live="polite" aria-label="Resumo da peça selecionada"></div>
+        </aside>
+      </div>
+
+      <details class="more">
+        <summary>Como ler</summary>
+        <p>
+          <strong>Absoluto</strong> pinta a temperatura prevista de uma
+          configuração, na mesma escala do campo térmico da triagem.
+          <strong>Diferença</strong> pinta, em cada termopar, a temperatura de B
+          menos a de A: azul onde B fica mais frio, vermelho onde fica mais
+          quente, branco onde a diferença não passa de
+          <span id="cmp3d-limiar">0.5 °C</span>.
+        </p>
+        <p>
+          A diferença é sobre as mesmas previsões das tabelas acima, sem cálculo
+          novo. Ela não diz se um ponto está dentro ou acima do limite: ficar
+          mais frio não aprova um ponto, e ficar mais quente não o reprova. O
+          estado continua sendo o das tabelas.
+        </p>
+        <p>
+          O extremo da escala é a maior diferença do par, arredondada para cima e
+          nunca abaixo de <span id="cmp3d-piso">5 °C</span>: um par quase igual
+          fica quase todo branco, em vez de ter a pequena diferença esticada até
+          a cor cheia. No modo diferença o modelo segue a geometria da
+          referência (A): posição da placa e do alojamento são as dela.
+        </p>
+      </details>
+    </section>
+
     <!-- RN-03: sem colunas de limite, folga ou estado. -->
     <section class="panel panel--monitoring" id="mono-panel">
       <h2 class="panel__title">
@@ -387,9 +462,14 @@
      folga; dados_comparacao.js precisa vir antes de comparacao.js. -->
 <script src="js/schema.js?v=3"></script>
 <script src="js/dados_comparacao.js?v=3"></script>
-<script src="js/fogao.js?v=4"></script>
+<script src="js/fogao.js?v=5"></script>
 <script src="js/grafico.js?v=3"></script>
 <script src="js/segura_proxima.js?v=1"></script>
-<script src="js/comparacao.js?v=4"></script>
+<!-- Passo 4: o mesmo viewport e o mesmo painel de peça da triagem. -->
+<script src="vendor/three.min.js"></script>
+<script src="js/fogao3d.js?v=9"></script>
+<script src="js/painel_peca.js?v=5"></script>
+<script src="js/diff_termico.js?v=1"></script>
+<script src="js/comparacao.js?v=5"></script>
 </body>
 </html>

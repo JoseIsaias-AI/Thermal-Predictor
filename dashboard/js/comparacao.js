@@ -1621,6 +1621,249 @@
   }
 
 
+  /* ----- 4 · No modelo 3D -----
+     A mesma bandeja de cima escolhe o par: A é a referência e B uma das
+     outras configurações selecionadas. Temperaturas, diferença e escala saem
+     de DIFF_TERMICO sobre os vetores `t` do dado; o viewport e o painel de
+     peça são os da triagem. */
+
+  var vista3d = { modo: "diferenca", qual: "a", b: null, zona: null, semDado: null, cache: null };
+  var modelo3d = null;
+  var CAMADAS_3D = { volume: true, fluxo: true, iso: true, focos: true };
+
+  // Os fatores que mexem na geometria, como a triagem lê da URL.
+  function geometriaDe(cfg) {
+    var f = cfg.fatores;
+    return {
+      placa: f.board_position === "Right" ? "right" : "center",
+      alojamento: f.housing && f.housing !== "Closed" ? "open" : "closed",
+      material: f.material_coil_support === "Plastic" ? "plastic"
+        : f.material_coil_support === "Aluminium Plate" ? "plate" : "aluminium",
+      soprador: f.blower_direction === "To Back" ? "back" : "front",
+      caso: f.run_case
+    };
+  }
+
+  function par3d() {
+    var outras = estado.sel.filter(function (id) { return id !== estado.ref; });
+    if (outras.indexOf(vista3d.b) < 0) vista3d.b = outras[0] || null;
+    return { a: POR_ID[estado.ref], b: POR_ID[vista3d.b], outras: outras };
+  }
+
+  /* Pontos, diferença e escala do estado atual, refeitos só quando o par ou o
+     modo mudam: a interpolação do campo custa, e escolher uma peça não a
+     muda. O array novo é o que avisa o viewport para refazer o campo. */
+  function leitura3d(par) {
+    var diff = vista3d.modo === "diferenca";
+    var mostrada = vista3d.qual === "b" ? par.b : par.a;
+    var chave = [vista3d.modo, par.a.id, par.b.id, diff ? "" : mostrada.id].join("|");
+    if (vista3d.cache && vista3d.cache.chave === chave) return vista3d.cache;
+    var c = { chave: chave, diff: diff, mostrada: mostrada };
+    if (diff) {
+      c.linhas = DIFF_TERMICO.diferenca(D, par.a, par.b);
+      c.escala = DIFF_TERMICO.escala(c.linhas);
+      c.pontos = c.linhas;
+      // Nos dois modos o viewport lê a geometria de uma configuração só; na diferença, a da referência.
+      c.geometria = geometriaDe(par.a);
+    } else {
+      c.dados = DIFF_TERMICO.dadosDaConfig(D, mostrada, par.a);
+      c.pontos = c.dados.campo;
+      c.geometria = geometriaDe(mostrada);
+    }
+    vista3d.cache = c;
+    return c;
+  }
+
+  function botoesDe(caixa, itens, atual, aoEscolher) {
+    caixa.innerHTML = "";
+    itens.forEach(function (it) {
+      var b = el("button", null, it[1]);
+      b.type = "button";
+      b.setAttribute("aria-pressed", String(it[0] === atual));
+      b.addEventListener("click", function () { aoEscolher(it[0]); });
+      caixa.appendChild(b);
+    });
+  }
+
+  function montarRotulo3d(par, c) {
+    var r = document.getElementById("cmp3d-rotulo");
+    r.innerHTML = "";
+    var tag = el("span", "cmp3d__modo-tag" + (c.diff ? " cmp3d__modo-tag--diferenca" : ""), c.diff ? "Modo diferença" : "Modo absoluto");
+    r.appendChild(tag);
+    if (c.diff) {
+      r.appendChild(document.createTextNode("Temperatura de "));
+      r.appendChild(el("b", null, par.b.id + " (B)"));
+      r.appendChild(document.createTextNode(" menos a de "));
+      r.appendChild(el("b", null, par.a.id + " (A, referência)"));
+      r.appendChild(document.createTextNode(" · variação entre configurações, não estado de risco"));
+    } else {
+      r.appendChild(document.createTextNode("Temperatura prevista de "));
+      r.appendChild(el("b", null, c.mostrada.id + (c.mostrada === par.a ? " (A, referência)" : " (B)")));
+    }
+  }
+
+  function graus1(v) { return v.toFixed(1).replace("-", "−"); }
+  function assinado1(v) { return (v > 0 ? "+" : v < 0 ? "−" : "±") + Math.abs(v).toFixed(1); }
+
+  /* Legenda com os números da escala em uso. Na diferença, os extremos são
+     ±extremo do par, e a nota diz a maior diferença real e onde ela cai. */
+  function montarLegenda3d(c, info) {
+    var caixa = document.getElementById("cmp3d-legenda");
+    caixa.innerHTML = "";
+    var rampaCor = c.diff ? FOGAO.RAMPA_DIFF : FOGAO.RAMPA_CAMPO;
+    var titulo = el("p", "cmp3d__legenda-titulo", c.diff ? "Diferença de temperatura B − A " : "Temperatura prevista ");
+    titulo.appendChild(el("span", null, "°C"));
+    caixa.appendChild(titulo);
+
+    var escala = el("div", "field-scale");
+    var barra = el("span", "field-scale__bar");
+    barra.id = "cmp3d-barra";
+    barra.style.background = "linear-gradient(to right," + rampaCor.map(function (cor, i) {
+      return cor + " " + (i / (rampaCor.length - 1) * 100).toFixed(0) + "%";
+    }).join(",") + ")";
+    escala.appendChild(barra);
+    var marcas = el("span", "field-scale__ends");
+    marcas.id = "cmp3d-marcas";
+    var valores = c.diff
+      ? [-1, -0.5, 0, 0.5, 1].map(function (f) { return f * c.escala.extremo; })
+      : (info && info.paradas) || [];
+    valores.forEach(function (v) {
+      marcas.appendChild(el("b", null, c.diff ? (v === 0 ? "0" : assinado1(v)) : v.toFixed(0)));
+    });
+    escala.appendChild(marcas);
+    caixa.appendChild(escala);
+
+    // Nos dois modos a mesma estrutura: trocar de modo não muda a altura da legenda.
+    var sentido = el("div", "cmp3d__legenda-sentido");
+    sentido.appendChild(el("span", null, c.diff ? "◀ mais frio em B" : "◀ mais frio"));
+    sentido.appendChild(el("span", null, c.diff ? "sem diferença" : ""));
+    sentido.appendChild(el("span", null, c.diff ? "mais quente em B ▶" : "mais quente ▶"));
+    caixa.appendChild(sentido);
+
+    if (c.diff) {
+      var pior = null;
+      c.linhas.forEach(function (l) { if (!pior || Math.abs(l.diferenca_c) > Math.abs(pior.diferenca_c)) pior = l; });
+      caixa.appendChild(el("p", "cmp3d__legenda-nota",
+        "Extremos em ±" + c.escala.extremo + " °C, a maior diferença do par arredondada para cima. " +
+        "Maior diferença real: " + assinado1(pior.diferenca_c) + " °C em " + pior.TC_Name + ". " +
+        "Branco até ±" + c.escala.limiar.toFixed(1) + " °C. A cor não indica limite nem estado."));
+    } else {
+      caixa.appendChild(el("p", "cmp3d__legenda-nota",
+        "Mesma escala do campo térmico da triagem: equalizada por quantil, os rótulos marcam os quartis. A cor é temperatura, não estado de risco."));
+    }
+  }
+
+  function limparPeca3d() {
+    vista3d.zona = null;
+    vista3d.semDado = null;
+    desenhar3d();
+  }
+
+  function desenharPeca3d(par, c) {
+    var caixa = document.getElementById("cmp3d-peca");
+    var zona = vista3d.zona && FOGAO.ZONA_POR_ID[vista3d.zona];
+    var semDado = vista3d.semDado ? { semDado: vista3d.semDado } : null;
+    if (c.diff) {
+      PAINEL_PECA.desenharDiff(caixa,
+        zona ? { resumo: PAINEL_PECA.resumirDiff(zona, c.linhas, c.escala.limiar) } : semDado,
+        { rotuloA: par.a.id, rotuloB: par.b.id, escala: c.escala, aoLimpar: limparPeca3d });
+    } else {
+      PAINEL_PECA.desenhar(caixa,
+        zona ? { resumo: PAINEL_PECA.resumir(zona, c.dados) } : semDado,
+        { rampa: rampa(), dados: c.dados, pontoSel: null, aoLimpar: limparPeca3d });
+    }
+  }
+
+  function desenhar3d() {
+    if (!modelo3d) return;
+    var par = par3d();
+    if (!par.a || !par.b) return;
+    var c = leitura3d(par);
+
+    botoesDe(document.getElementById("cmp3d-b"),
+      par.outras.map(function (id) { return [id, id]; }), vista3d.b,
+      function (id) { vista3d.b = id; desenhar3d(); });
+    var qual = document.getElementById("cmp3d-qual");
+    qual.hidden = c.diff;
+    botoesDe(qual, [["a", "A · " + par.a.id], ["b", "B · " + par.b.id]], vista3d.qual,
+      function (q) { vista3d.qual = q; desenhar3d(); });
+    Array.prototype.forEach.call(document.querySelectorAll("#cmp3d-modo button"), function (b) {
+      b.setAttribute("aria-pressed", String(b.dataset.modo === vista3d.modo));
+    });
+
+    var g = c.geometria;
+    var saida = modelo3d.atualizar({
+      nivel: 4, modo: "calor", vista: "campo", explode: 1,
+      camadas: CAMADAS_3D,
+      placa: g.placa, alojamento: g.alojamento, material: g.material, caso: g.caso, soprador: g.soprador,
+      zonaSel: vista3d.zona,
+      diferenca: c.diff ? c.escala : null,
+      pontos: c.pontos
+    });
+
+    document.getElementById("cmp3d-3d").dataset.modo = vista3d.modo;
+    montarRotulo3d(par, c);
+    montarLegenda3d(c, saida.info);
+    desenharPeca3d(par, c);
+  }
+
+  function criarModelo3d() {
+    var palco = document.getElementById("cmp3d-3d");
+    var balao = document.getElementById("cmp3d-tip");
+    document.getElementById("cmp3d-limiar").textContent = DIFF_TERMICO.LIMIAR_C.toFixed(1) + " °C";
+    document.getElementById("cmp3d-piso").textContent = DIFF_TERMICO.PISO_C + " °C";
+
+    function posicionar(x, y) {
+      var quadro = palco.parentNode.parentNode.getBoundingClientRect();
+      var r = palco.getBoundingClientRect();
+      x += r.left - quadro.left;
+      y += r.top - quadro.top;
+      balao.dataset.on = "1";
+      var acima = y > quadro.height * 0.3;
+      balao.classList.toggle("tip--acima", acima);
+      balao.classList.toggle("tip--abaixo", !acima);
+      balao.style.top = y + "px";
+      var w = balao.getBoundingClientRect().width;
+      balao.style.left = Math.max(w / 2 + 6, Math.min(quadro.width - w / 2 - 6, x)) + "px";
+    }
+
+    modelo3d = FOGAO3D.criar(palco, {
+      aoMudarCamera: function () { balao.dataset.on = "0"; },
+      aoClicarPeca: function (alvo) {
+        if (!alvo) { vista3d.zona = null; vista3d.semDado = null; }
+        else if (!alvo.zona) { vista3d.zona = null; vista3d.semDado = { id: alvo.id, nome: alvo.nome, casca: alvo.casca }; }
+        else { vista3d.semDado = null; vista3d.zona = alvo.zona.id === vista3d.zona ? null : alvo.zona.id; }
+        desenhar3d();
+      },
+      aoPairarPeca: function (alvo, x, y) {
+        if (!alvo) { balao.dataset.on = "0"; return; }
+        balao.innerHTML = "";
+        balao.appendChild(el("b", "tip__name", alvo.zona.nome));
+        balao.appendChild(el("span", "tip__state", alvo.zona.area + " · " +
+          (alvo.zona.id === vista3d.zona ? "clique para soltar" : "clique para o resumo")));
+        posicionar(x, y);
+      },
+      // A sonda lê o mesmo número que o campo interpola: graus, ou a diferença em graus.
+      aoSondar: function (s, x, y) {
+        if (!s) { balao.dataset.on = "0"; return; }
+        balao.innerHTML = "";
+        balao.appendChild(el("b", "tip__name", s.peca || "Campo térmico"));
+        var diff = vista3d.modo === "diferenca";
+        balao.appendChild(el("span", "tip__num", diff ? "B − A " + assinado1(s.c) + " °C" : graus1(s.c) + " °C"));
+        balao.appendChild(el("span", "tip__state", " · interpolado entre termopares"));
+        posicionar(x, y);
+      }
+    });
+
+    document.getElementById("cmp3d-modo").addEventListener("click", function (evento) {
+      var botao = evento.target.closest("button");
+      if (!botao || botao.dataset.modo === vista3d.modo) return;
+      vista3d.modo = botao.dataset.modo;
+      desenhar3d();
+    });
+  }
+
+
   /* ----- Sincronização ----- */
 
   function sincronizar() {
@@ -1647,6 +1890,10 @@
     montarAreas();
     montarVista();
     montarMonitorados();
+
+    // O viewport nasce na primeira vez que a comparação aparece: antes disso o palco não tem tamanho.
+    if (!modelo3d && typeof FOGAO3D !== "undefined") criarModelo3d();
+    desenhar3d();
 
     // RNF-06: toda previsão exibida acompanhada do identificador de versão.
     document.getElementById("trace-note").textContent =

@@ -785,3 +785,67 @@
 
 .wf-rank { margin-top: var(--space-4); }
 .wf-rank__sug td { font-weight: var(--weight-semibold); background: var(--color-surface-accent); }
+
+/* ----- 4 · No modelo 3D -----
+   O viewport da triagem com o painel de peça ao lado. A coluna do painel não
+   dita a altura: trocar de peça não empurra o modelo. */
+
+.cmp3d {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 20rem;
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  margin-bottom: var(--space-3);
+}
+.cmp3d__main { background: var(--color-surface-sunken); min-width: 0; display: flex; flex-direction: column; }
+.cmp3d__side {
+  border-left: var(--border-width) solid var(--color-border);
+  padding: var(--space-4);
+  min-width: 0;
+  contain: size;
+  overflow-y: auto;
+}
+@media (max-width: 64rem) {
+  .cmp3d { grid-template-columns: 1fr; }
+  .cmp3d__side { contain: none; border-left: 0; border-top: var(--border-width) solid var(--color-border); }
+}
+
+/* O modo ativo por extenso, com a cor do modo: não se lê a escala sem ele. */
+.cmp3d__modo {
+  margin: 0;
+  padding: var(--space-2) var(--space-3);
+  border-bottom: var(--border-width) solid var(--color-border);
+  background: var(--color-surface);
+  font-size: var(--size-small);
+  color: var(--color-text);
+  min-height: 2.6em;
+}
+.cmp3d__modo b { font-weight: var(--weight-semibold); }
+.cmp3d__modo-tag {
+  display: inline-block;
+  margin-right: var(--space-2);
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: var(--size-kicker);
+  font-weight: var(--weight-semibold);
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: #fff;
+  background: var(--wp-charcoal);
+}
+.cmp3d__modo-tag--diferenca { background: #2166ac; }
+
+.cmp3d__legenda {
+  padding: var(--space-3) var(--space-4);
+  border-top: var(--border-width) solid var(--color-border);
+  background: var(--color-surface);
+  font-size: var(--size-kicker);
+  color: var(--color-text-subtle);
+}
+.cmp3d__legenda-titulo { margin: 0 0 var(--space-1); font-size: var(--size-small); color: var(--color-text); font-weight: var(--weight-semibold); }
+.cmp3d__legenda-titulo span { font-weight: var(--weight-regular); color: var(--color-text-subtle); }
+.cmp3d__legenda .field-scale__bar { height: 12px; }
+.cmp3d__legenda .field-scale__ends { margin-top: 3px; font-variant-numeric: tabular-nums; }
+.cmp3d__legenda-sentido { display: flex; justify-content: space-between; margin-top: 2px; }
+.cmp3d__legenda-nota { margin: var(--space-1) 0 0; }
