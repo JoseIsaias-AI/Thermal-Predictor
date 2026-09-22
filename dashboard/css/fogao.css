@@ -261,6 +261,14 @@
 }
 .push { flex: 1; }
 
+/* Dica que quebra linha em vez de cortar com reticências. */
+.hint--quebra {
+  min-width: 10rem;
+  white-space: normal;
+  text-align: right;
+  overflow: visible;
+}
+
 /* ----- Mapa de calor: três colunas ----- */
 
 .heat {
@@ -279,6 +287,13 @@
 .heat__side { border-right: var(--border-width) solid var(--color-border); min-width: 0; }
 .heat__side--right { border-right: 0; border-left: var(--border-width) solid var(--color-border); }
 .heat__main { background: var(--color-surface-sunken); min-width: 0; display: flex; flex-direction: column; }
+
+/* Lado a lado, a coluna dos painéis de seleção não dita a altura da linha:
+   senão cada peça escolhida (no clique ou no tour) esticava o grid e o 3D,
+   centrado na coluna do meio, pulava. Ela ocupa a linha e rola por dentro. */
+@media (min-width: 72.01rem) {
+  .heat__side--right { contain: size; overflow-y: auto; }
+}
 
 @media (max-width: 72rem) {
   .heat { grid-template-columns: 16rem minmax(0, 1fr); }
@@ -444,6 +459,61 @@
 
 .detail__empty { color: var(--color-text-subtle); font-size: var(--size-small); margin: 0; }
 
+/* ----- Cartão de confiança (stub) -----
+ * Borda tracejada, a mesma convenção do "sem limite declarado": o que está
+ * ali não é dado validado. Paleta neutra de propósito — verde para "alta"
+ * seria lido como aprovação (RN-07). */
+
+.conf {
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius);
+  padding: var(--space-2) var(--space-3) var(--space-3);
+  margin: 0 0 var(--space-3);
+  min-width: 0;
+}
+.conf--ilustrativo { border-style: dashed; border-color: var(--color-border-strong); }
+
+.conf__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px var(--space-2);
+}
+.conf__title {
+  margin: 0;
+  font-size: var(--size-kicker);
+  font-weight: var(--weight-semibold);
+  color: var(--color-text-muted);
+}
+.conf__tag {
+  font-size: var(--size-kicker);
+  font-weight: var(--weight-semibold);
+  color: var(--color-text-muted);
+  background: var(--color-surface-sunken);
+  border: var(--border-width) dashed var(--color-border-strong);
+  border-radius: 999px;
+  padding: 1px 8px;
+  white-space: nowrap;
+}
+
+.conf__body { display: flex; align-items: center; gap: var(--space-3); margin-top: var(--space-2); min-width: 0; }
+.conf__glifo { flex: none; }
+.conf__halo { fill: rgba(93, 102, 117, 0.16); stroke: rgba(93, 102, 117, 0.55); stroke-width: 1; }
+
+.conf__dados { flex: 1; min-width: 0; margin: 0; display: grid; gap: var(--space-1); }
+.conf__dados div { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 0 var(--space-2); }
+.conf__dados dt { font-size: var(--size-kicker); color: var(--color-text-muted); }
+.conf__dados dd { margin: 0; font-variant-numeric: tabular-nums; font-weight: var(--weight-semibold); }
+.conf__temp { font-size: 1rem; color: var(--color-text); }
+.conf__nivel { display: inline-flex; align-items: center; gap: 6px; font-size: var(--size-small); }
+
+.conf__passos { display: inline-flex; gap: 2px; }
+.conf__passo { width: 8px; height: 8px; border-radius: 2px; background: #e3e7ed; }
+.conf__passo.is-on { background: var(--wp-gray-dark); }
+
+.conf__nota { margin: var(--space-2) 0 0; font-size: var(--size-kicker); line-height: 1.45; color: var(--color-text-subtle); }
+
 /* Barra que situa a previsão contra o limite. O rótulo fica acima da barra,
    e não dentro: sobre a cor escura da faixa ele sumia. */
 .gauge {
@@ -554,6 +624,50 @@
 }
 
 .part__legend { margin: var(--space-1) 0 0; font-size: var(--size-kicker); color: var(--color-text-muted); font-variant-numeric: tabular-nums; }
+
+/* Modo diferença: no lugar da faixa de estado, o aviso de que aqui não há estado. */
+.part__modo {
+  margin: 0 0 var(--space-2);
+  padding: 4px 10px;
+  border-radius: var(--radius);
+  box-shadow: inset 0 0 0 1px var(--color-border-strong);
+  font-size: var(--size-kicker);
+  color: var(--wp-charcoal);
+}
+.part__trio { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-1); margin: 0; }
+.part__trio-cel {
+  padding: var(--space-2);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius);
+  min-width: 0;
+}
+.part__trio-cel dt {
+  font-size: var(--size-kicker);
+  color: var(--color-text-subtle);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.part__trio-cel dd {
+  margin: 2px 0 0;
+  font-weight: var(--weight-semibold);
+  font-variant-numeric: tabular-nums;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+}
+.part__trio-cel--dif { border-color: var(--color-border-strong); background: var(--color-surface-sunken); }
+.part__trio-cor {
+  flex: none;
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  box-shadow: inset 0 0 0 1px rgba(16, 21, 31, 0.35);
+}
+.part__trio-nota { margin: var(--space-1) 0 var(--space-2); font-size: var(--size-kicker); color: var(--color-text-subtle); }
+.part__item--dif { cursor: default; }
+.part__item--dif:hover { background: none; }
 
 .part__list {
   list-style: none;
@@ -735,6 +849,41 @@ tr[hidden] { display: none; }
 .vbtn:hover { border-color: var(--color-text-subtle); }
 .vbtn:focus-visible { outline: 2px solid var(--color-focus-ring); outline-offset: 1px; }
 .vbtn[hidden] { display: none; }
+.vbtn[disabled] { opacity: 0.4; cursor: not-allowed; }
+.vbtn--toggle[aria-pressed="true"] {
+  color: var(--color-accent);
+  background: var(--color-surface-accent);
+  border-color: var(--color-accent);
+}
+
+/* ----- Slider de explosão ----- */
+
+.explode {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.explode .bar-label { margin-right: 0; }
+
+.explode input[type="range"] {
+  width: 8.5rem;
+  margin: 0;
+  accent-color: var(--color-accent);
+  cursor: pointer;
+}
+
+.explode input[type="range"]:focus-visible { outline: 2px solid var(--color-focus-ring); outline-offset: 2px; }
+.explode input[type="range"][disabled] { opacity: 0.4; cursor: not-allowed; }
+
+.explode output {
+  min-width: 3ch;
+  text-align: right;
+  font-size: var(--size-kicker);
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-muted);
+}
 
 /* ----- Movimento -----
  * Curto e sem quique; tudo respeita prefers-reduced-motion. */
@@ -780,6 +929,31 @@ tr[hidden] { display: none; }
 .viewport__bar--camera { background: var(--color-surface); }
 .viewport__bar--camadas { background: var(--color-surface); min-height: 42px; }
 .viewport__bar--camadas .toggle--mini { margin: 0; }
+
+/* ----- Tour pelos pontos críticos ----- */
+
+.viewport__bar--tour { background: var(--color-surface); min-height: 42px; }
+.tour__ctrl { display: inline-flex; gap: var(--space-1); flex: none; }
+.tour__ctrl[hidden] { display: none; }
+.tour__ctrl .vbtn { min-width: 2.25rem; }
+/* Largura da palavra mais longa: trocar Pausar/Continuar/Recomeçar não empurra a barra. */
+#tour-pausa { min-width: 6.5rem; }
+/* Altura fixa de duas linhas, vazio ou não: nome curto ou longo, o 3D não se move. */
+.tour__status {
+  flex: 1 1 14rem;
+  min-width: 0;
+  margin: 0;
+  line-height: 1.4;
+  height: 2.8em;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  color: var(--color-text-subtle);
+  font-variant-numeric: tabular-nums;
+}
+.tour__status b { color: var(--color-text); font-weight: var(--weight-semibold); }
+.tour__status--vazio { color: var(--color-text); }
 
 .sr-only {
   position: absolute;

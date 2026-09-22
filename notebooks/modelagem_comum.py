@@ -205,9 +205,10 @@ def particoes_de_validacao(base, indices, n_particoes=PARTICOES_VALIDACAO):
     versões recentes do scikit-learn trocaram a ordem de desempate entre configurações com o mesmo
     número de medições, que são comuns nesta base, e passaram a montar outras partições, com outras
     métricas de validação. O desempate abaixo é o da versão em que os notebooks foram executados, e
-    mantém as partições iguais em qualquer versão instalada. Com as mesmas partições, Ridge, média do
-    termopar e Gradient Boosting reproduzem as métricas publicadas; o Random Forest ainda pode variar
-    em centésimos de grau entre versões do scikit-learn, pelo sorteio interno das árvores.
+    mantém as partições iguais em qualquer versão instalada. Com as mesmas partições, Ridge e média do
+    termopar reproduzem as métricas publicadas; Random Forest e Gradient Boosting, que sorteiam
+    amostras internamente, ainda podem variar em milésimos a centésimos de grau entre versões do
+    scikit-learn.
     """
     grupos = base["configuracao"].to_numpy()[indices]
     configuracoes, grupo_de = np.unique(grupos, return_inverse=True)
@@ -434,7 +435,7 @@ def _rede_modulos():
     return torch, nn, RedeTermica
 
 
-def treinar_rede(base, treino, alvo, c, semente, registrar_curva=False):
+def treinar_rede(base, treino, alvo, c, semente, registrar_curva=False, adicionais=None):
     """Treina uma rede em `treino` e prevê `alvo`.
 
     Cuidados: cerca de 20% das configurações de cada modo de ensaio decidem a parada antecipada, sem
@@ -442,6 +443,11 @@ def treinar_rede(base, treino, alvo, c, semente, registrar_curva=False):
     o alvo é o desvio em relação à média do termopar; o erro de treino é medido com o dropout
     desligado e só nas configurações que ajustaram os pesos. `alvo` só é consultado durante o treino
     quando `registrar_curva` pede o erro nele para desenhar a curva, e nunca decide nada.
+
+    `adicionais` recebe linhas sintéticas, um DataFrame com as colunas de configuração,
+    `indice_termopar` e `Value`, usado em `17_estudo_aumento_de_dados.ipynb`. Elas entram só nos
+    lotes de ajuste dos pesos, sorteadas a cada época: a parada antecipada, a padronização e a média
+    de referência de cada termopar continuam estimadas apenas nas leituras reais.
     """
     torch, nn, RedeTermica = _rede_modulos()
     torch.set_num_threads(1)
@@ -500,19 +506,39 @@ def treinar_rede(base, treino, alvo, c, semente, registrar_curva=False):
     xa, ta, ya = tensores(ajuste)
     xp, tp, yp = tensores(parada)
     xv, tv, _ = tensores(alvo)
+    x_lotes, t_lotes, y_lotes = xa, ta, ya
+    sinteticas = 0 if adicionais is None else len(adicionais)
+
+    if sinteticas > 0:
+        termopar_sintetico = adicionais["indice_termopar"].to_numpy(dtype=np.int64)
+        xs = torch.tensor(
+            (adicionais[colunas_configuracao(base)].to_numpy(dtype=np.float32) - media_x) / desvio_x)
+        ts = torch.tensor(termopar_sintetico)
+        ys = torch.tensor(((adicionais["Value"].to_numpy() - referencia[termopar_sintetico]) / escala)
+                          .astype(np.float32))
+
     melhor, melhor_estado, melhor_epoca, sem_melhora = np.inf, None, 0, 0
     curva = {"treino": [], "validação": [], "teste": []}
 
     for epoca in range(c["epocas_maximas"]):
         rede.train()
-        ordem = torch.randperm(len(ajuste))
 
-        for inicio in range(0, len(ajuste), c["tamanho_do_lote"]):
+        if sinteticas > 0:
+            # A cada época, todas as leituras reais e um sorteio de no máximo o mesmo número de
+            # linhas sintéticas: o custo da época fica no dobro, e não na razão entre as duas.
+            sorteio = torch.randperm(sinteticas)[:len(ajuste)]
+            x_lotes = torch.cat([xa, xs[sorteio]])
+            t_lotes = torch.cat([ta, ts[sorteio]])
+            y_lotes = torch.cat([ya, ys[sorteio]])
+
+        ordem = torch.randperm(len(y_lotes))
+
+        for inicio in range(0, len(y_lotes), c["tamanho_do_lote"]):
             lote = ordem[inicio:inicio + c["tamanho_do_lote"]]
 
             if len(lote) > 1:
                 otimizador.zero_grad()
-                perda(rede(xa[lote], ta[lote]), ya[lote]).backward()
+                perda(rede(x_lotes[lote], t_lotes[lote]), y_lotes[lote]).backward()
                 otimizador.step()
 
         rede.eval()
@@ -650,6 +676,39 @@ def escolher_hiperparametros(algoritmo, base, treino, devolver_fora=False):
         fora.loc[indices] = previsao
 
     return grade[posicao], tabela, fora.to_numpy()
+
+
+def tabela_da_busca(algoritmo, combinacoes, base, treino):
+    """Métricas de validação de cada combinação, com a variação do MAE entre as partições.
+
+    Usa as mesmas partições e as mesmas previsões de `escolher_hiperparametros`, e por isso a
+    combinação de menor MAE é a mesma que ela escolhe. O MAE junta as cinco partições, como na
+    escolha. O desvio-padrão do MAE entre as partições mostra se o resultado é estável ou depende de
+    qual configuração caiu em qual partição, e a lista `MAE por partição` permite comparar duas
+    combinações partição a partição. Só aparecem como colunas os hiperparâmetros que variam.
+    """
+    particoes = particoes_de_validacao(base, treino)
+    y = base["Value"].to_numpy()
+    validacao = np.concatenate([v for _, v in particoes])
+    previsoes = _previsoes_de_validacao(algoritmo, combinacoes, base, particoes, (SEMENTE,))
+    chaves = list(dict.fromkeys(k for c in combinacoes for k in c))
+    variaveis = [k for k in chaves if len({str(c.get(k)) for c in combinacoes}) > 1]
+    linhas = []
+
+    for combinacao, por_particao in zip(combinacoes, previsoes):
+        metricas = metricas_regressao(y[validacao], np.concatenate(por_particao))
+        mae_particao = [float(np.abs(p - y[v]).mean()) for p, (_, v) in zip(por_particao, particoes)]
+        linhas.append({
+            **{k: "sem limite" if combinacao.get(k) is None else combinacao.get(k) for k in variaveis},
+            "MAE (C) validação": metricas["MAE (C)"],
+            "Desvio do MAE entre partições (C)": float(np.std(mae_particao)),
+            "MSE (C2) validação": metricas["MSE (C2)"],
+            "RMSE (C) validação": metricas["RMSE (C)"],
+            "R2 validação": metricas["R2"],
+            "MAE por partição": mae_particao,
+        })
+
+    return pd.DataFrame(linhas).sort_values("MAE (C) validação").reset_index(drop=True)
 
 
 def tabela_de_ajuste(conjuntos):

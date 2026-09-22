@@ -129,6 +129,37 @@ test("Soprador: mistura de classificados e monitorados", function () {
   assert.equal(r.referencia.is_monitor_only, false);
 });
 
+test("mediana da peça: par e ímpar, e fica entre mínimo e máximo", function () {
+  function mediana(zonaId) {
+    var r = PAINEL.resumir(zona(zonaId), DADOS);
+    var t = r.classificados.concat(r.monitorados).map(function (p) { return p.temperatura_prevista_c; }).sort(function (a, b) { return a - b; });
+    return { r: r, t: t };
+  }
+  // Manípulos: 6 pontos, média dos dois do meio.
+  var k = mediana("knobBar");
+  assert.equal(k.r.total, 6);
+  assert.equal(k.r.temperatura.mediana, (k.t[2] + k.t[3]) / 2);
+  // Soprador: 5 pontos, o do meio.
+  var s = mediana("blower");
+  assert.equal(s.r.total, 5);
+  assert.equal(s.r.temperatura.mediana, s.t[2]);
+  // Ponto único: mediana é o próprio ponto.
+  var c = mediana("coil-FL");
+  assert.equal(c.r.temperatura.mediana, c.t[0]);
+  FOGAO.ZONAS.forEach(function (z) {
+    var tt = PAINEL.resumir(z, DADOS).temperatura;
+    assert.ok(tt.min <= tt.mediana && tt.mediana <= tt.max, z.id);
+  });
+});
+
+test("mediana não muda a referência: a peça segue o ponto mais crítico", function () {
+  FOGAO.ZONAS.forEach(function (z) {
+    var r = PAINEL.resumir(z, DADOS);
+    var primeiro = FOGAO.pontosDaZona(z, DADOS.pontos)[0];
+    if (primeiro) assert.equal(r.referencia, primeiro, z.id);
+  });
+});
+
 test("Placa de potência: referência é o ponto que a triagem pôs primeiro", function () {
   var r = PAINEL.resumir(zona("ipcBoard"), DADOS);
   var primeiro = DADOS.pontos.filter(function (p) { return p.Key_Area === "IPC Comp"; })[0];

@@ -8,11 +8,11 @@
   <!-- Fontes hospedadas localmente em css/tokens.css (@font-face), sem
        dependência de rede (RNF-02 e RNF-04, Tabela 48 da documentação). -->
   <link rel="stylesheet" href="css/tokens.css?v=3">
-  <link rel="stylesheet" href="css/app.css?v=3">
+  <link rel="stylesheet" href="css/app.css?v=5">
   <link rel="stylesheet" href="css/triagem.css?v=3">
-  <link rel="stylesheet" href="css/fogao.css?v=3">
+  <link rel="stylesheet" href="css/fogao.css?v=7">
   <link rel="stylesheet" href="css/grafico.css?v=3">
-  <link rel="stylesheet" href="css/comparacao.css?v=3">
+  <link rel="stylesheet" href="css/comparacao.css?v=5">
   <link rel="stylesheet" href="css/chat.css?v=5">
 </head>
 <body>
@@ -33,6 +33,9 @@
     <a class="nav__link" href="index.html">Consulta</a>
     <a class="nav__link" href="triagem.html">Triagem</a>
     <a class="nav__link" href="comparacao.html" aria-current="page">Comparação</a>
+    <a class="nav__link" href="conformidade.html">Conformidade</a>
+    <a class="nav__link" href="design.html">Design</a>
+    <a class="nav__link" href="marketing.html">Marketing</a>
     <a class="nav__link" href="engenharia.html">Engenharia</a>
     </nav>
 
@@ -40,8 +43,8 @@
 
     <!-- Sai quando houver modelo treinado. Até lá, é o que impede que um
          número sintético seja lido como previsão. Fica na barra, e não no
-         corpo da página, para valer nas quatro telas. -->
-    <p class="model-chip" id="stub-banner">
+         corpo da página, para valer nas sete telas. -->
+    <p class="model-chip termo" title="Identificador do preditor que gerou os números. Enquanto for de demonstração, os valores são sintéticos e não saem de um modelo treinado." id="stub-banner">
       <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.3" aria-hidden="true"><circle cx="7" cy="7" r="5.6"></circle><path d="M7 4.2v3.4"></path><circle cx="7" cy="9.9" r="0.6" fill="currentColor" stroke="none"></circle></svg>
       <span><strong>Modelo <span id="model-version">—</span></strong> · valores sintéticos, não previsões</span>
     </p>
@@ -165,6 +168,59 @@
         comparação.
       </p>
     </div>
+  </section>
+
+  <!-- ---------- Configuração mais próxima dentro do limite ---------- -->
+  <!-- Não é "what-if": combinação fora da base não ganha predição aqui. E não
+       diz "segura", que soaria como aprovação. A sugestão é sempre uma
+       configuração da base, com predição já calculada. -->
+
+  <section class="panel" id="wf-panel" aria-labelledby="wf-title">
+    <h2 class="panel__title" id="wf-title">
+      Configuração mais próxima dentro do limite
+      <span class="panel__title-sub">o que mudar no projeto, buscando nas <span id="wf-total">—</span> configurações conhecidas</span>
+    </h2>
+
+    <p class="legend-note">
+      Parta da configuração que você está avaliando e ajuste os fatores se
+      quiser. A busca mede a distância dela para cada configuração conhecida,
+      fica só com as que têm todos os pontos com limite <em>dentro do limite</em>
+      pelo critério de <span id="wf-tol">10%</span>, e sugere a mais próxima.
+    </p>
+
+    <div class="wf-tools">
+      <label class="field wf-start">
+        <span class="field__label">Partir de</span>
+        <select id="wf-start"></select>
+      </label>
+    </div>
+
+    <div class="field-grid wf-form" id="wf-form"></div>
+
+    <p class="wf-ref" id="wf-ref" role="status" aria-live="polite"></p>
+
+    <div class="wf-result" id="wf-result" aria-live="polite"></div>
+
+    <details class="more">
+      <summary>Como a distância é calculada</summary>
+      <p>
+        Cada configuração vira o mesmo vetor de 13 colunas binárias que os
+        modelos recebem (um nível por coluna, sem a categoria de referência). Cada
+        coluna é padronizada em <em>z-score</em> com a média e o desvio padrão
+        populacional das configurações conhecidas, e a distância é a euclidiana
+        entre os dois vetores padronizados.
+      </p>
+      <p>
+        A padronização faz um nível raro pesar mais que um comum: trocar para
+        ele afasta a configuração do que a base cobre. Coluna constante na base
+        não separa ninguém e fica fora da soma.
+      </p>
+      <p>
+        A sugestão é uma configuração que já existe na base, não um ponto
+        otimizado no espaço dos fatores. Continua sendo previsão: a confirmação
+        é a simulação.
+      </p>
+    </details>
   </section>
 
   <!-- ---------- Bandeja ---------- -->
@@ -302,6 +358,81 @@
       </details>
     </section>
 
+    <!-- ---------- 4 · No modelo 3D ---------- -->
+    <!-- Lê a mesma bandeja de cima: A é a referência, B uma das outras. Não
+         há seletor próprio de configuração aqui. -->
+
+    <section class="panel" id="cmp3d-panel" aria-labelledby="cmp3d-title">
+      <h2 class="panel__title" id="cmp3d-title">
+        <span class="step">4</span> No modelo 3D
+        <span class="panel__title-sub">temperatura de uma configuração ou diferença entre duas, termopar a termopar</span>
+      </h2>
+
+      <div class="cmp3d">
+        <div class="cmp3d__main">
+          <div class="viewport__bar">
+            <span class="bar-label">Modo</span>
+            <span class="toggle" id="cmp3d-modo" role="group" aria-label="Modo do campo">
+              <button type="button" data-modo="absoluto" aria-pressed="false">Absoluto</button>
+              <button type="button" data-modo="diferenca" aria-pressed="true">Diferença B − A</button>
+            </span>
+            <span class="toggle toggle--mini" id="cmp3d-qual" role="group" aria-label="Configuração exibida no modo absoluto" hidden></span>
+            <span class="push"></span>
+            <span class="bar-label">B</span>
+            <span class="toggle toggle--mini" id="cmp3d-b" role="group" aria-label="Configuração B"></span>
+          </div>
+
+          <!-- O modo ativo dito por extenso, em cima do modelo: a cor muda de
+               sentido entre os dois e não pode ser lida sem saber qual é. -->
+          <p class="cmp3d__modo" id="cmp3d-rotulo" role="status" aria-live="polite"></p>
+
+          <div class="viewport__frame">
+            <div class="viewport__stage">
+              <div class="viewport__3d" id="cmp3d-3d" role="application" tabindex="0"
+                   aria-roledescription="modelo 3D navegável"
+                   aria-label="Campo térmico 3D das configurações comparadas"
+                   aria-describedby="cmp3d-teclas"></div>
+              <p class="sr-only" id="cmp3d-teclas">Setas giram o modelo, mais e menos aproximam, 1 a 5 escolhem as vistas. Clicar numa peça abre o resumo dela ao lado; Esc desfaz a seleção.</p>
+              <p class="stage-hint" id="cmp3d-dica">Passe o cursor para sondar · clique numa peça para o resumo</p>
+            </div>
+            <div class="tip" id="cmp3d-tip" role="status" aria-live="polite"></div>
+          </div>
+
+          <div class="cmp3d__legenda" id="cmp3d-legenda"></div>
+        </div>
+
+        <aside class="cmp3d__side">
+          <h3 class="heat__label">Peça selecionada</h3>
+          <div id="cmp3d-peca" role="region" aria-live="polite" aria-label="Resumo da peça selecionada"></div>
+        </aside>
+      </div>
+
+      <details class="more">
+        <summary>Como ler</summary>
+        <p>
+          <strong>Absoluto</strong> pinta a temperatura prevista de uma
+          configuração, na mesma escala do campo térmico da triagem.
+          <strong>Diferença</strong> pinta, em cada termopar, a temperatura de B
+          menos a de A: azul onde B fica mais frio, vermelho onde fica mais
+          quente, branco onde a diferença não passa de
+          <span id="cmp3d-limiar">0.5 °C</span>.
+        </p>
+        <p>
+          A diferença é sobre as mesmas previsões das tabelas acima, sem cálculo
+          novo. Ela não diz se um ponto está dentro ou acima do limite: ficar
+          mais frio não aprova um ponto, e ficar mais quente não o reprova. O
+          estado continua sendo o das tabelas.
+        </p>
+        <p>
+          O extremo da escala é a maior diferença do par, arredondada para cima e
+          nunca abaixo de <span id="cmp3d-piso">5 °C</span>: um par quase igual
+          fica quase todo branco, em vez de ter a pequena diferença esticada até
+          a cor cheia. No modo diferença o modelo segue a geometria da
+          referência (A): posição da placa e do alojamento são as dela.
+        </p>
+      </details>
+    </section>
+
     <!-- RN-03: sem colunas de limite, folga ou estado. -->
     <section class="panel panel--monitoring" id="mono-panel">
       <h2 class="panel__title">
@@ -332,9 +463,15 @@
      folga; dados_comparacao.js precisa vir antes de comparacao.js. -->
 <script src="js/schema.js?v=3"></script>
 <script src="js/dados_comparacao.js?v=3"></script>
-<script src="js/fogao.js?v=3"></script>
+<script src="js/fogao.js?v=5"></script>
 <script src="js/grafico.js?v=3"></script>
-<script src="js/comparacao.js?v=3"></script>
+<script src="js/segura_proxima.js?v=1"></script>
+<!-- Passo 4: o mesmo viewport e o mesmo painel de peça da triagem. -->
+<script src="vendor/three.min.js"></script>
+<script src="js/fogao3d.js?v=9"></script>
+<script src="js/painel_peca.js?v=5"></script>
+<script src="js/diff_termico.js?v=1"></script>
+<script src="js/comparacao.js?v=5"></script>
 <script src="js/chat.js?v=5"></script>
 </body>
 </html>

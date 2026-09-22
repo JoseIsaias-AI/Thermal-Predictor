@@ -93,7 +93,9 @@ h1, h2, h3, h4 { font-family: var(--font-display); letter-spacing: -0.01em; }
   font-size: 0.875rem;
   color: var(--color-text-muted);
   text-decoration: none;
-  padding: 0 var(--space-3);
+  /* Sete telas na barra: com o respiro de 12px a última quebrava para uma
+     segunda linha em 1280px. */
+  padding: 0 var(--space-2);
   border-bottom: 2px solid transparent;
   margin-bottom: -1px;
 }
@@ -448,3 +450,23 @@ h1, h2, h3, h4 { font-family: var(--font-display); letter-spacing: -0.01em; }
   display: block;
   margin-bottom: var(--space-1);
 }
+
+/* ----- Glossário em tela -----
+ *
+ * Termo técnico que sobra na interface carrega a explicação no próprio
+ * elemento. Mora aqui, e não na folha das áreas por público, porque o chip do
+ * modelo usa o mesmo recurso nas sete telas. */
+
+.termo {
+  border-bottom: 1px dotted var(--color-text-subtle);
+  cursor: help;
+  text-decoration: none;
+}
+
+.termo:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
+}
+
+/* Dentro do chip do modelo o pontilhado competiria com a borda da pílula. */
+.model-chip .termo { border-bottom: 0; }

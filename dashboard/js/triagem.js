@@ -574,7 +574,8 @@
   var palcoCalor = document.getElementById("heat-3d");
   /* `zona` é a peça selecionada (id em FOGAO.ZONAS) e `semDado` a última peça
      clicada que não tem termopar, só para o painel dizer por quê. */
-  var mapa = { explode: true, escala: "a", isolar: "todos", faixas: {}, sel: null,
+  // `explode` vai de 0 (montado) a 1; `raioX` combina com qualquer valor dele.
+  var mapa = { explode: 1, raioX: false, escala: "a", isolar: "todos", faixas: {}, sel: null,
                zona: null, semDado: null,
                vista: "pontos", nome: "", estados: {}, mono: true,
                camadas: { volume: true, fluxo: true, iso: true, focos: true } };
@@ -713,7 +714,9 @@
       alojamento: config.housing && config.housing !== "Closed" ? "open" : "closed",
       material: config.material_coil_support === "Plastic" ? "plastic"
         : config.material_coil_support === "Aluminium Plate" ? "plate" : "aluminium",
-      soprador: config.blower_direction === "To Back" ? "back" : "front"
+      soprador: config.blower_direction === "To Back" ? "back" : "front",
+      // Não muda geometria: é o que o display do forno mostra.
+      caso: config.run_case
     };
   }
 
@@ -725,6 +728,45 @@
 
   function linhaDetalhe(rotulo, valor, vazio) {
     return "<dt>" + rotulo + "</dt><dd" + (vazio ? " class=\"is-empty\"" : "") + ">" + valor + "</dd>";
+  }
+
+  /* Cartão de confiança: temperatura prevista ao lado do nível e do glifo com
+     halo, na mesma escala do 3D. Lê só o contrato de CONFIANCA — o aviso de
+     ilustrativo depende de `conf.ilustrativo`, então some sozinho quando a
+     métrica real entrar. Não toca no estado de risco, que segue logo acima. */
+  function cartaoConfianca(p, cor) {
+    var conf = CONFIANCA.doPonto(p);
+    // Marcador de 4,4 px como nos gráficos; caixa de 60 px cabe até o halo de incerteza total.
+    var PX_MARCA = 4.4, C = 30;
+    var raio = CONFIANCA.raioHalo(conf) * PX_MARCA;
+    var marca = FOGAO.formaDoPonto(C, C, p.estado, p.is_monitor_only);
+    // Três passos: alta acende três, baixa acende um.
+    var acesos = CONFIANCA.ORDEM.length - CONFIANCA.ORDEM.indexOf(conf.nivel);
+    var passos = CONFIANCA.ORDEM.map(function (n, i) {
+      return "<span class=\"conf__passo" + (i < acesos ? " is-on" : "") + "\"></span>";
+    }).join("");
+
+    return "<section class=\"conf conf--" + conf.nivel + (conf.ilustrativo ? " conf--ilustrativo" : "") + "\" aria-label=\"Confiança da previsão\">" +
+      "<div class=\"conf__head\">" +
+        "<h4 class=\"conf__title\">Confiança da previsão</h4>" +
+        (conf.ilustrativo ? "<span class=\"conf__tag\">Ilustrativo · preliminar</span>" : "") +
+      "</div>" +
+      "<div class=\"conf__body\">" +
+        "<svg class=\"conf__glifo\" width=\"" + 2 * C + "\" height=\"" + 2 * C + "\" viewBox=\"0 0 " + 2 * C + " " + 2 * C + "\" aria-hidden=\"true\">" +
+          "<circle class=\"conf__halo\" cx=\"" + C + "\" cy=\"" + C + "\" r=\"" + raio.toFixed(1) + "\"></circle>" +
+          "<path d=\"" + marca + "\" fill=\"" + (p.is_monitor_only ? "#ffffff" : cor) + "\" stroke=\"" + (p.is_monitor_only ? "#767777" : "#484949") + "\" stroke-width=\"0.8\"" +
+            (p.is_monitor_only ? " stroke-dasharray=\"2.5 2\"" : "") + "></path>" +
+        "</svg>" +
+        "<dl class=\"conf__dados\">" +
+          "<div><dt>Temperatura prevista</dt><dd class=\"conf__temp\">" + p.temperatura_prevista_c.toFixed(2) + " °C</dd></div>" +
+          "<div><dt>Confiança</dt><dd class=\"conf__nivel\"><span class=\"conf__passos\" aria-hidden=\"true\">" + passos + "</span>" + conf.rotulo + "</dd></div>" +
+        "</dl>" +
+      "</div>" +
+      "<p class=\"conf__nota\">" +
+        (conf.ilustrativo ? "Atribuído sem cálculo: não é métrica do modelo e não altera o estado de risco. " : "") +
+        "Halo maior, menor confiança." +
+      "</p>" +
+    "</section>";
   }
 
   function mostrarDetalhe(p) {
@@ -740,8 +782,9 @@
       "<p class=\"detail__state detail__state--" + (p.is_monitor_only ? "mono" : p.estado) + "\">" +
       "<span class=\"detail__swatch\" style=\"background:" + cor + ";box-shadow:inset 0 0 0 1px rgba(16,21,31,.35)\"></span>" +
       "<span>" + (p.is_monitor_only ? "Limite não declarado" : p.estado_rotulo) + "</span></p>" +
-      "<dl class=\"detail__rows\">" +
-      linhaDetalhe("Temperatura prevista", p.temperatura_prevista_c.toFixed(2) + " °C");
+      // A temperatura prevista mora no cartão, ao lado da confiança.
+      cartaoConfianca(p, cor) +
+      "<dl class=\"detail__rows\">";
 
     if (p.is_monitor_only) {
       html += linhaDetalhe("Limite do componente", "—", true) +
@@ -1003,8 +1046,11 @@
     });
   }
 
-  function redesenharCalor() {
+  /* `extra` leva o que vale só para este pedido: `arrastando` adia o
+     reenquadro até o slider parar, `imediato` pula a animação no Restaurar. */
+  function redesenharCalor(extra) {
     if (!modelo) return;
+    extra = extra || {};
     /* Isolar vale também no campo: ali a peça em foco é justamente onde o
        campo tem detalhe por componente, e o resto esmaece em vez de tapar. */
     var foco = mapa.isolar !== "todos" && FOGAO.PECA_DA_AREA[mapa.isolar] ? mapa.isolar : null;
@@ -1020,14 +1066,20 @@
       vista: mapa.vista,
       foco: foco,
       explode: mapa.explode,
+      raioX: mapa.raioX,
+      arrastando: !!extra.arrastando,
+      imediato: !!extra.imediato,
       camadas: mapa.camadas,
       placa: geometria.placa,
       alojamento: geometria.alojamento,
       material: geometria.material,
+      caso: geometria.caso,
       escala: mapa.escala,
       isolar: mapa.isolar,
       sel: mapa.sel,
       zonaSel: mapa.zona,
+      // Mesmo raio do glifo do cartão: os dois leem CONFIANCA.
+      haloDoPonto: function (p) { return CONFIANCA.raioHalo(CONFIANCA.doPonto(p)); },
       pontos: pontos
     });
 
@@ -1038,10 +1090,21 @@
 
     // Com uma peça em foco a câmera está enquadrada nela: explodir e presets não se aplicam.
     var travado = !!meta;
-    Array.prototype.forEach.call(
-      document.querySelectorAll("#heat-explode button"),
-      function (b) { b.disabled = travado; }
-    );
+    ["heat-explode", "heat-xray", "heat-reset"].forEach(function (id) {
+      document.getElementById(id).disabled = travado;
+    });
+    var pct = Math.round(mapa.explode * 100);
+    var slider = document.getElementById("heat-explode");
+    slider.value = pct;
+    slider.setAttribute("aria-valuetext", pct === 0 ? "montado" : pct + "% explodido");
+    document.getElementById("heat-explode-valor").textContent = pct + "%";
+    document.getElementById("heat-xray").setAttribute("aria-pressed", String(mapa.raioX));
+    // No meio do curso nenhum dos dois botões fica marcado: o estado é o do slider.
+    Array.prototype.forEach.call(document.querySelectorAll("#heat-montagem button"), function (b) {
+      b.setAttribute("aria-pressed", String(Number(b.dataset.explode) === pct));
+      b.disabled = travado;
+    });
+    var explodido = mapa.explode > 0;
     Array.prototype.forEach.call(
       document.querySelectorAll("#heat-preset button"),
       function (b) { b.disabled = !!meta; }
@@ -1055,14 +1118,15 @@
     document.getElementById("occlusion-hint").textContent =
       meta ? meta.nome
       : campoAtivo ? "Passe o cursor para sondar · clique numa peça para o resumo"
-      : mapa.explode ? "Arraste para girar · clique numa peça para o resumo"
+      : explodido || mapa.raioX ? "Arraste para girar · clique numa peça para o resumo"
       : "Pontos internos em transparência · clique numa peça";
 
+    var sufixo = mapa.raioX ? " · raio-X" : "";
     document.getElementById("heat-view-name").textContent =
       meta ? "Vista de componente"
-      : campoAtivo && mapa.explode ? "Campo térmico explodido"
+      : (campoAtivo && explodido ? "Campo térmico explodido"
       : campoAtivo ? "Campo térmico esquemático"
-      : mapa.explode ? "Vista explodida esquemática" : "Vista esquemática";
+      : explodido ? "Vista explodida esquemática" : "Vista esquemática") + sufixo;
     document.getElementById("heat-view-note").textContent =
       meta ? "Sem CAD · termopares deste subsistema"
       : campoAtivo ? "Sem CAD · interpolado entre termopares, não é CFD"
@@ -1094,7 +1158,33 @@
     montarChips();
     aplicarFiltros();
 
-    ligarAlternancia("heat-explode", "explode", function (b) { return b.dataset.explode === "1"; });
+    // `input` chega a cada passo do arrasto; `change`, quando a mão solta.
+    var slider = document.getElementById("heat-explode");
+    slider.addEventListener("input", function () {
+      mapa.explode = Number(this.value) / 100;
+      redesenharCalor({ arrastando: true });
+    });
+    slider.addEventListener("change", function () {
+      mapa.explode = Number(this.value) / 100;
+      redesenharCalor();
+    });
+    // Atalho para os extremos: anima até lá e o slider acompanha.
+    document.getElementById("heat-montagem").addEventListener("click", function (evento) {
+      var botao = evento.target.closest("button");
+      if (!botao) return;
+      mapa.explode = Number(botao.dataset.explode) / 100;
+      redesenharCalor();
+    });
+    document.getElementById("heat-xray").addEventListener("click", function () {
+      mapa.raioX = !mapa.raioX;
+      redesenharCalor();
+    });
+    // A seleção fica: restaurar mexe no modelo, não no que está sendo lido.
+    document.getElementById("heat-reset").addEventListener("click", function () {
+      mapa.explode = 0;
+      mapa.raioX = false;
+      redesenharCalor({ imediato: true });
+    });
     ligarAlternancia("heat-scale", "escala", function (b) { return b.dataset.scale; });
     ligarAlternancia("heat-view", "vista", function (b) { return b.dataset.view; });
 
@@ -1142,8 +1232,110 @@
       redesenharCalor();
     });
 
+    montarTour();
+
     document.getElementById("heat").hidden = false;
     redesenharCalor();
+  }
+
+  /* ----- Tour pelos pontos críticos -----
+     A lista sai do estado já rotulado em DADOS_TRIAGEM (TOUR.paradas só
+     escolhe e ordena). Cada parada é a mesma seleção de um clique, então os
+     painéis da peça e do ponto abrem sem o usuário tocar no modelo. */
+  var tour = null;
+
+  function montarTour() {
+    var status = document.getElementById("tour-status");
+    var ctrl = document.getElementById("tour-ctrl");
+    var iniciar = document.getElementById("tour-iniciar");
+    var pausa = document.getElementById("tour-pausa");
+    var anterior = document.getElementById("tour-anterior");
+    var proximo = document.getElementById("tour-proximo");
+
+    function escrever(partes) {
+      status.innerHTML = "";
+      partes.forEach(function (x) {
+        status.appendChild(typeof x === "string" ? document.createTextNode(x) : x);
+      });
+    }
+
+    function textoDaParada(e) {
+      var p = e.ponto;
+      var pct = Math.abs(p.margem_percentual * 100).toFixed(1) + "%";
+      escrever([
+        "Parada " + (e.i + 1) + " de " + e.total + " · ",
+        el("b", null, p.TC_Name),
+        " · " + p.estado_rotulo + " · " +
+          (p.margem_percentual < 0 ? pct + " acima do limite" : "folga de " + pct + " do limite") +
+          (e.fim ? " · última parada" : e.tocando ? "" : " · pausado")
+      ]);
+    }
+
+    /* Os marcadores só existem na leitura por pontos, sem subsistema em foco
+       e sem filtro que os esconda: o tour abre nesse estado para que toda
+       parada tenha onde a câmera pousar. */
+    function prepararVista() {
+      if (mapa.vista !== "pontos") document.querySelector("#heat-view [data-view='pontos']").click();
+      if (mapa.isolar !== "todos") { mapa.isolar = "todos"; montarSubsistemas(); }
+      if (mapa.nome || !mapa.mono || Object.keys(mapa.faixas).length || Object.keys(mapa.estados).length) limparFiltros();
+    }
+
+    var controle = {
+      aoParar: function (p) {
+        selecionar(p);
+        modelo.focarPonto(p.measurement_id);
+        // A coluna dos painéis rola por dentro: cada parada abre no resumo da peça.
+        document.querySelector(".heat__side--right").scrollTop = 0;
+      },
+      aoMudar: function (e) {
+        iniciar.hidden = e.ativo;
+        ctrl.hidden = !e.ativo;
+        if (!e.ativo) return;
+        pausa.textContent = e.tocando ? "Pausar" : e.fim ? "Recomeçar" : "Continuar";
+        pausa.setAttribute("aria-pressed", String(!e.tocando));
+        anterior.disabled = e.i === 0;
+        proximo.disabled = e.fim;
+        textoDaParada(e);
+      },
+      // Sair do tour não deixa a câmera presa na última parada.
+      aoEncerrar: function () {
+        limparSelecao();
+        modelo.preset("isometrica");
+        escrever([]);
+        iniciar.focus();
+      }
+    };
+
+    // A lista é lida no clique, do dado que a triagem mostra naquele momento.
+    iniciar.addEventListener("click", function () {
+      var lista = TOUR.paradas(DADOS_TRIAGEM);
+      status.classList.toggle("tour__status--vazio", !lista.length);
+      if (!lista.length) {
+        escrever(["Nenhum ponto acima do limite ou na banda de incerteza nesta configuração: não há paradas para o tour."]);
+        return;
+      }
+      prepararVista();
+      tour = TOUR.criar(lista, controle);
+      tour.iniciar();
+    });
+    pausa.addEventListener("click", function () { tour.alternar(); });
+    anterior.addEventListener("click", function () { tour.anterior(); });
+    proximo.addEventListener("click", function () { tour.proximo(); });
+    document.getElementById("tour-encerrar").addEventListener("click", function () { tour.encerrar(); });
+
+    // Quem pega a câmera durante o tour assume o controle: o avanço automático pausa.
+    function pausarSeTocando() { if (tour && tour.estado().tocando) tour.pausar(); }
+    ["pointerdown", "wheel"].forEach(function (tipo) {
+      palcoCalor.addEventListener(tipo, pausarSeTocando, { passive: true });
+    });
+    palcoCalor.addEventListener("keydown", function (evento) {
+      if (evento.key !== "Escape") pausarSeTocando();
+    });
+    document.getElementById("heat-preset").addEventListener("click", pausarSeTocando);
+
+    document.getElementById("heat").addEventListener("keydown", function (evento) {
+      if (evento.key === "Escape" && tour && tour.estado().ativo) tour.encerrar();
+    });
   }
 
   var balao = document.getElementById("heat-tip");
@@ -1222,68 +1414,13 @@
   }
 
   // A configuração chega na query string, montada pela tela de consulta.
-  function lerConfiguracaoDaUrl() {
-    var busca = window.location.search.replace(/^\?/, "");
-    if (!busca) return null;
-
-    var config = {};
-    busca.split("&").forEach(function (par) {
-      if (!par) return;
-      var corte = par.indexOf("=");
-      var chave = decodeURIComponent(par.slice(0, corte < 0 ? par.length : corte));
-      var valor = corte < 0 ? "" : decodeURIComponent(par.slice(corte + 1).replace(/\+/g, " "));
-
-      var partes = chave.split(".");
-      if (partes.length === 1) {
-        config[partes[0]] = valor;
-      } else {
-        if (!config[partes[0]]) config[partes[0]] = {};
-        config[partes[0]][partes[1]] = valor;
-      }
-    });
-
-    return Object.keys(config).length > 0 ? config : null;
-  }
-
-  // Valor fora do vocabulário aparece cru e marcado: RN-04 manda rejeitar,
-  // não interpretar por aproximação.
-  function rotuloDoNivel(niveis, valor) {
-    var encontrado = null;
-    (niveis || []).forEach(function (nivel) {
-      if (nivel.value === valor) encontrado = nivel.label;
-    });
-    return encontrado || valor + " (fora do vocabulário)";
-  }
-
-  function linhasDaConfiguracao(config) {
-    var linhas = [];
-
-    SCHEMA.factors.forEach(function (fator) {
-      if (fator.subfields && fator.subfields.length > 0) {
-        var aninhado = config[fator.key] || {};
-        fator.subfields.forEach(function (sub) {
-          var valor = aninhado[sub.key];
-          // Campo que não se aplica sai da lista, como sai do formulário.
-          if (valor === undefined || valor === null || valor === "") return;
-          linhas.push([sub.label, rotuloDoNivel(sub.levels, valor)]);
-        });
-        return;
-      }
-
-      var valor = config[fator.key];
-      if (valor === undefined || valor === null || valor === "") return;
-      linhas.push([fator.label, rotuloDoNivel(fator.levels, valor)]);
-    });
-
-    return linhas;
-  }
 
   function renderConfiguracao(config, veioDaUrl) {
     var lista = document.getElementById("config-list");
 
     // Cada fator num bloco próprio: a lista é grade, e não nove linhas
     // empilhadas empurrando o mapa para fora da tela.
-    linhasDaConfiguracao(config).forEach(function (linha) {
+    LEITURA_PUBLICOS.linhasDaConfiguracao(config).forEach(function (linha) {
       var item = document.createElement("div");
       item.className = "cfg-item";
 
@@ -1313,7 +1450,7 @@
     return;
   }
 
-  var configDaUrl = lerConfiguracaoDaUrl();
+  var configDaUrl = LEITURA_PUBLICOS.configuracaoDaUrl();
   var configAtiva = configDaUrl || DADOS_TRIAGEM.configuracao;
   geometria = geometriaDaConfig(configAtiva);
   renderConfiguracao(configAtiva, configDaUrl !== null);

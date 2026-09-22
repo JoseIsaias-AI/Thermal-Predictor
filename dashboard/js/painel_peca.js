@@ -34,11 +34,12 @@ var PAINEL_PECA = (function () {
       });
     }
 
-    var tMin = Infinity, tMax = -Infinity;
-    todos.forEach(function (p) {
-      tMin = Math.min(tMin, p.temperatura_prevista_c);
-      tMax = Math.max(tMax, p.temperatura_prevista_c);
-    });
+    /* Mediana, e não média: um ponto quente não arrasta o valor central, e
+       nenhum dos dois decide estado — quem decide é o ponto mais crítico,
+       como a RN-02 faz para a configuração. */
+    var temps = todos.map(function (p) { return p.temperatura_prevista_c; }).sort(function (a, b) { return a - b; });
+    var meio = temps.length >> 1;
+    var mediana = temps.length % 2 ? temps[meio] : (temps[meio - 1] + temps[meio]) / 2;
 
     return {
       zona: zona,
@@ -51,7 +52,7 @@ var PAINEL_PECA = (function () {
       soMonitoramento: !todos.length ? "vazio"
         : monitorados.length === todos.length ? "todos"
         : monitorados.length ? "parcial" : "nenhum",
-      temperatura: todos.length ? { min: tMin, max: tMax } : null
+      temperatura: todos.length ? { min: temps[0], max: temps[temps.length - 1], mediana: mediana } : null
     };
   }
 
@@ -164,8 +165,12 @@ var PAINEL_PECA = (function () {
     var ref = r.referencia;
     var dl = el("dl", "detail__rows");
 
-    linha(dl, r.total > 1 && ref.is_monitor_only ? "Temperatura prevista (maior)" : "Temperatura prevista",
-      graus(ref.temperatura_prevista_c), false, "temperatura_prevista_c");
+    /* Com vários pontos, o rótulo diz de onde vem o número: é a temperatura
+       de um ponto escolhido, não um agregado da peça. Mais crítico é o de
+       pior folga, que nem sempre é o mais quente. */
+    var rotuloTemp = r.total < 2 ? "Temperatura prevista"
+      : ref.is_monitor_only ? "Temperatura do ponto mais quente" : "Temperatura do ponto mais crítico";
+    linha(dl, rotuloTemp, graus(ref.temperatura_prevista_c), false, "temperatura_prevista_c de " + ref.TC_Name);
 
     if (ref.is_monitor_only) {
       linha(dl, "Limite do componente", "—", true, "limit_c");
@@ -185,6 +190,8 @@ var PAINEL_PECA = (function () {
 
     if (r.total > 1) {
       linha(dl, "Faixa prevista na peça", r.temperatura.min.toFixed(1) + " a " + r.temperatura.max.toFixed(1) + " °C", false);
+      linha(dl, "Mediana dos " + r.total + " pontos", r.temperatura.mediana.toFixed(1) + " °C", false,
+        "Valor central, só informativo: não decide o estado da peça, que segue o ponto mais crítico");
     }
     caixa.appendChild(dl);
   }
@@ -269,9 +276,135 @@ var PAINEL_PECA = (function () {
       "Mesmos valores da tabela. Os filtros não recortam a peça."));
   }
 
+  /* ----- Modo diferença -----
+     Mesma peça, outra pergunta: quanto cada termopar muda de A para B. As
+     linhas vêm de DIFF_TERMICO.diferenca, com `a`, `b` e `diferenca_c`
+     prontos; aqui só se recorta a zona e se escolhe o ponto de maior
+     variação. Estado e limite não entram: diferença não é risco. */
+
+  function mediana(v) {
+    var s = v.slice().sort(function (x, y) { return x - y; }), m = s.length >> 1;
+    return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2;
+  }
+
+  function resumirDiff(zona, linhas, limiar) {
+    var da = FOGAO.pontosDaZona(zona, linhas);
+    var ref = null;
+    da.forEach(function (l) { if (!ref || Math.abs(l.diferenca_c) > Math.abs(ref.diferenca_c)) ref = l; });
+    var contagem = { mais_quente: 0, mais_frio: 0, igual: 0 };
+    da.forEach(function (l) {
+      var d = l.diferenca_c;
+      contagem[Math.abs(d) <= limiar ? "igual" : d > 0 ? "mais_quente" : "mais_frio"] += 1;
+    });
+    var ds = da.map(function (l) { return l.diferenca_c; });
+    return {
+      zona: zona,
+      linhas: da,
+      total: da.length,
+      referencia: ref,
+      contagem: contagem,
+      diferenca: da.length ? { min: Math.min.apply(null, ds), max: Math.max.apply(null, ds), mediana: mediana(ds) } : null
+    };
+  }
+
+  function corDaDiferenca(d, escala) {
+    var rgb = FOGAO.corDaRampa(FOGAO.RAMPA_DIFF,
+      FOGAO.normalizadorDivergente(escala.extremo, escala.limiar).normalizar(d));
+    return "rgb(" + rgb.join(",") + ")";
+  }
+
+  function textoDiferenca(d, limiar) {
+    return Math.abs(d) <= limiar ? "sem diferença relevante" : d > 0 ? "mais quente em B" : "mais frio em B";
+  }
+
+  function trio(caixa, l, op) {
+    var g = el("dl", "part__trio");
+    function celula(rotulo, valor, classe, dica) {
+      var c = el("div", "part__trio-cel" + (classe ? " " + classe : ""));
+      var dt = el("dt", null, rotulo);
+      if (dica) dt.title = dica;
+      c.appendChild(dt);
+      var dd = el("dd", null, valor);
+      c.appendChild(dd);
+      g.appendChild(c);
+      return dd;
+    }
+    celula("A · " + op.rotuloA, graus(l.a), null, "Temperatura prevista na configuração A");
+    celula("B · " + op.rotuloB, graus(l.b), null, "Temperatura prevista na configuração B");
+    var dd = celula("Diferença B − A", sinal(l.diferenca_c) + " °C", "part__trio-cel--dif", "Temperatura de B menos temperatura de A");
+    var amostra = el("span", "part__trio-cor");
+    amostra.style.background = corDaDiferenca(l.diferenca_c, op.escala);
+    amostra.setAttribute("aria-hidden", "true");
+    dd.insertBefore(amostra, dd.firstChild);
+    caixa.appendChild(g);
+    caixa.appendChild(el("p", "part__trio-nota", textoDiferenca(l.diferenca_c, op.escala.limiar)));
+  }
+
+  function listaDiff(caixa, r, op) {
+    caixa.appendChild(el("h4", "part__sub", plural(r.total, "Ponto nesta peça", "Pontos nesta peça")));
+    var lista = el("ol", "part__list");
+    r.linhas.slice().sort(function (x, y) { return Math.abs(y.diferenca_c) - Math.abs(x.diferenca_c); }).forEach(function (l) {
+      var item = el("li");
+      var linha = el("div", "part__item part__item--dif");
+      if (r.referencia && l.measurement_id === r.referencia.measurement_id) linha.setAttribute("aria-current", "true");
+      var cor = el("span", "part__trio-cor");
+      cor.style.background = corDaDiferenca(l.diferenca_c, op.escala);
+      cor.setAttribute("aria-hidden", "true");
+      linha.appendChild(cor);
+      linha.appendChild(el("span", "part__item-name", l.TC_Name));
+      var num = el("span", "part__item-num", sinal(l.diferenca_c, 1) + " °C");
+      num.appendChild(el("small", null, l.a.toFixed(1) + " → " + l.b.toFixed(1)));
+      linha.appendChild(num);
+      item.appendChild(linha);
+      lista.appendChild(item);
+    });
+    caixa.appendChild(lista);
+  }
+
+  /* `sel` como em `desenhar`, com `{ resumo }` vindo de resumirDiff.
+     `op`: rotuloA, rotuloB, escala ({ extremo, limiar }) e aoLimpar. */
+  function desenharDiff(caixa, sel, op) {
+    op = op || {};
+    if (!sel || sel.semDado) { desenhar(caixa, sel, op); return; }
+    caixa.innerHTML = "";
+    var r = sel.resumo, z = r.zona;
+    cabecalho(caixa, z.nome,
+      z.area + (z.sub ? " · " + z.sub : "") + " · " + plural(r.total, "ponto", "pontos"),
+      op.aoLimpar);
+
+    // O que ocupa o lugar da faixa de estado: dizer que aqui não há estado.
+    caixa.appendChild(el("p", "part__modo", "Diferença B − A · variação entre previsões, não estado de risco"));
+
+    if (r.total > 1) {
+      var nota = el("p", "part__ref");
+      nota.appendChild(document.createTextNode("Ponto de maior variação: "));
+      nota.appendChild(el("b", null, r.referencia.TC_Name));
+      caixa.appendChild(nota);
+    }
+    trio(caixa, r.referencia, op);
+
+    if (r.total > 1) {
+      var dl = el("dl", "detail__rows");
+      linha(dl, "Faixa da diferença na peça", sinal(r.diferenca.min, 1) + " a " + sinal(r.diferenca.max, 1) + " °C", false);
+      linha(dl, "Mediana dos " + r.total + " pontos", sinal(r.diferenca.mediana, 1) + " °C", false);
+      caixa.appendChild(dl);
+      var c = r.contagem, partes = [];
+      if (c.mais_quente) partes.push(c.mais_quente + " mais quente" + (c.mais_quente > 1 ? "s" : "") + " em B");
+      if (c.mais_frio) partes.push(c.mais_frio + " mais frio" + (c.mais_frio > 1 ? "s" : "") + " em B");
+      if (c.igual) partes.push(c.igual + " sem diferença relevante");
+      caixa.appendChild(el("p", "part__legend", partes.join(" · ")));
+      listaDiff(caixa, r, op);
+    }
+    caixa.appendChild(el("p", "legend-note",
+      "Diferença entre previsões, não entre simulações. Até ±" + op.escala.limiar.toFixed(1) + " °C conta como sem diferença."));
+  }
+
   return {
     resumir: resumir,
     corDoPonto: corDoPonto,
-    desenhar: desenhar
+    desenhar: desenhar,
+    resumirDiff: resumirDiff,
+    desenharDiff: desenharDiff,
+    corDaDiferenca: corDaDiferenca
   };
 })();

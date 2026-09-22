@@ -202,7 +202,8 @@
 
   var palco = document.getElementById("fogao-3d");
   var badge = document.getElementById("fogao-badge");
-  var explodido = false;
+  // De 0 (montado) a 1 (explodido), regulado pelo slider ou pelos botões.
+  var explodido = 0;
   var destaque = null;
   var timerBadge = null;
   var modelo = null;
@@ -267,7 +268,9 @@
     }, 1600);
   }
 
-  function redesenhar() {
+  // `extra.arrastando` adia o reenquadro da câmera até o slider parar.
+  function redesenhar(extra) {
+    extra = extra || {};
     var input = collectInput();
     var n = contarEscolhidos(input);
     // Quatro estados de montagem: chassi, ventilação, eletrônica, cooktop.
@@ -279,16 +282,19 @@
     document.getElementById("form-count").textContent = n;
     document.getElementById("form-fill").style.width = (n / 7 * 100) + "%";
     atualizarFaixa(input);
+    atualizarExplosao();
 
     if (!modelo) return;
     modelo.atualizar({
       nivel: nivel,
       modo: "montagem",
       explode: explodido,
+      arrastando: !!extra.arrastando,
       defletor: input.deflector_hole === "Open" ? "open" : "closed",
       placa: input.board_position === "Right" ? "right" : "center",
       soprador: input.blower_direction === "To Back" ? "back" : input.blower_direction ? "front" : null,
       alojamento: input.housing && input.housing !== "Closed" ? "open" : "closed",
+      caso: input.run_case,
       material: input.material_coil_support === "Plastic" ? "plastic"
         : input.material_coil_support === "Aluminium Plate" ? "plate" : "aluminium",
       novo: destaque
@@ -308,13 +314,33 @@
       : (fator ? fator.label.toUpperCase() + " · SEM EFEITO GEOMÉTRICO" : ""));
   });
 
+  var sliderExplode = document.getElementById("view-explode");
+
+  // Slider, rótulo e botões mostram o mesmo valor; no meio do curso nenhum botão fica marcado.
+  function atualizarExplosao() {
+    var pct = Math.round(explodido * 100);
+    sliderExplode.value = pct;
+    sliderExplode.setAttribute("aria-valuetext", pct === 0 ? "montado" : pct + "% explodido");
+    document.getElementById("view-explode-valor").textContent = pct + "%";
+    Array.prototype.forEach.call(document.querySelectorAll("#view-toggle button"), function (b) {
+      b.setAttribute("aria-pressed", String(Number(b.dataset.explode) === pct));
+    });
+  }
+
   document.getElementById("view-toggle").addEventListener("click", function (event) {
     var botao = event.target.closest("button");
     if (!botao) return;
-    explodido = botao.dataset.explode === "1";
-    Array.prototype.forEach.call(this.querySelectorAll("button"), function (b) {
-      b.setAttribute("aria-pressed", String(b === botao));
-    });
+    explodido = Number(botao.dataset.explode) / 100;
+    redesenhar();
+  });
+
+  // `input` chega a cada passo do arrasto; `change`, quando a mão solta.
+  sliderExplode.addEventListener("input", function () {
+    explodido = Number(this.value) / 100;
+    redesenhar({ arrastando: true });
+  });
+  sliderExplode.addEventListener("change", function () {
+    explodido = Number(this.value) / 100;
     redesenhar();
   });
 
@@ -330,7 +356,18 @@
       return;
     }
 
-    window.location.href = TELA_RESULTADO + "?" + paraQueryString(input);
+    /* A passagem leva o mesmo modelo que o formulário montou para o centro da
+       tela e navega ao terminar. O destino já sai calculado daqui: o que a
+       animação faz é ocupar o intervalo, não escolher para onde ir. */
+    ANALISE.executar({
+      palco: palco,
+      destino: TELA_RESULTADO + "?" + paraQueryString(input),
+      aoExplodir: function (valor) {
+        explodido = valor;
+        redesenhar({ arrastando: true });
+      },
+      aoMudarCamera: function (nome) { modelo.preset(nome); }
+    });
   });
 
   buildForm();
