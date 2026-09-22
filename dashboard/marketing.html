@@ -12,8 +12,10 @@
   <link rel="stylesheet" href="css/app.css?v=5">
   <link rel="stylesheet" href="css/triagem.css?v=3">
   <link rel="stylesheet" href="css/publicos.css?v=8">
+  <link rel="stylesheet" href="css/executivo.css?v=2">
 </head>
-<body>
+<!-- Marketing lê sempre no modo executivo: não há leitura técnica aqui. -->
+<body data-modo="executivo">
 
 <header class="masthead">
   <div class="masthead__inner">
@@ -80,6 +82,9 @@
       <a class="btn btn--ghost" href="index.html">Alterar configuração</a>
     </div>
   </div>
+
+  <!-- Primeiro elemento da tela: o veredito em texto, antes de cartões e tabela. -->
+  <section id="resumo-exec" hidden></section>
 
   <!-- O aviso mais forte da tela, e o único que não se recolhe: é aqui que uma
        leitura otimista viraria promessa publicada. -->
@@ -157,7 +162,9 @@
 <script src="js/dados_triagem.js?v=3"></script>
 <script src="js/dados_comparacao.js?v=3"></script>
 <script src="js/planilha.js?v=1"></script>
-<script src="js/leitura_publicos.js?v=5"></script>
-<script src="js/marketing.js?v=4"></script>
+<script src="js/leitura_publicos.js?v=7"></script>
+<script src="js/resumo_executivo.js?v=2"></script>
+<script src="js/modo_leitura.js?v=1"></script>
+<script src="js/marketing.js?v=5"></script>
 </body>
 </html>

@@ -1,9 +1,12 @@
 /* Tela de triagem térmica. Estado, folga e ordem das linhas já vêm prontos
- * em js/dados_triagem.js; aqui só há formatação e montagem de DOM.
+ * no dado (LEITURA_PUBLICOS.fonte); aqui só há formatação e montagem de DOM.
  */
 
 (function () {
   "use strict";
+
+  // Payload da configuração avaliada, resolvido uma vez na montagem.
+  var DADOS = null;
 
   var loading = document.getElementById("loading");
   var errorSection = document.getElementById("error");
@@ -195,7 +198,7 @@
   var RANKING_TOPO = 14;
 
   function classificadosVisiveis() {
-    return DADOS_TRIAGEM.pontos.filter(passaNoFiltro);
+    return DADOS.pontos.filter(passaNoFiltro);
   }
 
   function rampaAtual() {
@@ -262,20 +265,8 @@
     var pior = null;
     pts.forEach(function (p) { if (!pior || p.margem_c < pior.margem_c) pior = p; });
 
-    // Subsistema mais crítico é o de maior proporção acima, e não o de maior
-    // contagem: sete pontos de um subsistema de trinta e sete não é o mesmo
-    // que seis de oito.
-    var porArea = {};
-    pts.forEach(function (p) {
-      var a = porArea[p.Key_Area] || (porArea[p.Key_Area] = { n: 0, acima: 0 });
-      a.n += 1;
-      if (p.estado === "acima_do_limite") a.acima += 1;
-    });
-    var critico = null;
-    Object.keys(porArea).forEach(function (a) {
-      var r = porArea[a].acima / porArea[a].n;
-      if (!critico || r > critico.r) critico = { area: a, r: r, d: porArea[a] };
-    });
+    // Mesma regra que o resumo executivo usa para nomear o subsistema.
+    var critico = LEITURA_PUBLICOS.subsistemaMaisCritico(pts);
 
     function cartao(rotulo, valor, unidade, nota, classe) {
       var c = el("div", "kpi" + (classe ? " " + classe : ""));
@@ -288,11 +279,13 @@
     }
 
     caixa.appendChild(cartao("Acima do limite", String(acima.length),
-      "de " + pts.length, "previsão acima do próprio limite",
+      "de " + pts.length,
+      LEITURA_PUBLICOS.percentual(acima.length, pts.length) + " · previsão acima do próprio limite",
       acima.length ? "kpi--alerta" : null));
 
     caixa.appendChild(cartao("Inconclusivos", String(banda.length),
-      "na banda", "folga menor que a tolerância",
+      "na banda",
+      LEITURA_PUBLICOS.percentual(banda.length, pts.length) + " · folga menor que a tolerância",
       banda.length ? "kpi--atencao" : null));
 
     caixa.appendChild(cartao("Pior folga",
@@ -301,9 +294,9 @@
       pior && pior.margem_c < 0 ? "kpi--alerta" : null));
 
     caixa.appendChild(cartao("Subsistema mais crítico",
-      critico ? (critico.r * 100).toFixed(0) : "—", "%",
-      critico ? critico.area + " · " + critico.d.acima + " de " + critico.d.n + " acima" : "—",
-      critico && critico.r > 0 ? "kpi--alerta" : null));
+      critico ? (critico.proporcao_acima * 100).toFixed(0) : "—", "%",
+      critico ? critico.area + " · " + critico.acima + " de " + critico.n + " acima" : "—",
+      critico && critico.acima > 0 ? "kpi--alerta" : null));
   }
 
 
@@ -347,7 +340,7 @@
     // Escala fixa nos 68, e não no recorte: assim a mesma folga ocupa sempre
     // o mesmo lugar, e dois recortes se comparam.
     var lo = 0, hi = 0;
-    DADOS_TRIAGEM.pontos.forEach(function (p) {
+    DADOS.pontos.forEach(function (p) {
       lo = Math.min(lo, p.margem_percentual);
       hi = Math.max(hi, p.margem_percentual);
     });
@@ -356,7 +349,7 @@
     var X = GRAFICO.eixoDeFolga(svgRanking, {
       lo: lo, hi: hi, x0: ML, largura: PW,
       topo: MT - 12, base: H - MB, yRotulo: MT - 18,
-      tolerancia: DADOS_TRIAGEM.tolerancia_fracao
+      tolerancia: DADOS.tolerancia_fracao
     });
     svgRanking.appendChild(GRAFICO.texto(ML, 10, "FOLGA RELATIVA AO LIMITE", "ax-rotulo"));
 
@@ -409,7 +402,7 @@
     svgCritério.setAttribute("height", ALT);
 
     var maxLim = 0, maxTemp = 0;
-    DADOS_TRIAGEM.pontos.forEach(function (p) {
+    DADOS.pontos.forEach(function (p) {
       maxLim = Math.max(maxLim, p.limit_c);
       maxTemp = Math.max(maxTemp, p.temperatura_prevista_c);
     });
@@ -430,7 +423,7 @@
     /* A banda entre a reta do limite e 90% dela é a banda de incerteza vista
        neste par de eixos: abaixo dela o ponto está dentro, dentro dela a
        folga não supera a tolerância, acima dela ultrapassa o limite. */
-    var tol = DADOS_TRIAGEM.tolerancia_fracao;
+    var tol = DADOS.tolerancia_fracao;
     svgCritério.appendChild(GRAFICO.el("path", {
       d: "M" + X(0) + " " + Y(0) + " L" + X(topo) + " " + Y(topo) +
          " L" + X(topo) + " " + Y(topo * (1 - tol)) + " Z",
@@ -479,7 +472,7 @@
     }
 
     var lo = 0, hi = 0;
-    DADOS_TRIAGEM.pontos.forEach(function (p) {
+    DADOS.pontos.forEach(function (p) {
       lo = Math.min(lo, p.margem_percentual);
       hi = Math.max(hi, p.margem_percentual);
     });
@@ -506,7 +499,7 @@
     var X = GRAFICO.eixoDeFolga(svgSubsistema, {
       lo: lo, hi: hi, x0: ML, largura: PW,
       topo: MT - 12, base: H - MB, yRotulo: MT - 18,
-      tolerancia: DADOS_TRIAGEM.tolerancia_fracao
+      tolerancia: DADOS.tolerancia_fracao
     });
     svgSubsistema.appendChild(GRAFICO.texto(ML, 10, "FOLGA RELATIVA AO LIMITE", "ax-rotulo"));
 
@@ -584,7 +577,7 @@
 
 
   function todosOsPontos() {
-    return DADOS_TRIAGEM.pontos.concat(DADOS_TRIAGEM.monitoramento);
+    return DADOS.pontos.concat(DADOS.monitoramento);
   }
 
   function svgEl(tag, attrs) {
@@ -616,7 +609,7 @@
     var caixa = document.getElementById("ramp");
     var rampa = mapa.escala === "b" ? FOGAO.RAMPA_B : FOGAO.RAMPA_A;
     var contagem = [0, 0, 0, 0, 0, 0, 0, 0];
-    DADOS_TRIAGEM.pontos.forEach(function (p) { contagem[FOGAO.faixaDaRampa(p.margem_percentual)] += 1; });
+    DADOS.pontos.forEach(function (p) { contagem[FOGAO.faixaDaRampa(p.margem_percentual)] += 1; });
 
     caixa.innerHTML = "";
     FOGAO.FAIXAS.forEach(function (rotulo, i) {
@@ -652,7 +645,7 @@
       caixa.appendChild(b);
     });
 
-    document.getElementById("mono-count").textContent = DADOS_TRIAGEM.total_monitoramento;
+    document.getElementById("mono-count").textContent = DADOS.total_monitoramento;
   }
 
   function montarSubsistemas() {
@@ -666,7 +659,7 @@
     var areas = Object.keys(total).sort(function (a, b) { return total[b] - total[a]; });
     caixa.innerHTML = "";
 
-    var linhas = [["todos", "Todos", DADOS_TRIAGEM.total_pontos, null]];
+    var linhas = [["todos", "Todos", DADOS.total_pontos, null]];
     areas.forEach(function (a) { linhas.push([a, a, total[a], acima[a] || 0]); });
 
     linhas.forEach(function (linha) {
@@ -792,7 +785,7 @@
         linhaDetalhe("Estado de risco", "não se aplica", true) + "</dl>" +
         "<p class=\"legend-note\">Sem limite, não recebe estado nem entra na escala.</p>";
     } else {
-      var tol = DADOS_TRIAGEM.tolerancia_fracao * p.limit_c;
+      var tol = DADOS.tolerancia_fracao * p.limit_c;
       html += linhaDetalhe("Limite do componente", p.limit_c.toFixed(2) + " °C") +
         linhaDetalhe("Folga", p.margem_c.toFixed(2) + " °C") +
         linhaDetalhe("Folga relativa", (p.margem_percentual * 100).toFixed(1) + "%") +
@@ -863,11 +856,11 @@
 
   function desenharPainelPeca() {
     var zona = mapa.zona && FOGAO.ZONA_POR_ID[mapa.zona];
-    var sel = zona ? { resumo: PAINEL_PECA.resumir(zona, DADOS_TRIAGEM) }
+    var sel = zona ? { resumo: PAINEL_PECA.resumir(zona, DADOS) }
       : mapa.semDado ? { semDado: mapa.semDado } : null;
     PAINEL_PECA.desenhar(document.getElementById("part-detail"), sel, {
       rampa: rampaAtual(),
-      dados: DADOS_TRIAGEM,
+      dados: DADOS,
       pontoSel: mapa.sel,
       aoEscolherPonto: selecionar,
       aoLimpar: limparSelecao
@@ -1008,8 +1001,8 @@
       if (tr) tr.hidden = !ok;
     });
 
-    var total = DADOS_TRIAGEM.total_classificados;
-    var mono = DADOS_TRIAGEM.total_monitoramento;
+    var total = DADOS.total_classificados;
+    var mono = DADOS.total_monitoramento;
     var ativo = mapa.nome || !mapa.mono ||
       Object.keys(mapa.faixas).length || Object.keys(mapa.estados).length;
 
@@ -1220,7 +1213,7 @@
       desenharRanking();
     });
 
-    document.getElementById("viz-mono-count").textContent = DADOS_TRIAGEM.total_monitoramento;
+    document.getElementById("viz-mono-count").textContent = DADOS.total_monitoramento;
     // A faixa de KPIs mora no topo da página, e não mais dentro de `visuais`.
     document.getElementById("kpis").hidden = false;
     document.getElementById("visuais").hidden = false;
@@ -1239,7 +1232,7 @@
   }
 
   /* ----- Tour pelos pontos críticos -----
-     A lista sai do estado já rotulado em DADOS_TRIAGEM (TOUR.paradas só
+     A lista sai do estado já rotulado em DADOS (TOUR.paradas só
      escolhe e ordena). Cada parada é a mesma seleção de um clique, então os
      painéis da peça e do ponto abrem sem o usuário tocar no modelo. */
   var tour = null;
@@ -1308,7 +1301,7 @@
 
     // A lista é lida no clique, do dado que a triagem mostra naquele momento.
     iniciar.addEventListener("click", function () {
-      var lista = TOUR.paradas(DADOS_TRIAGEM);
+      var lista = TOUR.paradas(DADOS);
       status.classList.toggle("tour__status--vazio", !lista.length);
       if (!lista.length) {
         escrever(["Nenhum ponto acima do limite ou na banda de incerteza nesta configuração: não há paradas para o tour."]);
@@ -1452,8 +1445,14 @@
 
   var configDaUrl = LEITURA_PUBLICOS.configuracaoDaUrl();
   var configAtiva = configDaUrl || DADOS_TRIAGEM.configuracao;
+  DADOS = LEITURA_PUBLICOS.fonte(configAtiva);
   geometria = geometriaDaConfig(configAtiva);
   renderConfiguracao(configAtiva, configDaUrl !== null);
 
-  render(DADOS_TRIAGEM);
+  // Mesmo payload da tabela: o resumo não tem outra fonte de número.
+  RESUMO_EXECUTIVO.montar(document.getElementById("resumo-exec"), DADOS,
+    { configuracao: configAtiva, prioridades: 3 });
+  MODO_LEITURA.iniciar();
+
+  render(DADOS);
 })();

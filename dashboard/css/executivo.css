@@ -1,0 +1,267 @@
+/* Modo executivo e cartão do resumo em linguagem natural.
+ * Complementa app.css; cores e tipografia vêm de tokens.css. */
+
+/* ----- Qual leitura aparece ----- */
+
+body[data-modo="executivo"] [data-leitura="tecnica"] { display: none !important; }
+body:not([data-modo="executivo"]) [data-leitura="executiva"] { display: none !important; }
+
+/* ----- Alternância de leitura -----
+ * Mesmo desenho do controle segmentado da triagem, que nem toda tela carrega. */
+
+/* Com o controle de leitura, as ações passam da largura do celular. */
+.page-head__actions { flex-wrap: wrap; }
+
+.leitura {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.leitura__rotulo {
+  font-size: var(--size-kicker);
+  font-weight: var(--weight-semibold);
+  color: var(--color-text-muted);
+}
+
+.leitura-toggle {
+  display: inline-flex;
+  padding: 2px;
+  gap: 2px;
+  background: #eceff3;
+  border-radius: var(--radius);
+}
+
+.leitura-toggle button {
+  font-family: var(--font-body);
+  font-size: var(--size-small);
+  font-weight: var(--weight-semibold);
+  color: var(--color-text-muted);
+  background: transparent;
+  border: 0;
+  border-radius: 4px;
+  padding: 6px 12px;
+  cursor: pointer;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.leitura-toggle button:hover { color: var(--color-text); }
+
+.leitura-toggle button[aria-pressed="true"] {
+  background: var(--color-surface);
+  color: var(--color-text);
+  box-shadow: 0 1px 2px rgba(16, 21, 31, 0.12), 0 0 0 1px rgba(16, 21, 31, 0.04);
+}
+
+.leitura-toggle button:focus-visible { outline: 2px solid var(--color-focus-ring); outline-offset: -2px; }
+
+/* ----- Cartão do resumo ----- */
+
+.resumo-exec {
+  background: var(--color-surface);
+  border: var(--border-width) solid var(--color-border);
+  border-left: 4px solid var(--color-border-strong);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+  padding: var(--space-6);
+  margin-bottom: var(--space-4);
+}
+
+.resumo-exec[hidden] { display: none; }
+
+.resumo-exec--acima_do_limite { border-left-color: var(--color-critical); }
+.resumo-exec--banda_de_incerteza { border-left-color: var(--color-accent); }
+.resumo-exec--dentro_do_limite { border-left-color: var(--color-positive); }
+.resumo-exec--monitoramento { border-left-style: dashed; }
+
+.resumo-exec__corpo {
+  display: grid;
+  gap: 0 var(--space-7);
+}
+
+@media (min-width: 64rem) {
+  .resumo-exec__corpo { grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); }
+  /* Os números descem até a linha do título, não do rótulo acima dele. */
+  .resumo-exec__dados { padding-top: var(--space-6); }
+}
+
+.resumo-exec__kicker {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin: 0 0 var(--space-2);
+  font-size: var(--size-kicker);
+  font-weight: var(--weight-semibold);
+  letter-spacing: var(--tracking-kicker);
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+.resumo-exec__kicker .config__tag {
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.resumo-exec__titulo {
+  font-family: var(--font-display);
+  font-size: 1.625rem;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: -0.015em;
+  color: var(--color-text);
+  margin: 0 0 var(--space-3);
+  text-wrap: balance;
+}
+
+.resumo-exec--acima_do_limite .resumo-exec__titulo { color: var(--color-critical); }
+
+.resumo-exec__texto {
+  max-width: 68ch;
+  margin: 0 0 var(--space-5);
+  font-size: var(--size-subhead);
+  line-height: 1.6;
+  color: var(--color-text);
+  text-wrap: pretty;
+}
+
+/* Três números e a barra que os soma. */
+.resumo-exec__numeros {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-4);
+  max-width: 40rem;
+  margin: 0 0 var(--space-2);
+}
+
+.resumo-exec__numero dt {
+  font-size: var(--size-kicker);
+  font-weight: var(--weight-semibold);
+  color: var(--color-text-muted);
+  margin-bottom: 2px;
+}
+
+.resumo-exec__numero dd {
+  margin: 0;
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+}
+
+.resumo-exec__numero strong {
+  font-family: var(--font-display);
+  font-size: var(--size-metric);
+  font-weight: 600;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.resumo-exec__numero span {
+  font-size: var(--size-small);
+  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.resumo-exec__numero--acima_do_limite strong { color: var(--color-critical); }
+.resumo-exec__numero--banda_de_incerteza strong { color: var(--color-accent); }
+
+.resumo-exec__barra {
+  display: flex;
+  gap: 2px;
+  height: 8px;
+  max-width: 40rem;
+  margin: 0 0 var(--space-5);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.resumo-exec__seg { flex-basis: 0; min-width: 3px; }
+.resumo-exec__seg--acima_do_limite { background: var(--color-critical); }
+.resumo-exec__seg--banda_de_incerteza { background: var(--color-accent); }
+/* Neutro de propósito: dentro do limite não é aprovação (RN-07). */
+.resumo-exec__seg--dentro_do_limite { background: var(--color-border-strong); }
+
+.resumo-exec__passo,
+.resumo-exec__prio {
+  max-width: 68ch;
+  margin: 0 0 var(--space-4);
+}
+
+.resumo-exec__passo {
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-surface-sunken);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius);
+}
+
+.resumo-exec__passo h3,
+.resumo-exec__prio h3 {
+  font-family: var(--font-body);
+  font-size: var(--size-kicker);
+  font-weight: var(--weight-semibold);
+  letter-spacing: var(--tracking-kicker);
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+  margin: 0 0 var(--space-1);
+}
+
+.resumo-exec__passo p {
+  margin: 0;
+  font-size: var(--size-body);
+  font-weight: var(--weight-semibold);
+  color: var(--color-text);
+}
+
+.resumo-exec__prio ol {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: prio;
+}
+
+.resumo-exec__prio li {
+  counter-increment: prio;
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3);
+  padding: var(--space-2) 0;
+  border-bottom: var(--border-width) solid var(--color-border);
+  font-size: var(--size-body);
+}
+
+.resumo-exec__prio li:last-child { border-bottom: 0; }
+
+.resumo-exec__prio li::before {
+  content: counter(prio);
+  flex: none;
+  width: 1.25rem;
+  font-family: var(--font-display);
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
+.resumo-exec__prio-nome { flex: 1; }
+.resumo-exec__prio-nome::first-letter { text-transform: uppercase; }
+
+.resumo-exec__prio-conta {
+  font-size: var(--size-small);
+  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.resumo-exec__nota {
+  max-width: 68ch;
+  margin: 0;
+  font-size: var(--size-small);
+  color: var(--color-text-subtle);
+}
+
+@media (max-width: 40rem) {
+  .resumo-exec { padding: var(--space-4); }
+  .resumo-exec__titulo { font-size: 1.375rem; }
+  .resumo-exec__numeros { gap: var(--space-2); }
+  .resumo-exec__numero strong { font-size: var(--size-title); }
+  .resumo-exec__prio li { flex-wrap: wrap; }
+}

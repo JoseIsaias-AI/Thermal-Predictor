@@ -304,6 +304,11 @@
 
   loading.hidden = true;
 
+  // Mesmo payload dos cartões e do registro, na voz de quem planeja campanha.
+  RESUMO_EXECUTIVO.montar(document.getElementById("resumo-exec"), dados,
+    { publico: "marketing", configuracao: configAtiva });
+  MODO_LEITURA.iniciar();
+
   document.getElementById("model-version").textContent = mat.versao_modelo || "—";
   renderConfiguracao(configAtiva, mat, configDaUrl !== null);
   renderTemas(leituras);
