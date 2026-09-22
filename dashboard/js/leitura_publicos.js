@@ -471,6 +471,86 @@ var LEITURA_PUBLICOS = (function () {
     });
   }
 
+  /* ----- Temas da tela de marketing -----
+   *
+   * Cada tema é um assunto que a campanha poderia tocar, amarrado aos
+   * subsistemas que sustentam a afirmação. Moram aqui, e não em
+   * js/marketing.js, porque o registro em PDF da sessão lê os mesmos temas. */
+  var TEMAS_MARKETING = [
+    {
+      nome: "Segurança ao toque nos comandos",
+      areas: ["CT Knobs"],
+      significado: "Os manípulos que a pessoa gira durante o preparo."
+    },
+    {
+      nome: "Painel e display do forno",
+      areas: ["Oven HMI"],
+      significado: "A face de comando do forno, onde a pessoa encosta para programar."
+    },
+    {
+      nome: "Ventilação e saída de ar",
+      areas: ["Main Vent Sys"],
+      significado: "O caminho do ar quente até sair do produto."
+    },
+    {
+      nome: "Eletrônica de potência",
+      areas: ["IPC Comp", "IPC Cooling"],
+      significado: "A placa que aciona as bobinas e o sistema que a resfria."
+    },
+    {
+      nome: "Conjunto de indução",
+      areas: ["Coil Temps"],
+      significado: "As bobinas sob o vidro e as peças que as sustentam."
+    },
+    {
+      nome: "Estrutura interna do produto",
+      areas: ["Mainback"],
+      significado: "Fiação, conectores e peças da traseira, fora do alcance da pessoa."
+    }
+  ];
+
+  // O que a leitura significa para quem planeja campanha.
+  var CONSEQUENCIA_MARKETING = {
+    acima_do_limite: "Não leve este tema para a campanha agora. A estimativa passa do limite e a configuração precisa mudar antes de qualquer promessa.",
+    banda_de_incerteza: "Segure este tema. A estimativa ficou perto demais do limite para decidir, e a engenharia precisa confirmar antes de fechar texto.",
+    dentro_do_limite: "O tema se sustenta nesta leitura. Ainda depende da validação formal, mas já dá para planejar a campanha contando com ele.",
+    monitoramento: "Sem limite declarado para estes componentes, a ferramenta não tem o que responder sobre este tema."
+  };
+
+  /* A leitura do tema é a pior entre os subsistemas que o sustentam: um tema
+     não fica liberado porque a maioria dos seus componentes passou. Sai
+     ordenada do que trava a campanha para o que já se sustenta. */
+  function leiturasDeMarketing(pontos) {
+    var porArea = {};
+    pontos.forEach(function (p) {
+      if (!porArea[p.Key_Area]) porArea[p.Key_Area] = [];
+      porArea[p.Key_Area].push(p);
+    });
+
+    return TEMAS_MARKETING.map(function (tema) {
+      var doTema = [];
+      tema.areas.forEach(function (area) {
+        if (porArea[area]) doTema = doTema.concat(porArea[area]);
+      });
+      var avaliados = ordenarPorRisco(doTema).filter(function (p) {
+        return p.estado !== "monitoramento";
+      });
+
+      return {
+        tema: tema,
+        estado: severidade(doTema),
+        pior_ponto: avaliados.length ? avaliados[0] : null,
+        pior_margem_c: avaliados.length ? avaliados[0].margem_c : null,
+        total: doTema.length
+      };
+    }).sort(function (a, b) {
+      var d = indiceEstado(a.estado) - indiceEstado(b.estado);
+      if (d !== 0) return d;
+      return (a.pior_margem_c === null ? 1e9 : a.pior_margem_c) -
+             (b.pior_margem_c === null ? 1e9 : b.pior_margem_c);
+    });
+  }
+
   /* Rótulo do estado no vocabulário do público. Cai no rótulo canônico quando
      falta mapeamento, para a tela nunca exibir vazio; é o teste que cobra a
      tabela completa. */
@@ -629,10 +709,14 @@ var LEITURA_PUBLICOS = (function () {
     ROTULO_CANONICO: ROTULO_CANONICO,
     ROTULOS: ROTULOS,
     GLOSSARIO: GLOSSARIO,
+    TEMAS_MARKETING: TEMAS_MARKETING,
+    CONSEQUENCIA_MARKETING: CONSEQUENCIA_MARKETING,
 
     termo: termo,
 
     fonte: fonte,
+    mesmosSeteFatores: mesmosSeteFatores,
+    leiturasDeMarketing: leiturasDeMarketing,
     configuracaoNoCatalogo: configuracaoNoCatalogo,
     payloadDoCatalogo: payloadDoCatalogo,
     subsistemasPorCriticidade: subsistemasPorCriticidade,

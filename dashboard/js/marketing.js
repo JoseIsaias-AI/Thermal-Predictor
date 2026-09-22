@@ -15,50 +15,9 @@
   var LP = LEITURA_PUBLICOS;
   var PUBLICO = "marketing";
 
-  /* Cada tema é um assunto que a campanha poderia tocar, amarrado aos
-     subsistemas que sustentam a afirmação. Nenhum tema existe sem componente
-     medido por trás: sem isso a tela viraria opinião. */
-  var TEMAS = [
-    {
-      nome: "Segurança ao toque nos comandos",
-      areas: ["CT Knobs"],
-      significado: "Os manípulos que a pessoa gira durante o preparo."
-    },
-    {
-      nome: "Painel e display do forno",
-      areas: ["Oven HMI"],
-      significado: "A face de comando do forno, onde a pessoa encosta para programar."
-    },
-    {
-      nome: "Ventilação e saída de ar",
-      areas: ["Main Vent Sys"],
-      significado: "O caminho do ar quente até sair do produto."
-    },
-    {
-      nome: "Eletrônica de potência",
-      areas: ["IPC Comp", "IPC Cooling"],
-      significado: "A placa que aciona as bobinas e o sistema que a resfria."
-    },
-    {
-      nome: "Conjunto de indução",
-      areas: ["Coil Temps"],
-      significado: "As bobinas sob o vidro e as peças que as sustentam."
-    },
-    {
-      nome: "Estrutura interna do produto",
-      areas: ["Mainback"],
-      significado: "Fiação, conectores e peças da traseira, fora do alcance da pessoa."
-    }
-  ];
-
-  /* O que a leitura significa para quem planeja campanha, no lugar de um
-     rótulo solto. */
-  var CONSEQUENCIA = {
-    acima_do_limite: "Não leve este tema para a campanha agora. A estimativa passa do limite e a configuração precisa mudar antes de qualquer promessa.",
-    banda_de_incerteza: "Segure este tema. A estimativa ficou perto demais do limite para decidir, e a engenharia precisa confirmar antes de fechar texto.",
-    dentro_do_limite: "O tema se sustenta nesta leitura. Ainda depende da validação formal, mas já dá para planejar a campanha contando com ele.",
-    monitoramento: "Sem limite declarado para estes componentes, a ferramenta não tem o que responder sobre este tema."
-  };
+  // Temas e consequências moram em js/leitura_publicos.js: o registro em PDF
+  // da sessão lê os mesmos.
+  var CONSEQUENCIA = LP.CONSEQUENCIA_MARKETING;
 
   var loading = document.getElementById("loading");
   var errorSection = document.getElementById("error");
@@ -96,27 +55,6 @@
   }
 
   /* ----- Temas ----- */
-
-  /* A leitura do tema é a pior entre os subsistemas que o sustentam: um tema
-     não fica liberado porque a maioria dos seus componentes passou. */
-  function lerTema(tema, porArea) {
-    var pontos = [];
-    tema.areas.forEach(function (area) {
-      if (porArea[area]) pontos = pontos.concat(porArea[area]);
-    });
-
-    var avaliados = LP.ordenarPorRisco(pontos).filter(function (p) {
-      return p.estado !== "monitoramento";
-    });
-
-    return {
-      tema: tema,
-      estado: LP.severidade(pontos),
-      pior_ponto: avaliados.length ? avaliados[0] : null,
-      pior_margem_c: avaliados.length ? avaliados[0].margem_c : null,
-      total: pontos.length
-    };
-  }
 
   function cartaoDoTema(leitura) {
     var cartao = el("li", "card card--" + leitura.estado);
@@ -286,21 +224,7 @@
   var configAtiva = configDaUrl || dados.configuracao;
   var mat = LP.maturidade(dados, null, configAtiva);
 
-  var porArea = {};
-  LP.todosOsPontos(dados).forEach(function (p) {
-    if (!porArea[p.Key_Area]) porArea[p.Key_Area] = [];
-    porArea[p.Key_Area].push(p);
-  });
-
-  // Do que trava a campanha para o que já se sustenta: a primeira pergunta de
-  // quem planeja é o que não dá.
-  var leituras = TEMAS.map(function (tema) { return lerTema(tema, porArea); })
-    .sort(function (a, b) {
-      var d = LP.ORDEM_ESTADOS.indexOf(a.estado) - LP.ORDEM_ESTADOS.indexOf(b.estado);
-      if (d !== 0) return d;
-      return (a.pior_margem_c === null ? 1e9 : a.pior_margem_c) -
-             (b.pior_margem_c === null ? 1e9 : b.pior_margem_c);
-    });
+  var leituras = LP.leiturasDeMarketing(LP.todosOsPontos(dados));
 
   loading.hidden = true;
 

@@ -196,14 +196,20 @@
   function ligarExportacao(lista, mat) {
     var botao = document.getElementById("export-csv");
 
+    var comHistorico = document.getElementById("export-historico");
+
     botao.addEventListener("click", function () {
-      // Só o resultado da consulta em curso, nunca a base inteira.
-      var planilha = PLANILHA.gerar({
+      // Só o resultado da consulta em curso, nunca a base inteira. O
+      // histórico da sessão entra como segunda aba, se pedido.
+      var abas = [{
         aba: "Conformidade",
         colunas: COLUNAS_DA_LEITURA.concat(LP.colunasDeProcedencia(mat)),
         linhas: lista
-      });
-      PLANILHA.baixar("thermal-predictor-conformidade.xlsx", planilha);
+      }];
+      if (comHistorico && comHistorico.checked && typeof HISTORICO_SESSAO !== "undefined") {
+        abas.push(HISTORICO_SESSAO.abaDaPlanilha());
+      }
+      PLANILHA.baixar("thermal-predictor-conformidade.xlsx", PLANILHA.gerar({ abas: abas }));
     });
 
     botao.disabled = false;

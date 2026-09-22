@@ -13,6 +13,7 @@
   <link rel="stylesheet" href="css/triagem.css?v=3">
   <link rel="stylesheet" href="css/publicos.css?v=8">
   <link rel="stylesheet" href="css/executivo.css?v=2">
+  <link rel="stylesheet" href="css/historico.css?v=2">
 </head>
 <!-- Marketing lê sempre no modo executivo: não há leitura técnica aqui. -->
 <body data-modo="executivo">
@@ -79,6 +80,7 @@
         </div>
       </details>
       <button class="btn btn--ghost" type="button" id="export-registro" disabled>Exportar consulta</button>
+      <button class="btn btn--ghost" type="button" data-exportar-pdf disabled title="Registro desta análise em PDF, com o resumo e as tabelas das telas de triagem, conformidade e marketing">Exportar PDF</button>
       <a class="btn btn--ghost" href="index.html">Alterar configuração</a>
     </div>
   </div>
@@ -161,10 +163,13 @@
 <script src="js/schema.js?v=3"></script>
 <script src="js/dados_triagem.js?v=3"></script>
 <script src="js/dados_comparacao.js?v=3"></script>
-<script src="js/planilha.js?v=1"></script>
-<script src="js/leitura_publicos.js?v=7"></script>
+<script src="js/planilha.js?v=2"></script>
+<script src="js/leitura_publicos.js?v=8"></script>
 <script src="js/resumo_executivo.js?v=2"></script>
 <script src="js/modo_leitura.js?v=1"></script>
-<script src="js/marketing.js?v=5"></script>
+<script src="js/documento_pdf.js?v=1"></script>
+<script src="js/registro_pdf.js?v=1"></script>
+<script src="js/historico_sessao.js?v=2"></script>
+<script src="js/marketing.js?v=6"></script>
 </body>
 </html>

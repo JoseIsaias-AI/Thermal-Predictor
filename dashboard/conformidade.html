@@ -12,6 +12,7 @@
   <link rel="stylesheet" href="css/app.css?v=5">
   <link rel="stylesheet" href="css/triagem.css?v=3">
   <link rel="stylesheet" href="css/publicos.css?v=8">
+  <link rel="stylesheet" href="css/historico.css?v=2">
 </head>
 <body>
 
@@ -80,6 +81,13 @@
       <!-- RF-22. Rotulado no próprio botão, e não só no arquivo: é onde a
            pessoa decide exportar. -->
       <button class="btn btn--ghost" type="button" id="export-csv" disabled>Exportar planilha</button>
+      <!-- A aba do histórico é opcional: por padrão sai só a análise em
+           exibição, como antes. -->
+      <label class="export-opcao" title="Acrescenta à planilha uma aba com uma linha por configuração analisada nesta sessão">
+        <input type="checkbox" id="export-historico" disabled>
+        <span>Incluir histórico da sessão (<span id="export-historico-n">0 análises</span>)</span>
+      </label>
+      <button class="btn btn--ghost" type="button" data-exportar-pdf disabled title="Registro desta análise em PDF, com o resumo e as tabelas das telas de triagem, conformidade e marketing">Exportar PDF</button>
       <a class="btn btn--ghost" href="index.html">Alterar configuração</a>
     </div>
   </div>
@@ -169,8 +177,12 @@
 <script src="js/schema.js?v=3"></script>
 <script src="js/dados_triagem.js?v=3"></script>
 <script src="js/dados_comparacao.js?v=3"></script>
-<script src="js/planilha.js?v=1"></script>
-<script src="js/leitura_publicos.js?v=5"></script>
-<script src="js/conformidade.js?v=5"></script>
+<script src="js/planilha.js?v=2"></script>
+<script src="js/leitura_publicos.js?v=8"></script>
+<script src="js/resumo_executivo.js?v=2"></script>
+<script src="js/documento_pdf.js?v=1"></script>
+<script src="js/registro_pdf.js?v=1"></script>
+<script src="js/historico_sessao.js?v=2"></script>
+<script src="js/conformidade.js?v=6"></script>
 </body>
 </html>
