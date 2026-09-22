@@ -1341,6 +1341,529 @@
   }
 
 
+  /* ----- Configuração mais próxima dentro do limite -----
+     A busca mora em js/segura_proxima.js; aqui fica o formulário e a leitura
+     do resultado. O lado a lado não é refeito: a sugestão entra na comparação
+     acima, com as mesmas colunas e o mesmo destaque de fatores divergentes. */
+
+  var SP = typeof SEGURA_PROXIMA !== "undefined" ? SEGURA_PROXIMA : null;
+  var wf = { fatores: null };
+
+  function fatorPorChave(chave) {
+    for (var k = 0; k < FATORES.length; k++) if (FATORES[k].chave === chave) return FATORES[k];
+    return null;
+  }
+
+  function copiarFatores(f) {
+    var c = {};
+    Object.keys(f).forEach(function (k) {
+      c[k] = typeof f[k] === "object" && f[k] !== null ? copiarFatores(f[k]) : f[k];
+    });
+    return c;
+  }
+
+  function gravarFator(chave, valor) {
+    var corte = chave.indexOf(".");
+    if (corte < 0) { wf.fatores[chave] = valor; return; }
+    var sub = wf.fatores[chave.slice(0, corte)] || (wf.fatores[chave.slice(0, corte)] = {});
+    if (valor) sub[chave.slice(corte + 1)] = valor;
+    else delete sub[chave.slice(corte + 1)];
+  }
+
+  function perdaDeclarada() { return valorDoFator(wf, "losses.present") === "declared"; }
+
+  // Arranjo e ordem só se aplicam com perda declarada; fora disso, somem do dado.
+  function limparPerdasSemEfeito() {
+    if (perdaDeclarada()) {
+      if (!wf.fatores.losses.config) wf.fatores.losses.config = "Config S";
+      return;
+    }
+    delete wf.fatores.losses.config;
+    delete wf.fatores.losses.order;
+  }
+
+  function montarFormularioWhatIf() {
+    var caixa = document.getElementById("wf-form");
+    caixa.innerHTML = "";
+
+    FATORES.forEach(function (f) {
+      var ehPerdaDependente = f.chave === "losses.config" || f.chave === "losses.order";
+      var inativo = ehPerdaDependente && !perdaDeclarada();
+
+      var campo = el("label", "field" + (inativo ? " field--inactive" : ""));
+      campo.appendChild(el("span", "field__label", f.label));
+
+      var sel = el("select");
+      sel.dataset.chave = f.chave;
+      sel.disabled = inativo;
+      if (f.chave === "losses.order" || inativo) {
+        var vazio = el("option", null, inativo ? "não se aplica" : "não declarada");
+        vazio.value = "";
+        sel.appendChild(vazio);
+      }
+      (f.niveis || []).forEach(function (n) {
+        var op = el("option", null, n.label);
+        op.value = n.value;
+        sel.appendChild(op);
+      });
+      sel.value = valorDoFator(wf, f.chave);
+
+      sel.addEventListener("change", function () {
+        gravarFator(f.chave, this.value);
+        limparPerdasSemEfeito();
+        document.getElementById("wf-start").value = "";
+        montarFormularioWhatIf();
+        avaliarWhatIf();
+      });
+
+      campo.appendChild(sel);
+      caixa.appendChild(campo);
+    });
+  }
+
+  function partirDe(id) {
+    wf.fatores = copiarFatores(POR_ID[id].fatores);
+    document.getElementById("wf-start").value = id;
+    montarFormularioWhatIf();
+    avaliarWhatIf();
+  }
+
+  function distanciaTexto(d) { return d.toFixed(2); }
+
+  // Ordem vazia com perda declarada é dado ausente, não campo sem efeito.
+  function rotuloNoWhatIf(f, valor, fatores) {
+    if (valor === "" && f.chave === "losses.order" && fatores.losses.present === "declared") {
+      return "não declarada";
+    }
+    return rotuloDoNivel(f, valor);
+  }
+
+  function contagemFora(cfg) {
+    return cfg.resumo[0] + " acima do limite, " + cfg.resumo[1] + " na banda";
+  }
+
+  function avaliarWhatIf() {
+    var linhaRef = document.getElementById("wf-ref");
+    var saida = document.getElementById("wf-result");
+    linhaRef.innerHTML = "";
+    saida.innerHTML = "";
+
+    var ref = SP.localizar(wf.fatores, CFGS);
+
+    if (ref) {
+      var fora = SP.pontosFora(ref, D);
+      linhaRef.appendChild(document.createTextNode("Referência: "));
+      linhaRef.appendChild(el("b", null, ref.id));
+      linhaRef.appendChild(document.createTextNode(fora === 0
+        ? " · todos os pontos com limite dentro do limite."
+        : " · " + fora + " pontos fora de “dentro do limite” (" + contagemFora(ref) + ")."));
+    } else {
+      linhaRef.appendChild(el("b", null, "Combinação fora das configurações conhecidas."));
+      linhaRef.appendChild(document.createTextNode(
+        " Não há predição para ela nesta tela; a busca abaixo usa só os fatores, e o lado a lado " +
+        "fica disponível quando a referência é uma configuração da base."));
+    }
+
+    if (ref && SP.ehSegura(ref, D)) {
+      saida.appendChild(el("p", "wf-msg wf-msg--ok",
+        ref.id + " já está dentro do limite em todos os pontos: não há o que corrigir a partir dela."));
+      return;
+    }
+
+    var res = SP.buscar(wf.fatores, D, ref ? ref.id : null);
+
+    if (!res.sugestao) {
+      montarSemSegura(saida, res);
+    } else {
+      montarSugestao(saida, res, ref);
+    }
+    saida.appendChild(montarRanking(res));
+  }
+
+  /* Nenhuma configuração inteira dentro do limite na base: dito com todas as
+     letras, em vez de uma sugestão vazia. A que menos estoura é contexto, não
+     sugestão. */
+  function montarSemSegura(saida, res) {
+    var caixa = el("div", "wf-msg wf-msg--none");
+    caixa.setAttribute("role", "alert");
+    caixa.appendChild(el("b", null, "Nenhuma configuração conhecida está dentro do limite em todos os pontos."));
+    caixa.appendChild(el("p", null,
+      "As " + CFGS.length + " configurações têm ao menos um ponto com limite fora de " +
+      "“dentro do limite”. Não há sugestão a fazer sem sair da base: a próxima " +
+      "etapa é simular combinações novas, fora do escopo desta busca."));
+
+    var menos = res.todas.slice().sort(function (a, b) {
+      return a.fora - b.fora || a.distancia - b.distancia;
+    })[0];
+    caixa.appendChild(el("p", "legend-note",
+      "Para referência, a que menos estoura é " + menos.id + " (" + menos.fora +
+      " pontos fora, distância " + distanciaTexto(menos.distancia) + ") — também fora do limite."));
+    saida.appendChild(caixa);
+  }
+
+  function montarSugestao(saida, res, ref) {
+    var sug = res.sugestao;
+    var cartao = el("div", "wf-sug");
+
+    var topo = el("div", "wf-sug__top");
+    topo.appendChild(el("span", "lead-card__kicker", "Mais próxima dentro do limite"));
+    topo.appendChild(el("b", "lead-card__cfg", sug.id));
+    topo.appendChild(el("span", "wf-sug__meta",
+      "distância " + distanciaTexto(sug.distancia) + " · " + res.seguras.length + " de " +
+      CFGS.length + " configurações estão dentro do limite em todos os pontos"));
+    cartao.appendChild(topo);
+
+    var difs = SP.camposDivergentes(wf.fatores, sug.cfg.fatores, res.padronizacao);
+    var total = 0;
+    difs.forEach(function (d) { total += d.peso; });
+
+    cartao.appendChild(el("p", "wf-sug__lead", difs.length === 0
+      ? "Mesmos fatores da referência."
+      : "O que muda no projeto, do que mais pesa na distância ao que menos pesa:"));
+
+    var lista = el("div", "cmp-factors wf-diffs");
+    difs.forEach(function (d) {
+      var f = fatorPorChave(d.campo);
+      var linha = el("div", "cmp-factor");
+      linha.appendChild(el("span", "cmp-factor__name", f ? f.label : d.campo));
+
+      var vals = el("span", "cmp-factor__vals");
+      vals.appendChild(el("span", "cmp-factor__val wf-de", rotuloNoWhatIf(f, d.de, wf.fatores)));
+      vals.appendChild(el("span", "wf-seta", "→"));
+      vals.appendChild(el("span", "cmp-factor__val wf-para", rotuloNoWhatIf(f, d.para, sug.cfg.fatores)));
+      if (total > 0) {
+        vals.appendChild(el("span", "wf-peso", Math.round(d.peso / total * 100) + "% da distância"));
+      }
+      linha.appendChild(vals);
+      lista.appendChild(linha);
+    });
+    cartao.appendChild(lista);
+
+    var acoes = el("div", "wf-sug__acts");
+    var botao = el("button", "button", "Comparar lado a lado");
+    botao.type = "button";
+    if (!ref) {
+      botao.disabled = true;
+      acoes.appendChild(botao);
+      acoes.appendChild(el("span", "legend-note",
+        "Sem predição para a combinação simulada, não há coluna de referência para justapor."));
+    } else {
+      botao.addEventListener("click", function () {
+        estado.sel = [ref.id, sug.id];
+        estado.ref = ref.id;
+        sincronizar();
+        var alvo = document.getElementById("comparison");
+        if (alvo.scrollIntoView) alvo.scrollIntoView({ behavior: "smooth", block: "start" });
+      });
+      acoes.appendChild(botao);
+    }
+    var link = el("a", "vbtn", "Abrir " + sug.id + " na triagem");
+    link.href = "triagem.html?" + parametrosDaConfig(sug.cfg);
+    acoes.appendChild(link);
+    cartao.appendChild(acoes);
+
+    saida.appendChild(cartao);
+  }
+
+  // As distâncias para todas, com a classificação ao lado: é a conta inteira.
+  function montarRanking(res) {
+    var det = el("details", "more wf-rank");
+    det.appendChild(el("summary", null, "Distância às " + res.todas.length + " configurações conhecidas"));
+
+    var rolo = el("div", "table-scroll");
+    var tab = el("table", "data-table");
+    var cab = el("tr");
+    ["Configuração", "Distância", "Pontos fora", "Classificação"].forEach(function (t, k) {
+      var th = el("th", k === 1 || k === 2 ? "num" : null, t);
+      th.setAttribute("scope", "col");
+      cab.appendChild(th);
+    });
+    var thead = el("thead");
+    thead.appendChild(cab);
+    tab.appendChild(thead);
+
+    var corpo = el("tbody");
+    res.todas.forEach(function (x) {
+      var tr = el("tr", res.sugestao && x.id === res.sugestao.id ? "wf-rank__sug" : null);
+      tr.appendChild(celula(x.id));
+      tr.appendChild(celula(distanciaTexto(x.distancia), "num"));
+      tr.appendChild(celula(String(x.fora), "num"));
+      tr.appendChild(celula(x.segura ? "dentro do limite" : "fora do limite"));
+      corpo.appendChild(tr);
+    });
+    tab.appendChild(corpo);
+    rolo.appendChild(tab);
+    det.appendChild(rolo);
+    return det;
+  }
+
+  function iniciarWhatIf() {
+    var painel = document.getElementById("wf-panel");
+    if (!SP) { painel.hidden = true; return; }
+
+    document.getElementById("wf-total").textContent = CFGS.length;
+    document.getElementById("wf-tol").textContent = (D.tolerancia_fracao * 100).toFixed(0) + "%";
+
+    var inicio = document.getElementById("wf-start");
+    var livre = el("option", null, "— combinação editada —");
+    livre.value = "";
+    livre.disabled = true;
+    inicio.appendChild(livre);
+    CFGS.forEach(function (c) {
+      var op = el("option", null, c.id + " · " +
+        impressaoDigital(c).map(function (t) { return t[1]; }).join(" · "));
+      op.value = c.id;
+      inicio.appendChild(op);
+    });
+    inicio.addEventListener("change", function () { if (this.value) partirDe(this.value); });
+
+    partirDe(estado.ref || CFGS[0].id);
+  }
+
+
+  /* ----- 4 · No modelo 3D -----
+     A mesma bandeja de cima escolhe o par: A é a referência e B uma das
+     outras configurações selecionadas. Temperaturas, diferença e escala saem
+     de DIFF_TERMICO sobre os vetores `t` do dado; o viewport e o painel de
+     peça são os da triagem. */
+
+  var vista3d = { modo: "diferenca", qual: "a", b: null, zona: null, semDado: null, cache: null };
+  var modelo3d = null;
+  var CAMADAS_3D = { volume: true, fluxo: true, iso: true, focos: true };
+
+  // Os fatores que mexem na geometria, como a triagem lê da URL.
+  function geometriaDe(cfg) {
+    var f = cfg.fatores;
+    return {
+      placa: f.board_position === "Right" ? "right" : "center",
+      alojamento: f.housing && f.housing !== "Closed" ? "open" : "closed",
+      material: f.material_coil_support === "Plastic" ? "plastic"
+        : f.material_coil_support === "Aluminium Plate" ? "plate" : "aluminium",
+      soprador: f.blower_direction === "To Back" ? "back" : "front",
+      caso: f.run_case
+    };
+  }
+
+  function par3d() {
+    var outras = estado.sel.filter(function (id) { return id !== estado.ref; });
+    if (outras.indexOf(vista3d.b) < 0) vista3d.b = outras[0] || null;
+    return { a: POR_ID[estado.ref], b: POR_ID[vista3d.b], outras: outras };
+  }
+
+  /* Pontos, diferença e escala do estado atual, refeitos só quando o par ou o
+     modo mudam: a interpolação do campo custa, e escolher uma peça não a
+     muda. O array novo é o que avisa o viewport para refazer o campo. */
+  function leitura3d(par) {
+    var diff = vista3d.modo === "diferenca";
+    var mostrada = vista3d.qual === "b" ? par.b : par.a;
+    var chave = [vista3d.modo, par.a.id, par.b.id, diff ? "" : mostrada.id].join("|");
+    if (vista3d.cache && vista3d.cache.chave === chave) return vista3d.cache;
+    var c = { chave: chave, diff: diff, mostrada: mostrada };
+    if (diff) {
+      c.linhas = DIFF_TERMICO.diferenca(D, par.a, par.b);
+      c.escala = DIFF_TERMICO.escala(c.linhas);
+      c.pontos = c.linhas;
+      // Nos dois modos o viewport lê a geometria de uma configuração só; na diferença, a da referência.
+      c.geometria = geometriaDe(par.a);
+    } else {
+      c.dados = DIFF_TERMICO.dadosDaConfig(D, mostrada, par.a);
+      c.pontos = c.dados.campo;
+      c.geometria = geometriaDe(mostrada);
+    }
+    vista3d.cache = c;
+    return c;
+  }
+
+  function botoesDe(caixa, itens, atual, aoEscolher) {
+    caixa.innerHTML = "";
+    itens.forEach(function (it) {
+      var b = el("button", null, it[1]);
+      b.type = "button";
+      b.setAttribute("aria-pressed", String(it[0] === atual));
+      b.addEventListener("click", function () { aoEscolher(it[0]); });
+      caixa.appendChild(b);
+    });
+  }
+
+  function montarRotulo3d(par, c) {
+    var r = document.getElementById("cmp3d-rotulo");
+    r.innerHTML = "";
+    var tag = el("span", "cmp3d__modo-tag" + (c.diff ? " cmp3d__modo-tag--diferenca" : ""), c.diff ? "Modo diferença" : "Modo absoluto");
+    r.appendChild(tag);
+    if (c.diff) {
+      r.appendChild(document.createTextNode("Temperatura de "));
+      r.appendChild(el("b", null, par.b.id + " (B)"));
+      r.appendChild(document.createTextNode(" menos a de "));
+      r.appendChild(el("b", null, par.a.id + " (A, referência)"));
+      r.appendChild(document.createTextNode(" · variação entre configurações, não estado de risco"));
+    } else {
+      r.appendChild(document.createTextNode("Temperatura prevista de "));
+      r.appendChild(el("b", null, c.mostrada.id + (c.mostrada === par.a ? " (A, referência)" : " (B)")));
+    }
+  }
+
+  function graus1(v) { return v.toFixed(1).replace("-", "−"); }
+  function assinado1(v) { return (v > 0 ? "+" : v < 0 ? "−" : "±") + Math.abs(v).toFixed(1); }
+
+  /* Legenda com os números da escala em uso. Na diferença, os extremos são
+     ±extremo do par, e a nota diz a maior diferença real e onde ela cai. */
+  function montarLegenda3d(c, info) {
+    var caixa = document.getElementById("cmp3d-legenda");
+    caixa.innerHTML = "";
+    var rampaCor = c.diff ? FOGAO.RAMPA_DIFF : FOGAO.RAMPA_CAMPO;
+    var titulo = el("p", "cmp3d__legenda-titulo", c.diff ? "Diferença de temperatura B − A " : "Temperatura prevista ");
+    titulo.appendChild(el("span", null, "°C"));
+    caixa.appendChild(titulo);
+
+    var escala = el("div", "field-scale");
+    var barra = el("span", "field-scale__bar");
+    barra.id = "cmp3d-barra";
+    barra.style.background = "linear-gradient(to right," + rampaCor.map(function (cor, i) {
+      return cor + " " + (i / (rampaCor.length - 1) * 100).toFixed(0) + "%";
+    }).join(",") + ")";
+    escala.appendChild(barra);
+    var marcas = el("span", "field-scale__ends");
+    marcas.id = "cmp3d-marcas";
+    var valores = c.diff
+      ? [-1, -0.5, 0, 0.5, 1].map(function (f) { return f * c.escala.extremo; })
+      : (info && info.paradas) || [];
+    valores.forEach(function (v) {
+      marcas.appendChild(el("b", null, c.diff ? (v === 0 ? "0" : assinado1(v)) : v.toFixed(0)));
+    });
+    escala.appendChild(marcas);
+    caixa.appendChild(escala);
+
+    // Nos dois modos a mesma estrutura: trocar de modo não muda a altura da legenda.
+    var sentido = el("div", "cmp3d__legenda-sentido");
+    sentido.appendChild(el("span", null, c.diff ? "◀ mais frio em B" : "◀ mais frio"));
+    sentido.appendChild(el("span", null, c.diff ? "sem diferença" : ""));
+    sentido.appendChild(el("span", null, c.diff ? "mais quente em B ▶" : "mais quente ▶"));
+    caixa.appendChild(sentido);
+
+    if (c.diff) {
+      var pior = null;
+      c.linhas.forEach(function (l) { if (!pior || Math.abs(l.diferenca_c) > Math.abs(pior.diferenca_c)) pior = l; });
+      caixa.appendChild(el("p", "cmp3d__legenda-nota",
+        "Extremos em ±" + c.escala.extremo + " °C, a maior diferença do par arredondada para cima. " +
+        "Maior diferença real: " + assinado1(pior.diferenca_c) + " °C em " + pior.TC_Name + ". " +
+        "Branco até ±" + c.escala.limiar.toFixed(1) + " °C. A cor não indica limite nem estado."));
+    } else {
+      caixa.appendChild(el("p", "cmp3d__legenda-nota",
+        "Mesma escala do campo térmico da triagem: equalizada por quantil, os rótulos marcam os quartis. A cor é temperatura, não estado de risco."));
+    }
+  }
+
+  function limparPeca3d() {
+    vista3d.zona = null;
+    vista3d.semDado = null;
+    desenhar3d();
+  }
+
+  function desenharPeca3d(par, c) {
+    var caixa = document.getElementById("cmp3d-peca");
+    var zona = vista3d.zona && FOGAO.ZONA_POR_ID[vista3d.zona];
+    var semDado = vista3d.semDado ? { semDado: vista3d.semDado } : null;
+    if (c.diff) {
+      PAINEL_PECA.desenharDiff(caixa,
+        zona ? { resumo: PAINEL_PECA.resumirDiff(zona, c.linhas, c.escala.limiar) } : semDado,
+        { rotuloA: par.a.id, rotuloB: par.b.id, escala: c.escala, aoLimpar: limparPeca3d });
+    } else {
+      PAINEL_PECA.desenhar(caixa,
+        zona ? { resumo: PAINEL_PECA.resumir(zona, c.dados) } : semDado,
+        { rampa: rampa(), dados: c.dados, pontoSel: null, aoLimpar: limparPeca3d });
+    }
+  }
+
+  function desenhar3d() {
+    if (!modelo3d) return;
+    var par = par3d();
+    if (!par.a || !par.b) return;
+    var c = leitura3d(par);
+
+    botoesDe(document.getElementById("cmp3d-b"),
+      par.outras.map(function (id) { return [id, id]; }), vista3d.b,
+      function (id) { vista3d.b = id; desenhar3d(); });
+    var qual = document.getElementById("cmp3d-qual");
+    qual.hidden = c.diff;
+    botoesDe(qual, [["a", "A · " + par.a.id], ["b", "B · " + par.b.id]], vista3d.qual,
+      function (q) { vista3d.qual = q; desenhar3d(); });
+    Array.prototype.forEach.call(document.querySelectorAll("#cmp3d-modo button"), function (b) {
+      b.setAttribute("aria-pressed", String(b.dataset.modo === vista3d.modo));
+    });
+
+    var g = c.geometria;
+    var saida = modelo3d.atualizar({
+      nivel: 4, modo: "calor", vista: "campo", explode: 1,
+      camadas: CAMADAS_3D,
+      placa: g.placa, alojamento: g.alojamento, material: g.material, caso: g.caso, soprador: g.soprador,
+      zonaSel: vista3d.zona,
+      diferenca: c.diff ? c.escala : null,
+      pontos: c.pontos
+    });
+
+    document.getElementById("cmp3d-3d").dataset.modo = vista3d.modo;
+    montarRotulo3d(par, c);
+    montarLegenda3d(c, saida.info);
+    desenharPeca3d(par, c);
+  }
+
+  function criarModelo3d() {
+    var palco = document.getElementById("cmp3d-3d");
+    var balao = document.getElementById("cmp3d-tip");
+    document.getElementById("cmp3d-limiar").textContent = DIFF_TERMICO.LIMIAR_C.toFixed(1) + " °C";
+    document.getElementById("cmp3d-piso").textContent = DIFF_TERMICO.PISO_C + " °C";
+
+    function posicionar(x, y) {
+      var quadro = palco.parentNode.parentNode.getBoundingClientRect();
+      var r = palco.getBoundingClientRect();
+      x += r.left - quadro.left;
+      y += r.top - quadro.top;
+      balao.dataset.on = "1";
+      var acima = y > quadro.height * 0.3;
+      balao.classList.toggle("tip--acima", acima);
+      balao.classList.toggle("tip--abaixo", !acima);
+      balao.style.top = y + "px";
+      var w = balao.getBoundingClientRect().width;
+      balao.style.left = Math.max(w / 2 + 6, Math.min(quadro.width - w / 2 - 6, x)) + "px";
+    }
+
+    modelo3d = FOGAO3D.criar(palco, {
+      aoMudarCamera: function () { balao.dataset.on = "0"; },
+      aoClicarPeca: function (alvo) {
+        if (!alvo) { vista3d.zona = null; vista3d.semDado = null; }
+        else if (!alvo.zona) { vista3d.zona = null; vista3d.semDado = { id: alvo.id, nome: alvo.nome, casca: alvo.casca }; }
+        else { vista3d.semDado = null; vista3d.zona = alvo.zona.id === vista3d.zona ? null : alvo.zona.id; }
+        desenhar3d();
+      },
+      aoPairarPeca: function (alvo, x, y) {
+        if (!alvo) { balao.dataset.on = "0"; return; }
+        balao.innerHTML = "";
+        balao.appendChild(el("b", "tip__name", alvo.zona.nome));
+        balao.appendChild(el("span", "tip__state", alvo.zona.area + " · " +
+          (alvo.zona.id === vista3d.zona ? "clique para soltar" : "clique para o resumo")));
+        posicionar(x, y);
+      },
+      // A sonda lê o mesmo número que o campo interpola: graus, ou a diferença em graus.
+      aoSondar: function (s, x, y) {
+        if (!s) { balao.dataset.on = "0"; return; }
+        balao.innerHTML = "";
+        balao.appendChild(el("b", "tip__name", s.peca || "Campo térmico"));
+        var diff = vista3d.modo === "diferenca";
+        balao.appendChild(el("span", "tip__num", diff ? "B − A " + assinado1(s.c) + " °C" : graus1(s.c) + " °C"));
+        balao.appendChild(el("span", "tip__state", " · interpolado entre termopares"));
+        posicionar(x, y);
+      }
+    });
+
+    document.getElementById("cmp3d-modo").addEventListener("click", function (evento) {
+      var botao = evento.target.closest("button");
+      if (!botao || botao.dataset.modo === vista3d.modo) return;
+      vista3d.modo = botao.dataset.modo;
+      desenhar3d();
+    });
+  }
+
+
   /* ----- Sincronização ----- */
 
   function sincronizar() {
@@ -1367,6 +1890,10 @@
     montarAreas();
     montarVista();
     montarMonitorados();
+
+    // O viewport nasce na primeira vez que a comparação aparece: antes disso o palco não tem tamanho.
+    if (!modelo3d && typeof FOGAO3D !== "undefined") criarModelo3d();
+    desenhar3d();
 
     // RNF-06: toda previsão exibida acompanhada do identificador de versão.
     document.getElementById("trace-note").textContent =
@@ -1456,4 +1983,5 @@
   estado.ref = inicial[0];
 
   sincronizar();
+  iniciarWhatIf();
 })();

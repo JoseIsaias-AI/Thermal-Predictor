@@ -559,7 +559,7 @@ var FOGAO3D = (function () {
       renderer = new T.WebGLRenderer({ antialias: true, alpha: true, powerPreference: "high-performance" });
     } catch (erro) {
       host.innerHTML = "<p class=\"viewport__sem3d\">Este navegador não oferece WebGL, necessário para o modelo 3D.</p>";
-      return { atualizar: function () { return {}; }, preset: function () {}, presetAtual: function () { return null; } };
+      return { atualizar: function () { return {}; }, preset: function () {}, presetAtual: function () { return null; }, focarPonto: function () { return false; } };
     }
 
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
@@ -789,9 +789,12 @@ var FOGAO3D = (function () {
 
     /* Uniformes compartilhados por referência: trocar a grade, o tempo ou a
        força das isotermas atinge as três camadas numa atribuição só. */
+    var RAMPAS = { absoluto: texturaRampa(FOGAO.RAMPA_CAMPO), diferenca: texturaRampa(FOGAO.RAMPA_DIFF) };
     var UC = {
       uCampo: { value: texturaVolume({ dados: new Uint8Array([128]), nx: 1, ny: 1, nz: 1 }) },
-      uRampa: { value: texturaRampa(FOGAO.RAMPA_CAMPO) },
+      uRampa: { value: RAMPAS.absoluto },
+      // 1 no modo diferença: o volume mostra os dois sentidos a partir do meio neutro.
+      uDiverge: { value: 0 },
       uTempo: { value: 0 },
       uOnda: { value: 1 },
       uIso: { value: 11 },
@@ -817,6 +820,7 @@ var FOGAO3D = (function () {
       "uniform float uOnda;",
       "uniform float uIso;",
       "uniform float uForcaIso;",
+      "uniform float uDiverge;",
       "vec3 campoNorm(vec3 p) {",
       "  vec3 m = vec3(p.x * " + INV_U + " + 160.0, 120.0 - p.z * " + INV_U + ", p.y * " + INV_U + ");",
       "  return m / vec3(" + DOM.x.toFixed(1) + ", " + DOM.y.toFixed(1) + ", " + DOM.z.toFixed(1) + ");",
@@ -921,7 +925,9 @@ var FOGAO3D = (function () {
           // como se fosse uma parede, e ali não há produto nenhum.
           "  float borda = smoothstep(0.0, 0.11, q.x) * smoothstep(1.0, 0.89, q.x)",
           "              * smoothstep(0.0, 0.11, q.y) * smoothstep(1.0, 0.89, q.y);",
-          "  float a = uAlfa * borda * smoothstep(0.34, 0.95, v);",
+          // Na diferença conta a distância ao meio: mais frio e mais quente aparecem, o neutro some.
+          "  float s = uDiverge > 0.5 ? abs(v - 0.5) * 2.0 : v;",
+          "  float a = uAlfa * borda * smoothstep(uDiverge > 0.5 ? 0.1 : 0.34, 0.95, s);",
           "  if (a < 0.004) discard;",
           "  vec3 c = corCampo(v);",
           "  c = mix(c, c * 0.45, isoFranja(v) * uForcaIso);",
@@ -1087,16 +1093,19 @@ var FOGAO3D = (function () {
     });
     var GEO_FOCO = new T.PlaneGeometry(1, 1);
 
-    function construirFocos(colocados, eq) {
+    // `valor` lê o número que o campo interpola; na diferença os focos são as maiores variações.
+    function construirFocos(colocados, eq, valor, rampa, diverge) {
       grupoFocos.children.slice().forEach(function (o) {
         grupoFocos.remove(o);
         o.material.dispose();
       });
+      function peso(c) { return diverge ? Math.abs(valor(c)) : valor(c); }
       colocados.slice()
-        .sort(function (a, b) { return b.ponto.temperatura_prevista_c - a.ponto.temperatura_prevista_c; })
+        .filter(function (c) { return !diverge || eq.normalizar(valor(c)) !== 0.5; })
+        .sort(function (a, b) { return peso(b) - peso(a); })
         .slice(0, 10)
         .forEach(function (c, i) {
-          var rgb = FOGAO.corDaRampa(FOGAO.RAMPA_CAMPO, eq.normalizar(c.ponto.temperatura_prevista_c));
+          var rgb = FOGAO.corDaRampa(rampa, eq.normalizar(valor(c)));
           var halo = new T.Mesh(GEO_FOCO, new T.MeshBasicMaterial({
             map: TEX_FOCO, color: new T.Color(rgb[0] / 255, rgb[1] / 255, rgb[2] / 255),
             transparent: true, depthWrite: false, depthTest: false,
@@ -1111,25 +1120,35 @@ var FOGAO3D = (function () {
 
     /* ----- Montagem do campo ----- */
 
+    /* `op.diferenca` ({ extremo, limiar }) liga o modo diferença: o campo
+       interpola `diferenca_c` de cada ponto numa escala linear centrada em
+       zero, e não a temperatura equalizada por quantil. O fluxo de ar segue
+       movido pela temperatura, que é o que empurra o ar. */
     function construirCampo(colocados, op) {
-      var amostras = colocados.map(function (c) {
-        return { x: c.g[0], y: c.g[1], z: c.g[2], v: c.ponto.temperatura_prevista_c };
-      });
+      var dif = op.diferenca || null;
+      function valor(c) { return dif ? c.ponto.diferenca_c : c.ponto.temperatura_prevista_c; }
+      function amostra(c, v) { return { x: c.g[0], y: c.g[1], z: c.g[2], v: v }; }
+      var amostras = colocados.map(function (c) { return amostra(c, valor(c)); });
       if (!amostras.length) return null;
 
       // Guardadas em graus: a sonda responde em °C, não na escala normalizada.
       estado.campoAmostras = amostras;
-      var eq = FOGAO.equalizador(amostras.map(function (a) { return a.v; }));
+      var temps = dif ? colocados.map(function (c) { return amostra(c, c.ponto.temperatura_prevista_c); }) : amostras;
+      var eqTemp = FOGAO.equalizador(temps.map(function (a) { return a.v; }));
+      var eq = dif ? FOGAO.normalizadorDivergente(dif.extremo, dif.limiar) : eqTemp;
       var grade = FOGAO.grade3D(amostras, eq, GRADE.x, GRADE.y, GRADE.z);
       if (UC.uCampo.value) UC.uCampo.value.dispose();
       UC.uCampo.value = texturaVolume(grade);
+      UC.uRampa.value = dif ? RAMPAS.diferenca : RAMPAS.absoluto;
+      UC.uDiverge.value = dif ? 1 : 0;
+      estado.campoLeitura = { colocados: colocados, valor: valor, eq: eq, rampa: dif ? FOGAO.RAMPA_DIFF : FOGAO.RAMPA_CAMPO };
 
-      construirFluxo(amostras, eq, op.soprador === "back" ? 1 : -1);
-      construirFocos(colocados, eq);
+      construirFluxo(temps, eqTemp, op.soprador === "back" ? 1 : -1);
+      construirFocos(colocados, eq, valor, dif ? FOGAO.RAMPA_DIFF : FOGAO.RAMPA_CAMPO, !!dif);
       renderer.shadowMap.needsUpdate = true;
 
       var paradas = [0, 0.25, 0.5, 0.75, 1].map(function (f) { return eq.quantil(f); });
-      return { min: paradas[0], max: paradas[4], paradas: paradas };
+      return { min: paradas[0], max: paradas[4], paradas: paradas, diferenca: !!dif };
     }
 
     // Camadas ligadas pela barra do viewport; sem pedido, todas ligadas.
@@ -1685,6 +1704,48 @@ var FOGAO3D = (function () {
         az: planta ? 12 * GRAU : 8 * GRAU, el: planta ? 58 * GRAU : 14 * GRAU,
         dist: distanciaQueEnquadra(caixa, 1.3), t: caixa.getCenter(new T.Vector3())
       }, null, 900);
+    }
+
+    // Peças opacas entre a câmera e o ponto: 0 é vista livre.
+    var raioVista = new T.Raycaster();
+    function obstrucoes(destino) {
+      var olho = destino.t.clone().addScaledVector(direcao(destino.az, destino.el), destino.dist);
+      var ate = destino.t.clone().sub(olho), longe = ate.length();
+      raioVista.set(olho, ate.normalize());
+      // Folga no fim: o marcador encosta na própria peça e não conta como obstáculo.
+      raioVista.far = Math.max(0, longe - 0.08);
+      var alvos = [];
+      estado.lista.forEach(function (pc) {
+        var p = estado.pecas[pc.id];
+        if (pc.present && p.corpo.visible && p.opacidadeAlvo > 0.5) alvos.push(p.corpo);
+      });
+      return raioVista.intersectObjects(alvos, true).length;
+    }
+
+    /* Aproxima do marcador de um ponto, pela mesma transição dos presets.
+       Testa ângulos em volta do ponto e fica com o de vista livre mais perto
+       da câmera atual: o lado da peça não basta, porque o termopar pode estar
+       na face interna dela, como os da traseira. Mira a posição de destino do
+       explodido, não a do quadro corrente. */
+    function enquadrarPonto(id, duracao) {
+      if (estado.foco) return false;
+      var m = estado.marcadores.filter(function (x) { return x.ponto.measurement_id === id; })[0];
+      if (!m) return false;
+      var peca = estado.pecas[m.peca];
+      var t = m.base.clone().add(desloc(peca.pc.ex).multiplyScalar(estado.explodeAlvo));
+      var dist = distanciaQueEnquadra(uniao(caixasVisiveis()), 1.04) * 0.5;
+      var iso = PRESETS.isometrica, melhor = null;
+      [iso.el, 48 * GRAU, 8 * GRAU].forEach(function (el) {
+        for (var k = 0; k < 12; k++) {
+          var c = { az: iso.az + k * 30 * GRAU, el: el, dist: dist, t: t.clone() };
+          limitarCamera(c);
+          var giro = Math.abs(Math.atan2(Math.sin(c.az - cam.atual.az), Math.cos(c.az - cam.atual.az)));
+          var nota = obstrucoes(c) * 10 + giro + Math.abs(el - iso.el);
+          if (!melhor || nota < melhor.nota) melhor = { nota: nota, destino: c };
+        }
+      });
+      irPara(melhor.destino, null, duracao || 1100);
+      return true;
     }
 
     function manipular() {
@@ -2358,6 +2419,7 @@ var FOGAO3D = (function () {
       atualizar: atualizar,
       preset: function (nome) { if (!estado.foco) aplicarPreset(nome); },
       presetAtual: function () { return cam.preset; },
+      focarPonto: enquadrarPonto,
       _depurar: {
         camera: function () { return { atual: copiaCam(cam.atual), alvo: copiaCam(cam.alvo), transicao: !!cam.transicao }; },
         tempos: function () { return tempos.slice(); },
@@ -2385,6 +2447,19 @@ var FOGAO3D = (function () {
           return { x: r.left + s.x, y: r.top + s.y };
         },
         marcadores: function () { return estado.marcadores.map(function (m) { return m.ponto.measurement_id; }); },
+        // Valor, posição na rampa (0–1) e cor que o campo dá ao termopar.
+        campoNoPonto: function (id) {
+          var l = estado.campo && estado.campoLeitura;
+          var c = l && l.colocados.filter(function (x) { return x.ponto.measurement_id === id; })[0];
+          if (!c) return null;
+          var t = l.eq.normalizar(l.valor(c));
+          return { v: l.valor(c), t: t, rgb: FOGAO.corDaRampa(l.rampa, t), rampa: l.rampa === FOGAO.RAMPA_DIFF ? "diferenca" : "absoluto" };
+        },
+        // Peças opacas entre a câmera desenhada e o marcador; 0 é vista livre.
+        obstrucoes: function (id) {
+          var m = estado.marcadores.filter(function (x) { return x.ponto.measurement_id === id; })[0];
+          return m ? obstrucoes(cam.atual) : null;
+        },
         // Halos desenhados no último quadro: raio em unidades de marcador e raio na tela, em px.
         halos: function () {
           var r = renderer.domElement.getBoundingClientRect();

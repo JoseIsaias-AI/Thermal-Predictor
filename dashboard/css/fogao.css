@@ -288,6 +288,13 @@
 .heat__side--right { border-right: 0; border-left: var(--border-width) solid var(--color-border); }
 .heat__main { background: var(--color-surface-sunken); min-width: 0; display: flex; flex-direction: column; }
 
+/* Lado a lado, a coluna dos painéis de seleção não dita a altura da linha:
+   senão cada peça escolhida (no clique ou no tour) esticava o grid e o 3D,
+   centrado na coluna do meio, pulava. Ela ocupa a linha e rola por dentro. */
+@media (min-width: 72.01rem) {
+  .heat__side--right { contain: size; overflow-y: auto; }
+}
+
 @media (max-width: 72rem) {
   .heat { grid-template-columns: 16rem minmax(0, 1fr); }
   .heat__side--right { grid-column: 1 / -1; border-left: 0; border-top: var(--border-width) solid var(--color-border); display: grid; grid-template-columns: 1fr 1fr; }
@@ -618,6 +625,50 @@
 
 .part__legend { margin: var(--space-1) 0 0; font-size: var(--size-kicker); color: var(--color-text-muted); font-variant-numeric: tabular-nums; }
 
+/* Modo diferença: no lugar da faixa de estado, o aviso de que aqui não há estado. */
+.part__modo {
+  margin: 0 0 var(--space-2);
+  padding: 4px 10px;
+  border-radius: var(--radius);
+  box-shadow: inset 0 0 0 1px var(--color-border-strong);
+  font-size: var(--size-kicker);
+  color: var(--wp-charcoal);
+}
+.part__trio { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-1); margin: 0; }
+.part__trio-cel {
+  padding: var(--space-2);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius);
+  min-width: 0;
+}
+.part__trio-cel dt {
+  font-size: var(--size-kicker);
+  color: var(--color-text-subtle);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.part__trio-cel dd {
+  margin: 2px 0 0;
+  font-weight: var(--weight-semibold);
+  font-variant-numeric: tabular-nums;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+}
+.part__trio-cel--dif { border-color: var(--color-border-strong); background: var(--color-surface-sunken); }
+.part__trio-cor {
+  flex: none;
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  box-shadow: inset 0 0 0 1px rgba(16, 21, 31, 0.35);
+}
+.part__trio-nota { margin: var(--space-1) 0 var(--space-2); font-size: var(--size-kicker); color: var(--color-text-subtle); }
+.part__item--dif { cursor: default; }
+.part__item--dif:hover { background: none; }
+
 .part__list {
   list-style: none;
   margin: 0;
@@ -878,6 +929,31 @@ tr[hidden] { display: none; }
 .viewport__bar--camera { background: var(--color-surface); }
 .viewport__bar--camadas { background: var(--color-surface); min-height: 42px; }
 .viewport__bar--camadas .toggle--mini { margin: 0; }
+
+/* ----- Tour pelos pontos críticos ----- */
+
+.viewport__bar--tour { background: var(--color-surface); min-height: 42px; }
+.tour__ctrl { display: inline-flex; gap: var(--space-1); flex: none; }
+.tour__ctrl[hidden] { display: none; }
+.tour__ctrl .vbtn { min-width: 2.25rem; }
+/* Largura da palavra mais longa: trocar Pausar/Continuar/Recomeçar não empurra a barra. */
+#tour-pausa { min-width: 6.5rem; }
+/* Altura fixa de duas linhas, vazio ou não: nome curto ou longo, o 3D não se move. */
+.tour__status {
+  flex: 1 1 14rem;
+  min-width: 0;
+  margin: 0;
+  line-height: 1.4;
+  height: 2.8em;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  color: var(--color-text-subtle);
+  font-variant-numeric: tabular-nums;
+}
+.tour__status b { color: var(--color-text); font-weight: var(--weight-semibold); }
+.tour__status--vazio { color: var(--color-text); }
 
 .sr-only {
   position: absolute;

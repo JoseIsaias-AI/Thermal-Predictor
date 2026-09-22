@@ -26,6 +26,12 @@ var FOGAO = (function () {
      meteorológico. Aqui a cor é temperatura, não estado de risco. */
   var RAMPA_CAMPO = ["#3f1a6b", "#2b52c8", "#1f9fd8", "#35c4c0", "#8ecf5c", "#dcd247", "#e8912f", "#c8301f"];
 
+  /* Diferença de temperatura entre duas configurações (B − A): divergente e
+     centrada em zero, azul mais frio em B e vermelho mais quente em B, com o
+     meio neutro. Paleta RdBu do ColorBrewer, livre. Não é folga nem estado:
+     por isso nem a RAMPA_A, que também vai de azul a vermelho, nem a do campo. */
+  var RAMPA_DIFF = ["#053061", "#2166ac", "#4393c3", "#92c5de", "#f7f7f7", "#f4a582", "#d6604d", "#b2182b", "#67001f"];
+
   var FAIXAS = ["≥ +50%", "+30 a +50%", "+10 a +30%", "0 a +10%", "−10 a 0%", "−30 a −10%", "−50 a −30%", "< −50%"];
 
   /* ----- Peças -----
@@ -352,8 +358,24 @@ var FOGAO = (function () {
     };
   }
 
+  /* Normalizador da diferença: linear e simétrico em torno do zero, sem
+     equalizar — a cor tem de crescer na proporção dos graus, e o zero cai
+     sempre no meio da rampa. Até `limiar` em módulo a diferença é desprezível
+     e fica no neutro; além de `extremo` satura. */
+  function normalizadorDivergente(extremo, limiar) {
+    return {
+      normalizar: function (v) {
+        if (Math.abs(v) <= (limiar || 0)) return 0.5;
+        return 0.5 + Math.max(-1, Math.min(1, v / extremo)) / 2;
+      },
+      quantil: function (f) { return (f * 2 - 1) * extremo; }
+    };
+  }
+
   return {
     CAIXA: CAIXA,
+    normalizadorDivergente: normalizadorDivergente,
+    RAMPA_DIFF: RAMPA_DIFF,
     CENTRO: CENTRO,
     POSICOES: POSICOES,
     RAIO_BOBINA: RAIO_BOBINA,

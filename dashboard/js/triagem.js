@@ -1232,8 +1232,110 @@
       redesenharCalor();
     });
 
+    montarTour();
+
     document.getElementById("heat").hidden = false;
     redesenharCalor();
+  }
+
+  /* ----- Tour pelos pontos críticos -----
+     A lista sai do estado já rotulado em DADOS_TRIAGEM (TOUR.paradas só
+     escolhe e ordena). Cada parada é a mesma seleção de um clique, então os
+     painéis da peça e do ponto abrem sem o usuário tocar no modelo. */
+  var tour = null;
+
+  function montarTour() {
+    var status = document.getElementById("tour-status");
+    var ctrl = document.getElementById("tour-ctrl");
+    var iniciar = document.getElementById("tour-iniciar");
+    var pausa = document.getElementById("tour-pausa");
+    var anterior = document.getElementById("tour-anterior");
+    var proximo = document.getElementById("tour-proximo");
+
+    function escrever(partes) {
+      status.innerHTML = "";
+      partes.forEach(function (x) {
+        status.appendChild(typeof x === "string" ? document.createTextNode(x) : x);
+      });
+    }
+
+    function textoDaParada(e) {
+      var p = e.ponto;
+      var pct = Math.abs(p.margem_percentual * 100).toFixed(1) + "%";
+      escrever([
+        "Parada " + (e.i + 1) + " de " + e.total + " · ",
+        el("b", null, p.TC_Name),
+        " · " + p.estado_rotulo + " · " +
+          (p.margem_percentual < 0 ? pct + " acima do limite" : "folga de " + pct + " do limite") +
+          (e.fim ? " · última parada" : e.tocando ? "" : " · pausado")
+      ]);
+    }
+
+    /* Os marcadores só existem na leitura por pontos, sem subsistema em foco
+       e sem filtro que os esconda: o tour abre nesse estado para que toda
+       parada tenha onde a câmera pousar. */
+    function prepararVista() {
+      if (mapa.vista !== "pontos") document.querySelector("#heat-view [data-view='pontos']").click();
+      if (mapa.isolar !== "todos") { mapa.isolar = "todos"; montarSubsistemas(); }
+      if (mapa.nome || !mapa.mono || Object.keys(mapa.faixas).length || Object.keys(mapa.estados).length) limparFiltros();
+    }
+
+    var controle = {
+      aoParar: function (p) {
+        selecionar(p);
+        modelo.focarPonto(p.measurement_id);
+        // A coluna dos painéis rola por dentro: cada parada abre no resumo da peça.
+        document.querySelector(".heat__side--right").scrollTop = 0;
+      },
+      aoMudar: function (e) {
+        iniciar.hidden = e.ativo;
+        ctrl.hidden = !e.ativo;
+        if (!e.ativo) return;
+        pausa.textContent = e.tocando ? "Pausar" : e.fim ? "Recomeçar" : "Continuar";
+        pausa.setAttribute("aria-pressed", String(!e.tocando));
+        anterior.disabled = e.i === 0;
+        proximo.disabled = e.fim;
+        textoDaParada(e);
+      },
+      // Sair do tour não deixa a câmera presa na última parada.
+      aoEncerrar: function () {
+        limparSelecao();
+        modelo.preset("isometrica");
+        escrever([]);
+        iniciar.focus();
+      }
+    };
+
+    // A lista é lida no clique, do dado que a triagem mostra naquele momento.
+    iniciar.addEventListener("click", function () {
+      var lista = TOUR.paradas(DADOS_TRIAGEM);
+      status.classList.toggle("tour__status--vazio", !lista.length);
+      if (!lista.length) {
+        escrever(["Nenhum ponto acima do limite ou na banda de incerteza nesta configuração: não há paradas para o tour."]);
+        return;
+      }
+      prepararVista();
+      tour = TOUR.criar(lista, controle);
+      tour.iniciar();
+    });
+    pausa.addEventListener("click", function () { tour.alternar(); });
+    anterior.addEventListener("click", function () { tour.anterior(); });
+    proximo.addEventListener("click", function () { tour.proximo(); });
+    document.getElementById("tour-encerrar").addEventListener("click", function () { tour.encerrar(); });
+
+    // Quem pega a câmera durante o tour assume o controle: o avanço automático pausa.
+    function pausarSeTocando() { if (tour && tour.estado().tocando) tour.pausar(); }
+    ["pointerdown", "wheel"].forEach(function (tipo) {
+      palcoCalor.addEventListener(tipo, pausarSeTocando, { passive: true });
+    });
+    palcoCalor.addEventListener("keydown", function (evento) {
+      if (evento.key !== "Escape") pausarSeTocando();
+    });
+    document.getElementById("heat-preset").addEventListener("click", pausarSeTocando);
+
+    document.getElementById("heat").addEventListener("keydown", function (evento) {
+      if (evento.key === "Escape" && tour && tour.estado().ativo) tour.encerrar();
+    });
   }
 
   var balao = document.getElementById("heat-tip");
