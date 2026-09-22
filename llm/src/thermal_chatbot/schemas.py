@@ -50,6 +50,11 @@ class RoutingDecision(BaseModel):
     poucos tokens por segundo, e uma resposta escrita aqui seria descartada
     assim que a ferramenta fosse executada — o usuário pagaria por ela em
     tempo de espera sem nunca vê-la.
+
+    Havia aqui um campo `reason`, para auditoria. Medido nesta máquina, ele
+    custava 36 dos 55 tokens da etapa e 22 dos 27 segundos — e nada no código
+    o lia. A decisão que interessa à auditoria (ação, ferramenta, argumentos)
+    já está nos outros campos, sem gerar uma palavra a mais.
     """
 
     model_config = ConfigDict(extra="forbid")
@@ -57,10 +62,6 @@ class RoutingDecision(BaseModel):
     action: ChatAction
     tool_name: ToolName | None = None
     tool_arguments: dict[str, Any] = Field(default_factory=dict)
-    # Campo de auditoria, sem limite apertado de propósito: a gramática do
-    # Ollama não impõe tamanho de string, então um motivo prolixo invalidaria
-    # uma decisão perfeitamente boa e derrubaria a resposta inteira.
-    reason: str = Field(default="", max_length=4_000)
 
     @model_validator(mode="after")
     def validate_action_fields(self) -> "RoutingDecision":
@@ -107,3 +108,7 @@ class HealthResponse(BaseModel):
     model: str
     detail: str
     sources: list[SourceStatus] = Field(default_factory=list)
+    # "cold" ainda não aqueceu, "warming" está avaliando o prompt de sistema,
+    # "warm" já avaliou. Uma pergunta feita em "warming" espera na fila do
+    # Ollama, e é isso que explica uma primeira resposta lenta.
+    warm: Literal["cold", "warming", "warm"] = "cold"

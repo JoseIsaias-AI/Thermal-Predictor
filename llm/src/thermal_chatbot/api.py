@@ -1,5 +1,8 @@
 """API HTTP do chatbot, destinada ao frontend do Thermal Predictor."""
 
+import asyncio
+import contextlib
+from collections.abc import AsyncIterator
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, status
@@ -65,10 +68,24 @@ def create_app(
         always_retrieve=current_settings.rag_always_retrieve,
     )
 
+    @contextlib.asynccontextmanager
+    async def lifespan(_: FastAPI) -> AsyncIterator[None]:
+        # Em segundo plano: aquecer custa o mesmo tempo da primeira pergunta,
+        # e bloquear a subida faria a API demorar minutos para aceitar até o
+        # /api/health. O cancelamento no fim evita tarefa órfã no reload.
+        tarefa = asyncio.create_task(chatbot.warmup())
+        try:
+            yield
+        finally:
+            tarefa.cancel()
+            with contextlib.suppress(asyncio.CancelledError):
+                await tarefa
+
     application = FastAPI(
         title="Thermal Predictor Chatbot API",
         version="0.2.0",
         description="Integração local e controlada com o Ollama, com RAG local.",
+        lifespan=lifespan,
     )
     application.add_middleware(
         CORSMiddleware,
@@ -92,7 +109,20 @@ def create_app(
             model=current_settings.ollama_model,
             detail=detail,
             sources=fontes,
+            warm=chatbot.warm_state,
         )
+
+    @application.post("/api/warmup", status_code=status.HTTP_202_ACCEPTED)
+    async def warmup() -> dict[str, str]:
+        """Pede o aquecimento e responde na hora, sem esperar o modelo.
+
+        O painel chama isto ao ser aberto. Se o modelo tiver saído da memória
+        depois de ocioso, a avaliação do prompt acontece enquanto a pessoa
+        ainda está escrevendo, e não depois de ela apertar enviar.
+        """
+
+        asyncio.create_task(chatbot.warmup())
+        return {"detail": "Aquecimento iniciado."}
 
     @application.post("/api/chat", response_model=ChatResponse)
     async def chat(request: ChatRequest) -> ChatResponse:

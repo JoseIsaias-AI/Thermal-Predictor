@@ -5,7 +5,12 @@ from fakes import FakeTool, ScriptedProvider, answer, routing
 
 from thermal_chatbot.chatbot import ChatbotService
 from thermal_chatbot.providers.base import ProviderResponseError
-from thermal_chatbot.schemas import ChatAction, ChatRequest, ToolName
+from thermal_chatbot.schemas import (
+    ChatAction,
+    ChatRequest,
+    RoutingDecision,
+    ToolName,
+)
 from thermal_chatbot.tools import ToolResult
 
 
@@ -93,22 +98,13 @@ def test_routing_stage_never_offers_a_text_field() -> None:
     assert len(provider.answer_calls) == 1
 
 
-def test_motivo_longo_nao_invalida_a_decisao() -> None:
-    """A gramática do Ollama não limita tamanho de string; o contrato também não
-    pode derrubar uma decisão boa por causa de um campo de auditoria prolixo."""
+def test_decisao_nao_pede_texto_nenhum_ao_modelo() -> None:
+    """Cada campo de texto na etapa de decisão é espera que ninguém lê.
 
-    provider = ScriptedProvider(
-        routings=[routing(action="answer", tool_name=None, reason="motivo " * 200)],
-        answers=[answer("Resposta.")],
-    )
-    service = ChatbotService(provider, model_name="test-model")
+    O campo `reason` existia aqui para auditoria e custava, medido nesta
+    máquina, 22 s dos 27 s da etapa — sem que nada no código o lesse.
+    """
 
-    response = asyncio.run(service.reply(ChatRequest(message="O que é margem térmica?")))
-
-    assert response.action == ChatAction.ANSWER
-
-
-def test_decisao_sem_motivo_continua_valida() -> None:
     provider = ScriptedProvider(
         routings=[{"action": "answer", "tool_name": None, "tool_arguments": {}}],
         answers=[answer("Resposta.")],
@@ -118,6 +114,9 @@ def test_decisao_sem_motivo_continua_valida() -> None:
     response = asyncio.run(service.reply(ChatRequest(message="O que é margem térmica?")))
 
     assert response.action == ChatAction.ANSWER
+
+    schema = RoutingDecision.model_json_schema()
+    assert set(schema["properties"]) == {"action", "tool_name", "tool_arguments"}
 
 
 def test_recorta_historico_longo_preservando_o_prompt_de_sistema() -> None:
@@ -206,3 +205,27 @@ def test_comparacao_estruturada_nao_vira_cortesia() -> None:
 
     assert response.answer == "Delta de 3,1 °C."
     assert tool.runs == 1
+
+
+def test_aquecimento_usa_o_mesmo_prompt_das_perguntas_reais() -> None:
+    """O cache do Ollama casa por prefixo: um texto diferente não aqueceria nada.
+
+    Medido com qwen3:4b em CPU, avaliar esse prompt custa ~124 s na primeira
+    chamada e 0,4 s nas seguintes.
+    """
+
+    provider = ScriptedProvider()
+    tool = FakeTool(ToolName.DOCUMENTATION_SEARCH, ToolResult(found=False, context=""))
+    service = ChatbotService(
+        provider, model_name="test-model", available_tools={tool.name: tool}
+    )
+
+    asyncio.run(service.warmup())
+
+    assert len(provider.warmups) == 1
+    aquecido = provider.warmups[0][0]["content"]
+    esperado = service._build_messages(ChatRequest(message="oi"))[0]["content"]
+    assert aquecido == esperado
+    # Aquecer não gera resposta nem executa ferramenta.
+    assert provider.calls == []
+    assert tool.runs == 0

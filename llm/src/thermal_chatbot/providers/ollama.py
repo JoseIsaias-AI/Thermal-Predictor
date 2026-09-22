@@ -69,6 +69,29 @@ class OllamaProvider(LLMProvider):
             raise ProviderResponseError("Ollama retornou conteúdo vazio.")
         return content
 
+    async def warmup(self, messages: list[dict[str, str]]) -> None:
+        """Avalia o prompt e descarta a saída: só o cache interessa aqui.
+
+        Sem `format`, porque a gramática não muda os tokens do prompt, e com
+        um token de saída, porque gerar texto é justamente o que não se quer.
+        Falha aqui é silenciosa: aquecimento que não deu certo só devolve a
+        espera para a primeira pergunta, e não pode derrubar a API.
+        """
+
+        payload = {
+            "model": self.settings.ollama_model,
+            "messages": messages,
+            "stream": False,
+            "think": False,
+            "keep_alive": self.settings.ollama_keep_alive,
+            "options": {"temperature": 0, "num_predict": 1},
+        }
+
+        try:
+            await self._request("POST", "/api/chat", json=payload)
+        except httpx.HTTPError:
+            return
+
     async def healthcheck(self) -> tuple[bool, str]:
         try:
             response = await self._request("GET", "/api/tags")

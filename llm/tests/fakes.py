@@ -19,13 +19,11 @@ def routing(
     action: str = "use_tool",
     tool_name: str | None = "documentation_search",
     tool_arguments: dict[str, Any] | None = None,
-    reason: str = "Decisão de teste.",
 ) -> dict[str, Any]:
     return {
         "action": action,
         "tool_name": tool_name,
         "tool_arguments": tool_arguments if tool_arguments is not None else {},
-        "reason": reason,
     }
 
 
@@ -54,6 +52,7 @@ class ScriptedProvider(LLMProvider):
         self.calls: list[list[dict[str, str]]] = []
         self.routing_calls: list[list[dict[str, str]]] = []
         self.answer_calls: list[list[dict[str, str]]] = []
+        self.warmups: list[list[dict[str, str]]] = []
 
     async def complete(
         self,
@@ -70,6 +69,9 @@ class ScriptedProvider(LLMProvider):
         assert "answer" not in response_schema["properties"]
         self.routing_calls.append(messages)
         return json.dumps(self.routings.pop(0))
+
+    async def warmup(self, messages: list[dict[str, str]]) -> None:
+        self.warmups.append(messages)
 
     async def healthcheck(self) -> tuple[bool, str]:
         return True, "Provedor de teste disponível."

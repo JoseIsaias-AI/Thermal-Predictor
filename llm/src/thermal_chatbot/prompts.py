@@ -112,9 +112,7 @@ DECISÃO
    Se faltar uma fonte ou ferramenta, declare claramente que ela não está
    acessível nesta execução; não afirme que o dado inexiste na fonte.
 4. Só liste uma fonte em sources se ela tiver sido fornecida de fato.
-5. O campo reason deve justificar a decisão para auditoria em no máximo uma
-   frase curta, sem expor raciocínio interno detalhado.
-6. Para action="answer" ou action="insufficient_data", use tool_name=null e
+5. Para action="answer" ou action="insufficient_data", use tool_name=null e
    tool_arguments={{}}.
 
 DUAS ETAPAS

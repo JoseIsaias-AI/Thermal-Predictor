@@ -98,3 +98,52 @@ def test_health_reports_connected_sources() -> None:
 
 def test_health_without_sources_lists_none() -> None:
     assert make_client().get("/api/health").json()["sources"] == []
+
+
+def test_endpoint_de_aquecimento_responde_sem_esperar_o_modelo() -> None:
+    """O painel chama isto ao abrir; a resposta não pode esperar a avaliação."""
+
+    provider = ApiFakeProvider()
+    client = TestClient(
+        create_app(
+            settings=Settings(ollama_model="test-model"),
+            provider=provider,
+            tools={ToolName.DOCUMENTATION_SEARCH: ApiFakeTool()},
+        )
+    )
+
+    response = client.post("/api/warmup")
+
+    assert response.status_code == 202
+    # Nenhuma geração foi pedida: aquecer não é responder.
+    assert provider.answer_calls == []
+
+
+def test_a_api_aquece_o_prompt_ao_subir() -> None:
+    provider = ApiFakeProvider()
+    with TestClient(
+        create_app(
+            settings=Settings(ollama_model="test-model"),
+            provider=provider,
+            tools={ToolName.DOCUMENTATION_SEARCH: ApiFakeTool()},
+        )
+    ):
+        pass
+
+    assert len(provider.warmups) >= 1
+    assert "ESCOPO" in provider.warmups[0][0]["content"]
+
+
+def test_saude_diz_se_o_prompt_ja_esta_aquecido() -> None:
+    """Pergunta feita durante o aquecimento espera na fila do Ollama."""
+
+    client = TestClient(
+        create_app(
+            settings=Settings(ollama_model="test-model"),
+            provider=ApiFakeProvider(),
+            tools={ToolName.DOCUMENTATION_SEARCH: ApiFakeTool()},
+        )
+    )
+
+    with client:
+        assert client.get("/api/health").json()["warm"] in {"warming", "warm"}

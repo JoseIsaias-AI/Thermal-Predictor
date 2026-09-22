@@ -78,6 +78,10 @@ class ChatbotService:
         self.provider = provider
         self.model_name = model_name
         self.available_tools: dict[ToolName, Tool] = dict(available_tools or {})
+        # O Ollama atende um pedido por vez em cada modelo, então uma pergunta
+        # que chega durante o aquecimento espera por ele. Quem opera precisa
+        # saber disso antes de cronometrar a primeira resposta.
+        self.warm_state: str = "cold"
         # Rede de proteção: consulta a documentação quando o modelo decide
         # responder de cabeça sobre algo que pode estar documentado.
         self.always_retrieve = always_retrieve
@@ -140,6 +144,33 @@ class ChatbotService:
             # seria não verificável.
             sources=[],
         )
+
+    async def warmup(self) -> None:
+        """Deixa o prompt de sistema já avaliado no provedor.
+
+        O texto tem de ser idêntico ao das perguntas reais: o cache do Ollama
+        casa por prefixo de tokens, e uma vírgula diferente joga o trabalho
+        todo fora. Por isso aqui se usa o mesmo build_system_prompt, com as
+        mesmas ferramentas desta execução.
+        """
+
+        self.warm_state = "warming"
+        try:
+            await self.provider.warmup(
+                [
+                    {
+                        "role": "system",
+                        "content": build_system_prompt(self.available_tools.keys()),
+                    },
+                    {"role": "user", "content": "oi"},
+                ]
+            )
+        except Exception:
+            # Aquecer é otimização: falhar aqui só devolve a espera para a
+            # primeira pergunta.
+            self.warm_state = "cold"
+            raise
+        self.warm_state = "warm"
 
     def _build_messages(self, request: ChatRequest) -> list[dict[str, str]]:
         return [

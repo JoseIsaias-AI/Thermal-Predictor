@@ -267,11 +267,19 @@ Com o Ollama aberto, inicie a API:
 uvicorn thermal_chatbot.api:app --reload --host 127.0.0.1 --port 8000
 ```
 
-Verifique o estado. A resposta traz o provedor e cada fonte conectada, com o
-número de trechos indexados:
+Verifique o estado. A resposta traz o provedor, cada fonte conectada com o
+número de trechos indexados, e o campo `warm`, que diz se o prompt de sistema
+já foi avaliado pelo modelo (`cold`, `warming` ou `warm`):
 
 ```powershell
 Invoke-RestMethod http://127.0.0.1:8000/api/health | ConvertTo-Json -Depth 4
+```
+
+A API já aquece sozinha ao subir. Depois de um período ocioso, este endpoint
+pede o aquecimento de novo e responde na hora, sem esperar o modelo:
+
+```powershell
+Invoke-RestMethod -Method Post http://127.0.0.1:8000/api/warmup
 ```
 
 Envie uma mensagem:
@@ -322,6 +330,17 @@ Se `size_vram` for `0`, a execução é em CPU.
   seria descartada ao executar a ferramenta. Antes ele escrevia cerca de 150
   tokens ali — quase 40 s de espera jogados fora. A etapa de redação usa um
   schema sem campos de ferramenta, pelo mesmo motivo.
+- **A etapa de decisão não tem nenhum campo de texto.** Havia um `reason`,
+  para auditoria, que nada no código lia — nem a API devolvia, nem o log
+  registrava. Ele respondia por 36 dos 55 tokens gerados na etapa. Medido com
+  `qwen3:4b` em CPU: a decisão caiu de 27,0 s para 5,0 s, e a mesma pergunta
+  de documentação ponta a ponta, de 190,5 s para 147,7 s. O que a auditoria
+  precisa (ação, ferramenta, argumentos) continua nos outros campos.
+- **Enxugar o prompt da etapa de redação foi medido e descartado.** Tirar dele
+  as regras de decisão e a lista de ferramentas levou o prompt de 6.286 para
+  1.735 caracteres e o tempo de 72,1 s para 73,8 s — dentro do ruído. O custo
+  dessa etapa está na geração e na avaliação do contexto recuperado, não no
+  tamanho do prompt de sistema.
 - **Recusa decidida em código não gasta geração.** Ferramenta indisponível,
   configuração incompleta ou busca sem resultado respondem direto, sem pedir
   texto ao modelo.
@@ -343,6 +362,42 @@ Se `size_vram` for `0`, a execução é em CPU.
 - **Histórico recortado** às últimas seis mensagens (4.000 caracteres). Além
   do custo, um histórico longo empurraria o prompt de sistema para fora da
   janela de contexto — e com ele as regras de escopo e confidencialidade.
+
+- **O prompt de sistema é aquecido antes da pergunta.** O Ollama reaproveita
+  o prefixo de tokens já avaliado: medido com o mesmo prompt, a primeira
+  chamada levou 136,9 s e a segunda 0,4 s. Como o prompt de sistema é o mesmo
+  em toda pergunta, quem perguntasse primeiro pagava sozinho uma conta que
+  todas as seguintes recebem de graça. Agora a API aquece ao subir, em
+  segundo plano, e `POST /api/warmup` permite ao painel aquecer de novo depois
+  de um período ocioso — uma geração de um token só, com a saída descartada.
+
+  Dois detalhes importam. O texto do aquecimento tem de ser idêntico ao das
+  perguntas reais, porque o cache casa por prefixo; e o Ollama atende um
+  pedido por vez em cada modelo, então uma pergunta feita durante o
+  aquecimento espera na fila dele. Por isso `GET /api/health` devolve
+  `warm` como `cold`, `warming` ou `warm`, e o painel só pede aquecimento
+  quando a saúde diz que ainda não aqueceu.
+- **Ajustar `num_thread` e `num_batch` foi medido e descartado.** Com o prompt
+  de redação completo e `num_predict=1`, o padrão do Ollama deu 29,5 tok/s na
+  avaliação; 14 threads, 28,2; 10 threads, 25,5; 10 threads com batch 1024,
+  26,8; 6 threads, 18,5. O padrão já escolhe melhor que qualquer valor fixo
+  neste processador híbrido.
+
+### O que sobra depois disso
+
+A máquina onde isso foi medido é um Intel Core Ultra 5 235U, de 15 W, sem GPU
+dedicada: `qwen3:4b` roda **inteiramente em CPU** (`size_vram` igual a zero) a
+3–5 tokens por segundo gerando, e avalia prompt a cerca de 30 tokens por
+segundo. Com o prompt de sistema aquecido, três perguntas livres medidas em
+sequência deram 122,7 s, 89,0 s e 114,3 s.
+
+O que sobra em cada pergunta é o embedding da consulta (~5 s), a decisão
+(~5 s, com o prefixo em cache) e a redação — nesta, o trecho recuperado é
+texto novo a cada pergunta e custa ~47 s de avaliação, mais a geração da
+resposta. Reduzir `RAG_TOP_K` encurta essa parte, ao preço de arriscar deixar
+de fora o trecho que responde. Daí em diante só um modelo menor ou uma GPU
+muda a ordem de grandeza. Saudação, cortesia e comparação reconhecida não
+passam pelo modelo e continuam instantâneas.
 
 ### Se ainda estiver lento
 
