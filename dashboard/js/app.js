@@ -281,6 +281,10 @@
     // para a coluna dos campos, não para a barra do modelo.
     document.getElementById("form-count").textContent = n;
     document.getElementById("form-fill").style.width = (n / 7 * 100) + "%";
+    // O título diz o estado do formulário, e não só o nome dele.
+    document.getElementById("form-title").textContent = n === 7
+      ? "Pronta para a triagem"
+      : "Faltam " + (7 - n) + (7 - n === 1 ? " fator" : " fatores");
     atualizarFaixa(input);
     atualizarExplosao();
 

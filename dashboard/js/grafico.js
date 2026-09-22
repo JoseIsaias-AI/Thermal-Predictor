@@ -76,7 +76,7 @@ var GRAFICO = (function () {
         "class": vr === 0 ? "ax-zero" : "ax-line"
       }));
       svg.appendChild(texto(X(vr), o.yRotulo,
-        vr === 0 ? "0% · limite" : (vr * 100).toFixed(0) + "%",
+        vr === 0 ? "0% · limite" : (vr * 100).toFixed(0).replace("-", "−") + "%",
         vr === 0 ? "ax-text ax-text--forte" : "ax-text", "middle"));
     }
 

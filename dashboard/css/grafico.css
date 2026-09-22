@@ -22,15 +22,18 @@
 
 .chart__frame { position: relative; }
 
+/* Sem moldura nem fundo: a área do gráfico é o próprio painel (data-ink). */
 .chart__scroll {
   overflow-x: auto;
-  border: var(--border-width) solid var(--color-border);
-  border-radius: var(--radius);
-  background: var(--color-surface);
-  padding: var(--space-2);
+  padding: var(--space-2) 0;
 }
 
 .chart__svg { display: block; width: 100%; height: auto; }
+
+/* Os desenhos da triagem têm 880 de largura no viewBox e escalam com a
+   coluna: acima de 64rem o texto do eixo cresceria além do corpo da página,
+   então a figura para de esticar ali. */
+#visuais .chart__svg { max-width: 64rem; }
 
 .chart__note {
   font-size: var(--size-kicker);
@@ -42,24 +45,26 @@
    O traço mais fino que ainda se lê: a moldura não pode competir com o dado.
    O zero é a única linha que engrossa, porque é a fronteira que decide. */
 
-.ax-line { stroke: #edf0f3; stroke-width: 1; }
+.ax-line { stroke: var(--color-grid); stroke-width: 1; }
 .ax-zero { stroke: var(--color-text); stroke-width: 1.4; }
 .ax-band { fill: var(--color-surface-accent); }
 
+/* Nada abaixo de 12px, também dentro do SVG. */
 .ax-text {
   font-family: var(--font-body);
-  font-size: 11px;
+  font-size: 12px;
   fill: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
 }
 
 .ax-text--forte { fill: var(--color-text); font-weight: var(--weight-semibold); }
-.ax-text--eixo { font-size: 10.5px; fill: var(--color-text-subtle); }
+.ax-text--eixo { font-size: 12px; fill: var(--color-text-subtle); }
 
+/* Título de eixo em caixa normal: hierarquia por peso, não por maiúsculas. */
 .ax-rotulo {
   font-family: var(--font-body);
-  font-size: 9.5px;
+  font-size: 12px;
   font-weight: var(--weight-semibold);
-  letter-spacing: var(--tracking-kicker);
   fill: var(--color-text-muted);
 }
 
@@ -77,7 +82,9 @@
 /* Marca clicável: na triagem o desenho é uma terceira porta para a mesma
    seleção que a tabela e o modelo já abrem. */
 .ax-marca { cursor: pointer; }
-.ax-faixa-alt { fill: #fafbfc; }
+/* Multiplica em vez de cobrir: a faixa alternada não apaga a banda de
+   incerteza nem a linha do limite que passam por baixo dela. */
+.ax-faixa-alt { fill: var(--color-grid-alt); mix-blend-mode: multiply; }
 
 /* Subsistema fora do isolamento: continua desenhado, e apenas recua. */
 .ax-recuado { opacity: 0.28; }
@@ -88,7 +95,7 @@
 .kpis {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
-  gap: var(--space-3);
+  gap: var(--space-4);
   margin-bottom: var(--space-4);
 }
 
@@ -100,17 +107,18 @@
   border: var(--border-width) solid var(--color-border);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-card);
-  padding: var(--space-4) var(--space-4) var(--space-3);
+  padding: var(--space-4);
   min-width: 0;
   overflow: hidden;
 }
 
-/* Só o que muda a decisão de hoje sai do neutro. */
-.kpi--alerta { box-shadow: var(--shadow-card), inset 3px 0 0 var(--color-critical); }
-.kpi--alerta .kpi__valor { color: var(--color-critical); }
+/* Só o que muda a decisão de hoje sai do neutro. A banda é atenção, e não
+   ganha o azul da marca: fica no escuro neutro, com o filete. */
+.kpi--alerta { box-shadow: var(--shadow-card), inset 3px 0 0 var(--status-critical); }
+.kpi--alerta .kpi__valor { color: var(--status-critical); }
 
-.kpi--atencao { box-shadow: var(--shadow-card), inset 3px 0 0 var(--color-accent); }
-.kpi--atencao .kpi__valor { color: var(--color-accent); }
+.kpi--atencao { box-shadow: var(--shadow-card), inset 3px 0 0 var(--status-attention-bar); }
+.kpi--atencao .kpi__valor { color: var(--status-attention); }
 
 .kpi__rotulo {
   display: block;
@@ -134,16 +142,16 @@
 
 .kpi__valor small {
   font-family: var(--font-body);
-  font-size: 0.9375rem;
+  font-size: var(--size-body);
   font-weight: var(--weight-regular);
   letter-spacing: 0;
   color: var(--color-text-subtle);
-  margin-left: 6px;
+  margin-left: var(--space-1);
 }
 
 .kpi__nota {
   display: block;
-  font-size: var(--size-small);
+  font-size: var(--size-kicker);
   color: var(--color-text-subtle);
   margin-top: var(--space-2);
   overflow: hidden;
@@ -159,7 +167,7 @@
 .viz__titulo {
   font-family: var(--font-display);
   font-weight: 600;
-  font-size: 0.875rem;
+  font-size: var(--size-subhead);
   letter-spacing: 0;
   color: var(--color-text);
   margin: 0 0 var(--space-2);
@@ -199,7 +207,7 @@
 }
 
 /* A dispersão é quadrada: na largura toda ficaria mais alta que a tela. */
-#visuais .viz-par .viz:last-child .chart__scroll { max-width: 40rem; }
+#visuais .viz-par .viz:last-child .chart__scroll { max-width: 41.25rem; }
 
 #visuais > .more { margin-top: var(--space-4); }
 
@@ -227,7 +235,7 @@
 .ax-marca.is-realce { stroke: var(--wp-blue-accent) !important; stroke-width: 2.4 !important; }
 
 .ax-guia { stroke: var(--wp-blue-accent); stroke-width: 1; stroke-dasharray: 3 3; }
-.ax-anotacao { font-family: var(--font-body); font-size: 10px; fill: var(--color-text); }
+.ax-anotacao { font-family: var(--font-body); font-size: 12px; fill: var(--color-text); }
 
 /* ----- Coordenadas paralelas ----- */
 
@@ -244,7 +252,7 @@
    isso a linha corta as letras. */
 .pc-nivel {
   font-family: var(--font-body);
-  font-size: 9.5px;
+  font-size: 12px;
   fill: var(--color-text-muted);
   paint-order: stroke;
   stroke: var(--color-surface);
@@ -254,10 +262,15 @@
 
 .pc-cabeca {
   font-family: var(--font-display);
-  font-size: 9px;
+  font-size: 12px;
   font-weight: var(--weight-bold);
-  letter-spacing: var(--tracking-kicker);
   fill: var(--color-text);
 }
 
 .pc-cabeca--resposta { fill: var(--color-accent); }
+
+/* "Ver como tabela" encosta na direita do título; com o "Ver todos" ao lado,
+   os dois ficam juntos. */
+.viz__acao--fim { margin-left: auto; }
+.viz__acao + .ver-tabela { margin-left: var(--space-4); }
+.viz__acao[hidden] + .ver-tabela { margin-left: auto; }

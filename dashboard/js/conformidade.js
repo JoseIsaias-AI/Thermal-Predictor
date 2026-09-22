@@ -29,12 +29,33 @@
     return td;
   }
 
+  // Na tela, pt-BR: vírgula decimal, sinal de menos tipográfico e a mesma
+  // casa decimal das outras telas. A planilha guarda o número cru.
+  function fmt(valor, casas) {
+    var t = valor.toFixed(casas);
+    if (Number(t) === 0) t = t.replace("-", "");
+    return t.replace(".", ",").replace("-", "−");
+  }
+
   function grausC(valor) {
-    return valor === null || valor === undefined ? "—" : valor.toFixed(2);
+    return valor === null || valor === undefined ? "—" : fmt(valor, 1);
   }
 
   function percentual(fracao) {
-    return fracao === null || fracao === undefined ? "—" : (fracao * 100).toFixed(1) + "%";
+    return fracao === null || fracao === undefined ? "—" : fmt(fracao * 100, 1) + "%";
+  }
+
+  /* Título da tela como conclusão: quantos componentes avaliados passam do
+     limite admissível. Mesma contagem do resumo acima da tabela. */
+  function renderTitulo(contagem, avaliados) {
+    var acima = contagem.acima_do_limite;
+    var banda = contagem.banda_de_incerteza;
+    var texto = acima
+      ? acima + " de " + avaliados + (acima === 1 ? " componente acima do limite admissível" : " componentes acima do limite admissível")
+      : banda
+        ? "Nenhum componente acima do limite; " + banda + " inconclusivos"
+        : "Nenhum dos " + avaliados + " componentes acima do limite admissível";
+    document.getElementById("page-title").textContent = texto;
   }
 
   // Subsistema na segunda linha da célula, como na tabela da triagem.
@@ -236,6 +257,7 @@
   loading.hidden = true;
 
   renderConfiguracao(configAtiva, mat, configDaUrl !== null);
+  renderTitulo(contagem, pontos.length - contagem.monitoramento);
   renderTally(contagem);
   renderReprovados(reprovados, pontos.length - contagem.monitoramento);
   renderSubsistemas(LP.porSubsistema(pontos));

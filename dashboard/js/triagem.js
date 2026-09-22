@@ -26,12 +26,20 @@
     dentro_do_limite: "Dentro do limite"
   };
 
+  // Na tela, pt-BR: vírgula decimal e sinal de menos tipográfico, com a mesma
+  // casa decimal para a mesma grandeza. A planilha exportada guarda o número cru.
+  function fmt(valor, casas) {
+    var t = valor.toFixed(casas);
+    if (Number(t) === 0) t = t.replace("-", "");
+    return t.replace(".", ",").replace("-", "−");
+  }
+
   function grausC(valor) {
-    return valor.toFixed(2);
+    return fmt(valor, 1);
   }
 
   function percentual(fracao) {
-    return (fracao * 100).toFixed(1) + "%";
+    return fmt(fracao * 100, 1) + "%";
   }
 
   function el(tag, classe, texto) {
@@ -131,9 +139,22 @@
     });
   }
 
+  /* O título da tela é a conclusão, e não o nome dela: quantos dos pontos com
+     limite passam dele. Conta o que a tabela lista, sem regra nova. */
+  function tituloConclusao(pontos) {
+    var total = pontos.length;
+    var acima = pontos.filter(function (p) { return p.estado === "acima_do_limite"; }).length;
+    var banda = pontos.filter(function (p) { return p.estado === "banda_de_incerteza"; }).length;
+    if (acima) return acima + " de " + total + (acima === 1 ? " ponto acima do limite" : " pontos acima do limite");
+    if (banda) return "Nenhum ponto acima do limite; " + banda + " na banda de incerteza";
+    return "Nenhum dos " + total + " pontos acima do limite";
+  }
+
   function render(dados) {
     document.getElementById("tolerance-fraction").textContent =
       (dados.tolerancia_fracao * 100).toFixed(0) + "%";
+
+    document.getElementById("page-title").textContent = tituloConclusao(dados.pontos);
 
     if (dados.preditor_e_stub) {
       document.getElementById("model-version").textContent = dados.versao_modelo;
@@ -208,10 +229,10 @@
   function dicaDoPonto(p) {
     return "<b class=\"tip__name\">" + p.TC_Name + "</b>" +
       "<span class=\"tip__state\">" + p.Key_Area + "</span><br>" +
-      "<span class=\"tip__num\">" + p.temperatura_prevista_c.toFixed(1) + " °C</span>" +
-      " de <span class=\"tip__num\">" + p.limit_c.toFixed(0) + " °C</span>" +
-      " · <span class=\"tip__num\">folga " + p.margem_c.toFixed(1) + " °C</span>" +
-      " (" + (p.margem_percentual * 100).toFixed(1) + "%)" +
+      "<span class=\"tip__num\">" + grausC(p.temperatura_prevista_c) + " °C</span>" +
+      " de <span class=\"tip__num\">" + grausC(p.limit_c) + " °C</span>" +
+      " · <span class=\"tip__num\">folga " + grausC(p.margem_c) + " °C</span>" +
+      " (" + percentual(p.margem_percentual) + ")" +
       "<span class=\"tip__state\"> · " + p.estado_rotulo + "</span>";
   }
 
@@ -289,7 +310,7 @@
       banda.length ? "kpi--atencao" : null));
 
     caixa.appendChild(cartao("Pior folga",
-      pior ? pior.margem_c.toFixed(1) : "—", "°C",
+      pior ? grausC(pior.margem_c) : "—", "°C",
       pior ? pior.TC_Name : "sem pontos no recorte",
       pior && pior.margem_c < 0 ? "kpi--alerta" : null));
 
@@ -351,7 +372,7 @@
       topo: MT - 12, base: H - MB, yRotulo: MT - 18,
       tolerancia: DADOS.tolerancia_fracao
     });
-    svgRanking.appendChild(GRAFICO.texto(ML, 10, "FOLGA RELATIVA AO LIMITE", "ax-rotulo"));
+    svgRanking.appendChild(GRAFICO.texto(ML, 12, "Folga relativa ao limite", "ax-rotulo"));
 
     var zero = X(0);
     mostrados.forEach(function (p, k) {
@@ -378,7 +399,7 @@
         GRAFICO.corta(p.TC_Name, 28),
         p.measurement_id === mapa.sel ? "ax-text ax-text--forte" : "ax-text", "end"));
       svgRanking.appendChild(GRAFICO.texto(ML + PW + 8, y + 3.5,
-        p.margem_c.toFixed(1), "ax-text", "start"));
+        grausC(p.margem_c), "ax-text", "start"));
     });
   }
 
@@ -437,9 +458,9 @@
     svgCritério.appendChild(GRAFICO.texto(X(topo) - 6, Y(topo) + 16,
       "previsão = limite", "ax-text ax-text--forte", "end"));
     svgCritério.appendChild(GRAFICO.texto(ML, MT - 10,
-      "TEMPERATURA PREVISTA (°C)", "ax-rotulo"));
+      "Temperatura prevista (°C)", "ax-rotulo"));
     svgCritério.appendChild(GRAFICO.texto(ML + PW, ALT - 8,
-      "LIMITE DECLARADO (°C)", "ax-rotulo", "end"));
+      "Limite declarado (°C)", "ax-rotulo", "end"));
     svgCritério.appendChild(GRAFICO.texto(ML, ALT - 8,
       "acima da reta = ultrapassa o limite", "ax-text ax-text--eixo"));
 
@@ -501,7 +522,7 @@
       topo: MT - 12, base: H - MB, yRotulo: MT - 18,
       tolerancia: DADOS.tolerancia_fracao
     });
-    svgSubsistema.appendChild(GRAFICO.texto(ML, 10, "FOLGA RELATIVA AO LIMITE", "ax-rotulo"));
+    svgSubsistema.appendChild(GRAFICO.texto(ML, 12, "Folga relativa ao limite", "ax-rotulo"));
 
     function quantil(ordenados, q) {
       var i = (ordenados.length - 1) * q, b = Math.floor(i), r = i - b;
@@ -540,9 +561,9 @@
       }
 
       var acima = f.pontos.filter(function (p) { return p.estado === "acima_do_limite"; }).length;
-      g.appendChild(GRAFICO.texto(ML - 12, meio - 1, f.area,
+      g.appendChild(GRAFICO.texto(ML - 12, meio - 2, f.area,
         isolado && mapa.isolar !== "todos" ? "ax-text ax-text--forte" : "ax-text", "end"));
-      g.appendChild(GRAFICO.texto(ML - 12, meio + 11,
+      g.appendChild(GRAFICO.texto(ML - 12, meio + 12,
         acima + " acima de " + f.pontos.length, "ax-text ax-text--eixo", "end"));
 
       f.pontos.forEach(function (p, i) {
@@ -751,7 +772,7 @@
             (p.is_monitor_only ? " stroke-dasharray=\"2.5 2\"" : "") + "></path>" +
         "</svg>" +
         "<dl class=\"conf__dados\">" +
-          "<div><dt>Temperatura prevista</dt><dd class=\"conf__temp\">" + p.temperatura_prevista_c.toFixed(2) + " °C</dd></div>" +
+          "<div><dt>Temperatura prevista</dt><dd class=\"conf__temp\">" + grausC(p.temperatura_prevista_c) + " °C</dd></div>" +
           "<div><dt>Confiança</dt><dd class=\"conf__nivel\"><span class=\"conf__passos\" aria-hidden=\"true\">" + passos + "</span>" + conf.rotulo + "</dd></div>" +
         "</dl>" +
       "</div>" +
@@ -786,10 +807,10 @@
         "<p class=\"legend-note\">Sem limite, não recebe estado nem entra na escala.</p>";
     } else {
       var tol = DADOS.tolerancia_fracao * p.limit_c;
-      html += linhaDetalhe("Limite do componente", p.limit_c.toFixed(2) + " °C") +
-        linhaDetalhe("Folga", p.margem_c.toFixed(2) + " °C") +
-        linhaDetalhe("Folga relativa", (p.margem_percentual * 100).toFixed(1) + "%") +
-        linhaDetalhe("Tolerância (10% do limite)", tol.toFixed(2) + " °C") + "</dl>";
+      html += linhaDetalhe("Limite do componente", grausC(p.limit_c) + " °C") +
+        linhaDetalhe("Folga", grausC(p.margem_c) + " °C") +
+        linhaDetalhe("Folga relativa", percentual(p.margem_percentual)) +
+        linhaDetalhe("Tolerância (10% do limite)", grausC(tol) + " °C") + "</dl>";
 
       // Onde a previsão cai em relação ao limite.
       var frac = Math.max(0, Math.min(1, p.temperatura_prevista_c / (p.limit_c * 1.6)));

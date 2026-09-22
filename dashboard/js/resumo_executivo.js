@@ -300,12 +300,17 @@ var RESUMO_EXECUTIVO = (function () {
     alvo.setAttribute("aria-labelledby", titulo.id);
     leitura.appendChild(titulo);
 
-    leitura.appendChild(el("p", "resumo-exec__texto", r.texto));
-
     var passo = el("div", "resumo-exec__passo");
     passo.appendChild(el("h3", null, "Próximo passo"));
     passo.appendChild(el("p", null, r.proximo_passo));
     leitura.appendChild(passo);
+
+    // O texto corrido repete em frases os números ao lado: fica a um clique,
+    // junto das ressalvas, e não disputa a primeira leitura.
+    var extenso = el("details", "more resumo-exec__extenso");
+    extenso.appendChild(el("summary", null, "Ler o resumo por extenso"));
+    extenso.appendChild(el("p", "resumo-exec__texto", r.texto));
+    leitura.appendChild(extenso);
 
     if (n.total > 0) {
       var lista = el("dl", "resumo-exec__numeros");
@@ -325,6 +330,12 @@ var RESUMO_EXECUTIVO = (function () {
           barra.appendChild(seg);
         });
       lateral.appendChild(barra);
+
+      if (n.monitorados) {
+        lateral.appendChild(el("p", "resumo-exec__fora", n.monitorados === 1
+          ? "Não entra na conta 1 ponto só monitorado, sem limite declarado."
+          : "Não entram na conta " + n.monitorados + " pontos só monitorados, sem limite declarado."));
+      }
     }
 
     var prios = opcoes.prioridades ? prioridades(dados, opcoes.prioridades) : [];
@@ -339,15 +350,17 @@ var RESUMO_EXECUTIVO = (function () {
 
     alvo.appendChild(corpo);
 
+    // A contagem dos monitorados já está junto dos números; o resto das
+    // ressalvas acompanha o texto por extenso.
     var notas = [];
-    if (n.monitorados) {
+    if (n.monitorados && n.total === 0) {
       notas.push(n.monitorados === 1
         ? "Não entra na conta 1 ponto só monitorado, sem limite declarado."
         : "Não entram na conta " + n.monitorados + " pontos só monitorados, sem limite declarado.");
     }
     if (origem.nota) notas.push(origem.nota);
     if (dados.preditor_e_stub) notas.push("Valores de demonstração, ainda não saem de modelo treinado.");
-    if (notas.length) alvo.appendChild(el("p", "resumo-exec__nota", notas.join(" ")));
+    if (notas.length) extenso.appendChild(el("p", "resumo-exec__nota", notas.join(" ")));
 
     alvo.hidden = false;
     return r;

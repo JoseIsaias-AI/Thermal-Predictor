@@ -27,16 +27,20 @@
    catálogo de 32 cartões: qual configuração do histórico estoura menos
    pontos, com quanto, e um caminho direto para a triagem dela. */
 
+/* Mesmo cartão das outras telas: superfície branca e filete do pior estado
+   (há pontos acima do limite em toda configuração da base). O azul da marca
+   fica no botão, que é a ação. */
 .lead-card {
   display: flex;
   align-items: center;
   gap: var(--space-6);
   flex-wrap: wrap;
-  background: var(--color-surface-accent);
+  background: var(--color-surface);
   border: var(--border-width) solid var(--color-border);
-  border-left: 4px solid var(--color-accent);
-  border-radius: var(--radius);
-  padding: var(--space-4) var(--space-5);
+  border-left: 4px solid var(--status-critical);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+  padding: var(--space-5) var(--space-6);
   margin: 0 0 var(--space-4);
 }
 
@@ -53,20 +57,20 @@
   font-family: var(--font-body);
   font-weight: var(--weight-semibold);
   font-size: var(--size-small);
-  color: var(--color-accent);
+  color: var(--color-text-muted);
 }
 
 .lead-card__cfg {
   font-family: var(--font-display);
-  font-weight: var(--weight-light);
-  font-size: 2.125rem;
+  font-weight: 600;
+  font-size: var(--size-metric);
   line-height: 1.1;
-  color: var(--color-accent);
+  color: var(--color-text);
 }
 
 .lead-card__fp {
   font-size: var(--size-kicker);
-  color: var(--wp-charcoal);
+  color: var(--color-text-muted);
 }
 
 .lead-card__nums {
@@ -84,20 +88,23 @@
 
 .lead-card__nums dt {
   font-size: var(--size-kicker);
-  color: var(--wp-charcoal);
+  color: var(--color-text-muted);
 }
 
+/* Número na cor do estado só quando é o estado que exige ação; a banda fica
+   no escuro neutro e "dentro" no texto comum, como no resumo executivo. */
 .lead-card__nums dd {
   margin: 0;
   font-family: var(--font-display);
-  font-weight: var(--weight-light);
-  font-size: 2.125rem;
+  font-weight: 600;
+  font-size: var(--size-metric);
   line-height: 1;
   font-variant-numeric: tabular-nums;
-  color: var(--color-accent);
+  color: var(--color-text);
 }
 
-.lead-card__nums dd.is-over { color: var(--color-critical); }
+.lead-card__nums dd.is-over { color: var(--status-critical); }
+.lead-card__nums div:nth-child(2) dd { color: var(--status-attention); }
 
 .lead-card .button { text-decoration: none; flex: none; }
 
@@ -111,6 +118,10 @@
   padding: var(--space-3) var(--space-4);
   margin: 0 0 var(--space-5);
 }
+
+/* A ressalva de enquadramento desta tela é mais longa que uma linha curta:
+   ela quebra, mas continua sem caixa. */
+.ressalva--quebra > summary { width: auto; }
 
 .notice__lead { margin: 0; font-size: var(--size-body); }
 
@@ -198,14 +209,12 @@
 .cmp-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(15.5rem, 1fr));
-  gap: var(--space-3);
-  margin-top: var(--space-3);
+  gap: var(--space-2);
+  margin-top: var(--space-2);
   max-height: 25rem;
   overflow-y: auto;
   overscroll-behavior: contain;
   padding: var(--space-1);
-  border: var(--border-width) solid var(--color-border);
-  border-radius: var(--radius);
 }
 
 .cfg-card {
@@ -305,7 +314,7 @@
   border: var(--border-width) solid var(--color-border-strong);
 }
 
-.axis-key b { font-weight: var(--weight-regular); color: var(--wp-gray-medium); }
+.axis-key b { font-weight: var(--weight-regular); color: var(--color-text-subtle); }
 
 .cfg-card__counts {
   display: flex;
@@ -331,7 +340,7 @@
 }
 
 .fp__token {
-  font-size: 10px;
+  font-size: var(--size-kicker);
   line-height: 1.5;
   color: var(--color-text-muted);
   background: var(--color-surface-sunken);
@@ -358,7 +367,6 @@
   flex-wrap: wrap;
   gap: var(--space-3);
   border: var(--border-width) solid var(--color-border-strong);
-  border-left: 3px solid var(--color-accent);
   border-radius: var(--radius);
   padding: var(--space-3) var(--space-4);
   margin-bottom: var(--space-5);
@@ -411,17 +419,13 @@
 }
 
 .cmp-head {
-  border: var(--border-width) solid var(--color-border);
   border-top: 3px solid var(--slot);
-  border-radius: var(--radius);
-  padding: var(--space-3);
+  padding: var(--space-3) 0 0;
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
   min-width: 0;
 }
-
-.cmp-head--ref { background: var(--color-surface-accent); }
 
 .cmp-head__top { display: flex; align-items: center; gap: var(--space-2); }
 
@@ -525,7 +529,7 @@
   background: var(--color-surface);
 }
 
-.cmp-factor__val .slot { width: 0.95rem; height: 0.95rem; font-size: 10px; }
+.cmp-factor__val .slot { width: 1rem; height: 1rem; font-size: var(--size-kicker); }
 
 /* Os fatores idênticos não somem — colapsam. Cinco linhas repetindo "igual em
    todas" custavam mais atenção do que o fato que carregavam. */
@@ -628,7 +632,7 @@
   font-size: var(--size-kicker);
   letter-spacing: 0;
   text-transform: none;
-  color: var(--wp-gray-medium);
+  color: var(--color-text-subtle);
   white-space: nowrap;
 }
 
@@ -673,10 +677,10 @@
   text-align: right;
 }
 
-.diverge__num .is-nil { color: var(--wp-gray-medium); font-weight: var(--weight-regular); }
+.diverge__num .is-nil { color: var(--color-text-subtle); font-weight: var(--weight-regular); }
 
 /* A seta repete o sinal do número: a barra nunca é o único canal. */
-.diverge__arrow { font-size: 10px; }
+.diverge__arrow { font-size: var(--size-kicker); }
 
 /* Marca do ponto que atravessa o limite entre as configurações. */
 .flip {
@@ -831,10 +835,10 @@
   font-weight: var(--weight-semibold);
   letter-spacing: 0.02em;
   text-transform: uppercase;
-  color: #fff;
+  color: var(--color-text-inverse);
   background: var(--wp-charcoal);
 }
-.cmp3d__modo-tag--diferenca { background: #2166ac; }
+.cmp3d__modo-tag--diferenca { background: var(--color-diff); }
 
 .cmp3d__legenda {
   padding: var(--space-3) var(--space-4);

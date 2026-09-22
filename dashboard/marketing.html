@@ -8,11 +8,11 @@
   <!-- Mesmos componentes das telas anteriores: .page-head, .config,
        .data-table, .state e .btn vêm de triagem.css. publicos.css só
        acrescenta o que falta. -->
-  <link rel="stylesheet" href="css/tokens.css?v=3">
-  <link rel="stylesheet" href="css/app.css?v=5">
-  <link rel="stylesheet" href="css/triagem.css?v=3">
-  <link rel="stylesheet" href="css/publicos.css?v=8">
-  <link rel="stylesheet" href="css/executivo.css?v=2">
+  <link rel="stylesheet" href="css/tokens.css?v=4">
+  <link rel="stylesheet" href="css/app.css?v=6">
+  <link rel="stylesheet" href="css/triagem.css?v=4">
+  <link rel="stylesheet" href="css/publicos.css?v=9">
+  <link rel="stylesheet" href="css/executivo.css?v=3">
   <link rel="stylesheet" href="css/historico.css?v=2">
 </head>
 <!-- Marketing lê sempre no modo executivo: não há leitura técnica aqui. -->
@@ -56,7 +56,10 @@
 
   <div class="page-head">
     <div class="page-head__text">
-      <h2 class="page-head__title">O que já dá para comunicar</h2>
+      <!-- A pergunta da tela vira sobretítulo; o título é a resposta, com a
+           contagem dos temas, preenchido por marketing.js. -->
+      <p class="page-head__kicker">O que já dá para comunicar</p>
+      <h2 class="page-head__title" id="page-title">O que já dá para comunicar</h2>
       <p class="page-head__sub">Sinal antecipado sobre os temas técnicos que sustentam campanha · e sobre o que ainda pode mudar</p>
     </div>
     <div class="page-head__actions">
@@ -79,21 +82,34 @@
           </p>
         </div>
       </details>
-      <button class="btn btn--ghost" type="button" id="export-registro" disabled>Exportar consulta</button>
-      <button class="btn btn--ghost" type="button" data-exportar-pdf disabled title="Registro desta análise em PDF, com o resumo e as tabelas das telas de triagem, conformidade e marketing">Exportar PDF</button>
+      <details class="scope-notice exportar">
+        <summary>Exportar</summary>
+        <div class="scope-notice__body exportar__corpo">
+          <button class="btn btn--ghost" type="button" id="export-registro" disabled>Exportar consulta</button>
+          <button class="btn btn--ghost" type="button" data-exportar-pdf disabled title="Registro desta análise em PDF, com o resumo e as tabelas das telas de triagem, conformidade e marketing">Exportar PDF</button>
+        </div>
+      </details>
       <a class="btn btn--ghost" href="index.html">Alterar configuração</a>
     </div>
   </div>
 
-  <!-- Primeiro elemento da tela: o veredito em texto, antes de cartões e tabela. -->
-  <section id="resumo-exec" hidden></section>
+  <!-- O aviso mais forte da tela, antes de qualquer leitura: é aqui que uma
+       leitura otimista viraria promessa publicada. A frase que impede fica
+       sempre à vista; o desdobramento, a um clique. Sem caixa vermelha: o
+       vermelho é do estado "acima do limite". -->
+  <details class="ressalva ressalva--forte">
+    <summary>
+      <strong>Nenhuma afirmação desta tela está liberada para campanha.</strong>
+      <span class="ressalva__abrir">Ver os 2 avisos</span>
+    </summary>
+    <ul class="ressalva__corpo">
+      <li><strong>Nenhuma afirmação desta tela está liberada para campanha.</strong> A ferramenta não emite parecer de conformidade e não substitui a validação formal que autoriza uma promessa técnica ao consumidor.</li>
+      <li><strong>É estimativa, não medição.</strong> Os números vêm de um <abbr class="termo" title="Programa que aprendeu padrões nas simulações já feitas e, a partir deles, estima a temperatura de uma configuração nova sem precisar simular de novo.">modelo</abbr> que aprendeu com as <abbr class="termo" title="Cálculo detalhado do comportamento térmico feito por dinâmica de fluidos computacional. Leva semanas, e esta ferramenta ajuda a priorizar quais configurações merecem passar por ele.">simulações</abbr> anteriores e existem para antecipar conversa, não para fechar texto de campanha.</li>
+    </ul>
+  </details>
 
-  <!-- O aviso mais forte da tela, e o único que não se recolhe: é aqui que uma
-       leitura otimista viraria promessa publicada. -->
-  <ul class="avisos avisos--forte">
-    <li><strong>Nenhuma afirmação desta tela está liberada para campanha.</strong> A ferramenta não emite parecer de conformidade e não substitui a validação formal que autoriza uma promessa técnica ao consumidor.</li>
-    <li><strong>É estimativa, não medição.</strong> Os números vêm de um <abbr class="termo" title="Programa que aprendeu padrões nas simulações já feitas e, a partir deles, estima a temperatura de uma configuração nova sem precisar simular de novo.">modelo</abbr> que aprendeu com as <abbr class="termo" title="Cálculo detalhado do comportamento térmico feito por dinâmica de fluidos computacional. Leva semanas, e esta ferramenta ajuda a priorizar quais configurações merecem passar por ele.">simulações</abbr> anteriores e existem para antecipar conversa, não para fechar texto de campanha.</li>
-  </ul>
+  <!-- Primeiro bloco de leitura: o veredito, antes de cartões e tabela. -->
+  <section id="resumo-exec" hidden></section>
 
   <section class="config" id="config-panel" hidden>
     <h2 class="config__title">Configuração consultada
@@ -118,6 +134,12 @@
     </div>
 
     <ul class="cards" id="temas-cards"></ul>
+
+    <!-- O que fazer com cada leitura, uma vez por estado (marketing.js). -->
+    <details class="more" id="temas-legenda" hidden>
+      <summary>O que fazer com cada leitura</summary>
+      <dl class="legenda-leituras" id="temas-legenda-lista"></dl>
+    </details>
   </section>
 
   <section class="panel" id="maturidade-panel" hidden>
@@ -128,7 +150,13 @@
 
     <dl class="maturidade" id="maturidade-lista"></dl>
 
-    <p class="panel__note" id="maturidade-nota"></p>
+    <p class="ressalva" id="maturidade-nota"></p>
+
+    <!-- O porquê de cada item, a um clique (marketing.js). -->
+    <details class="more">
+      <summary>O que cada item significa</summary>
+      <div id="maturidade-explica"></div>
+    </details>
   </section>
 
   <section class="panel" id="registro-panel" hidden>
@@ -136,12 +164,6 @@
       <h2 class="panel__title">Registro da consulta</h2>
       <p class="panel__meta">O que sustenta a peça em caso de questionamento</p>
     </div>
-
-    <p class="panel__note">
-      A planilha guarda a configuração consultada, a leitura de cada tema, a
-      versão do modelo e a data. Serve como registro de trabalho do que se
-      sabia no momento da decisão, e não como evidência de conformidade.
-    </p>
 
     <div class="table-scroll table-scroll--inteira">
       <table class="data-table">
@@ -156,6 +178,15 @@
         <tbody id="registro-body"></tbody>
       </table>
     </div>
+
+    <details class="more">
+      <summary>O que a planilha exportada guarda</summary>
+      <p>
+        A planilha guarda a configuração consultada, a leitura de cada tema, a
+        versão do modelo e a data. Serve como registro de trabalho do que se
+        sabia no momento da decisão, e não como evidência de conformidade.
+      </p>
+    </details>
   </section>
 
 </main>
@@ -165,11 +196,11 @@
 <script src="js/dados_comparacao.js?v=3"></script>
 <script src="js/planilha.js?v=2"></script>
 <script src="js/leitura_publicos.js?v=8"></script>
-<script src="js/resumo_executivo.js?v=2"></script>
+<script src="js/resumo_executivo.js?v=3"></script>
 <script src="js/modo_leitura.js?v=1"></script>
 <script src="js/documento_pdf.js?v=1"></script>
 <script src="js/registro_pdf.js?v=1"></script>
 <script src="js/historico_sessao.js?v=2"></script>
-<script src="js/marketing.js?v=6"></script>
+<script src="js/marketing.js?v=7"></script>
 </body>
 </html>

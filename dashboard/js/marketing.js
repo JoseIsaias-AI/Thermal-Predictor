@@ -36,8 +36,12 @@
     return td;
   }
 
+  // Na tela, pt-BR: vírgula decimal e sinal de menos tipográfico.
   function grausC(valor) {
-    return valor === null || valor === undefined ? "—" : valor.toFixed(1);
+    if (valor === null || valor === undefined) return "—";
+    var t = valor.toFixed(1);
+    if (Number(t) === 0) t = t.replace("-", "");
+    return t.replace(".", ",").replace("-", "−");
   }
 
   // Termo técnico que sobra na tela vai com a explicação junto, no próprio
@@ -56,15 +60,20 @@
 
   /* ----- Temas ----- */
 
+  /* O cartão diz o tema, a leitura e quem a decide. O que o tema abrange vai
+     no balão do título; o que fazer com a leitura é o mesmo para todo cartão
+     com o mesmo estado, e por isso fica uma vez só, na legenda abaixo. */
   function cartaoDoTema(leitura) {
     var cartao = el("li", "card card--" + leitura.estado);
 
-    cartao.appendChild(el("h3", "card__title", leitura.tema.nome));
+    var titulo = el("h3", "card__title", leitura.tema.nome);
+    if (leitura.tema.significado) {
+      titulo.title = leitura.tema.significado;
+      titulo.appendChild(el("span", "sr-only", " — " + leitura.tema.significado));
+    }
+    cartao.appendChild(titulo);
     cartao.appendChild(el("span", "state state--" + leitura.estado,
       LP.traduzirEstado(leitura.estado, PUBLICO)));
-
-    cartao.appendChild(el("p", "card__note", leitura.tema.significado));
-    cartao.appendChild(el("p", "card__consequencia", CONSEQUENCIA[leitura.estado]));
 
     if (leitura.pior_ponto) {
       var rodape = el("p", "card__note card__note--acao");
@@ -82,7 +91,38 @@
   function renderTemas(leituras) {
     var lista = document.getElementById("temas-cards");
     leituras.forEach(function (leitura) { lista.appendChild(cartaoDoTema(leitura)); });
+
+    // Uma linha por estado presente, na ordem em que os cartões aparecem.
+    var legenda = document.getElementById("temas-legenda-lista");
+    var vistos = [];
+    leituras.forEach(function (l) {
+      if (vistos.indexOf(l.estado) >= 0) return;
+      vistos.push(l.estado);
+      var dt = el("dt");
+      dt.appendChild(el("span", "state state--" + l.estado, LP.traduzirEstado(l.estado, PUBLICO)));
+      legenda.appendChild(dt);
+      legenda.appendChild(el("dd", null, CONSEQUENCIA[l.estado]));
+    });
+    document.getElementById("temas-legenda").hidden = vistos.length === 0;
+
     document.getElementById("temas-panel").hidden = false;
+  }
+
+  /* Título da tela como conclusão: quantos temas já podem entrar no
+     planejamento, contados das mesmas leituras dos cartões. */
+  function renderTitulo(leituras) {
+    var total = leituras.length;
+    var podem = leituras.filter(function (l) { return l.estado === "dentro_do_limite"; }).length;
+    var aguardam = leituras.filter(function (l) { return l.estado === "banda_de_incerteza"; }).length;
+    var texto;
+    if (podem) {
+      texto = podem + " de " + total + (podem === 1 ? " tema pode entrar no planejamento de campanha" : " temas podem entrar no planejamento de campanha");
+    } else if (aguardam) {
+      texto = "Nenhum tema pronto para planejar; " + aguardam + " aguardam verificação";
+    } else {
+      texto = "Nenhum dos " + total + " temas dá para comunicar agora";
+    }
+    document.getElementById("page-title").textContent = texto;
   }
 
   /* ----- Configuração consultada ----- */
@@ -112,6 +152,8 @@
 
   /* ----- Quando isso ainda pode mudar ----- */
 
+  /* O item mostra rótulo e valor; o porquê de cada um vai para o bloco
+     expansível logo abaixo, na mesma ordem. */
   function itemDeMaturidade(lista, rotulo, valor, explicacao, glossario) {
     var bloco = el("div", "cfg-item");
     var dt = el("dt");
@@ -125,13 +167,13 @@
     }
     bloco.appendChild(dt);
 
-    var dd = el("dd");
-    dd.appendChild(document.createTextNode(valor));
-    dd.appendChild(document.createElement("br"));
-    dd.appendChild(el("span", "maturidade__nota", explicacao));
-    bloco.appendChild(dd);
-
+    bloco.appendChild(el("dd", null, valor));
     lista.appendChild(bloco);
+
+    var porque = el("p");
+    porque.appendChild(el("strong", null, rotulo + ". "));
+    porque.appendChild(document.createTextNode(explicacao));
+    document.getElementById("maturidade-explica").appendChild(porque);
   }
 
   function renderMaturidade(mat) {
@@ -235,6 +277,7 @@
 
   document.getElementById("model-version").textContent = mat.versao_modelo || "—";
   renderConfiguracao(configAtiva, mat, configDaUrl !== null);
+  renderTitulo(leituras);
   renderTemas(leituras);
   renderMaturidade(mat);
   renderRegistro(leituras, mat, configAtiva);

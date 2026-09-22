@@ -42,9 +42,9 @@ body.analisando { overflow: hidden; }
   height: min(58vh, 26rem);
   border-radius: var(--radius-lg);
   overflow: hidden;
-  background:
-    radial-gradient(120% 90% at 50% 12%, rgba(31, 127, 192, 0.16), transparent 62%),
-    #0d1118;
+  /* Fundo chapado: o brilho radial era decoração. A varredura, que marca o
+     progresso da transição, continua. */
+  background: var(--color-stage-dark);
 }
 
 /* O palco recebe o #fogao-3d movido do formulário, e precisa desfazer o que

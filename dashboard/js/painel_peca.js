@@ -98,8 +98,11 @@ var PAINEL_PECA = (function () {
     dl.appendChild(dd);
   }
 
-  function graus(v) { return v.toFixed(2) + " °C"; }
-  function sinal(v, casas) { return (v < 0 ? "−" : "+") + Math.abs(v).toFixed(casas == null ? 2 : casas); }
+  // Na tela, pt-BR: vírgula decimal e uma casa para temperatura e folga, como
+  // nas tabelas.
+  function num(v, casas) { return v.toFixed(casas == null ? 1 : casas).replace(".", ","); }
+  function graus(v) { return num(v).replace("-", "−") + " °C"; }
+  function sinal(v, casas) { return (v < 0 ? "−" : "+") + num(Math.abs(v), casas); }
 
   function plural(n, um, varios) { return n + " " + (n === 1 ? um : varios); }
 
@@ -178,7 +181,7 @@ var PAINEL_PECA = (function () {
     } else {
       linha(dl, "Limite do componente", graus(ref.limit_c), false, "limit_c");
       linha(dl, "Folga", sinal(ref.margem_c) + " °C", false, "margem_c = limit_c − temperatura prevista");
-      linha(dl, "Folga relativa", (ref.margem_percentual < 0 ? "−" : "+") + Math.abs(ref.margem_percentual * 100).toFixed(1) + "%", false, "margem_percentual");
+      linha(dl, "Folga relativa", sinal(ref.margem_percentual * 100, 1) + "%", false, "margem_percentual");
       linha(dl, "Tolerância (" + (dados.tolerancia_fracao * 100).toFixed(0) + "% do limite)",
         graus(dados.tolerancia_fracao * ref.limit_c), false);
     }
@@ -189,8 +192,8 @@ var PAINEL_PECA = (function () {
     linha(dl, "Só monitoramento", mono, r.soMonitoramento === "nenhum", "is_monitor_only");
 
     if (r.total > 1) {
-      linha(dl, "Faixa prevista na peça", r.temperatura.min.toFixed(1) + " a " + r.temperatura.max.toFixed(1) + " °C", false);
-      linha(dl, "Mediana dos " + r.total + " pontos", r.temperatura.mediana.toFixed(1) + " °C", false,
+      linha(dl, "Faixa prevista na peça", num(r.temperatura.min) + " a " + num(r.temperatura.max) + " °C", false);
+      linha(dl, "Mediana dos " + r.total + " pontos", num(r.temperatura.mediana) + " °C", false,
         "Valor central, só informativo: não decide o estado da peça, que segue o ponto mais crítico");
     }
     caixa.appendChild(dl);
@@ -245,7 +248,7 @@ var PAINEL_PECA = (function () {
       if (p.measurement_id === op.pontoSel) b.setAttribute("aria-current", "true");
       b.appendChild(glifo(p, op.rampa));
       b.appendChild(el("span", "part__item-name", p.TC_Name));
-      var num = el("span", "part__item-num", p.temperatura_prevista_c.toFixed(1) + " °C");
+      var num = el("span", "part__item-num", num(p.temperatura_prevista_c) + " °C");
       num.appendChild(el("small", p.is_monitor_only ? null : (p.margem_c < 0 ? "is-neg" : null),
         p.is_monitor_only ? "sem limite" : "folga " + sinal(p.margem_c, 1)));
       b.appendChild(num);
@@ -353,7 +356,7 @@ var PAINEL_PECA = (function () {
       linha.appendChild(cor);
       linha.appendChild(el("span", "part__item-name", l.TC_Name));
       var num = el("span", "part__item-num", sinal(l.diferenca_c, 1) + " °C");
-      num.appendChild(el("small", null, l.a.toFixed(1) + " → " + l.b.toFixed(1)));
+      num.appendChild(el("small", null, num(l.a) + " → " + num(l.b)));
       linha.appendChild(num);
       item.appendChild(linha);
       lista.appendChild(item);
@@ -396,7 +399,7 @@ var PAINEL_PECA = (function () {
       listaDiff(caixa, r, op);
     }
     caixa.appendChild(el("p", "legend-note",
-      "Diferença entre previsões, não entre simulações. Até ±" + op.escala.limiar.toFixed(1) + " °C conta como sem diferença."));
+      "Diferença entre previsões, não entre simulações. Até ±" + num(op.escala.limiar) + " °C conta como sem diferença."));
   }
 
   return {

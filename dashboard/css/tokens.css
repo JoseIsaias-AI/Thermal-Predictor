@@ -69,21 +69,52 @@
   --color-canvas:         #f4f6f9;
   --color-surface:        var(--wp-white);
   --color-surface-sunken: #f7f9fb;
+  --color-surface-muted:  #eef1f5;
   --color-surface-accent: var(--wp-blue-light);
   --color-border:         var(--wp-gray-light);
+  --color-border-subtle:  #f0f2f5;
   --color-border-strong:  var(--wp-gray);
   --color-text:           var(--wp-near-black);
   --color-text-muted:     var(--wp-gray-dark);
-  --color-text-subtle:    #6f7887;
+  /* #6f7887 dava 4,46:1 sobre branco, abaixo do AA; este dá 5,2:1. */
+  --color-text-subtle:    #646d7b;
   --color-text-inverse:   var(--wp-white);
+  --color-text-inverse-muted: #b8c0cc;
   --color-accent:         var(--wp-blue-core);
   --color-accent-hover:   #083a5e;
+  --color-accent-line:    #c9dcec;
   --color-focus-ring:     var(--wp-blue-accent);
 
-  --color-critical:       var(--wp-red-deep);
+  /* Série principal de gráfico sem estado (engenharia): azul médio, e não o
+     azul core da marca, que fica para foco e navegação. 4,6:1 sobre branco. */
+  --color-data:           var(--wp-blue-mid);
+
+  /* Modo diferença do 3D: a mesma parada azul da rampa divergente de fogao.js. */
+  --color-diff:           #2166ac;
+
+  /* Palco escuro da transição entre consulta e triagem. */
+  --color-stage-dark:     #0d1118;
+
+  /* Grade de gráfico: presente, mas sem competir com o dado. */
+  --color-grid:           #edf0f3;
+  --color-grid-alt:       #fafbfc;
+
+  /* Estados de risco. Reservados a estado: o azul da marca fica para foco e
+     navegação, e nenhum estado depende só da cor (forma + rótulo). */
+  --status-critical:      var(--wp-red-deep);
+  --status-critical-bg:   var(--wp-red-tint);
+  --status-critical-line: #f1cdc7;
+  --status-attention:     var(--wp-charcoal);
+  --status-attention-bg:  var(--wp-gray-light);
+  --status-attention-bar: var(--wp-gray-dark);
+  --status-neutral:       var(--wp-gray-dark);
+  /* 3,1:1 sobre branco: marca gráfica precisa de 3:1 (WCAG 1.4.11). */
+  --status-neutral-bar:   var(--wp-gray-medium);
+
+  --color-critical:       var(--status-critical);
   --color-critical-soft:  var(--wp-red);
-  --color-critical-bg:    var(--wp-red-tint);
-  --color-critical-line:  #f1cdc7;
+  --color-critical-bg:    var(--status-critical-bg);
+  --color-critical-line:  var(--status-critical-line);
   --color-positive:       var(--wp-blue-mid);
 
   /* Tipografia */
@@ -96,14 +127,16 @@
   --weight-semibold: 600;
   --weight-bold:     600;
 
-  /* Escala curta: 12 · 13 · 15 · 16 · 20 · 30. Nada abaixo de 12px. */
+  /* Escala fixa: 12 notas · 14 corpo e tabela · 16 título de gráfico ·
+     20 seção · 24 tela · 32/40 número-herói. Nada abaixo de 12px. */
   --size-kicker:  0.75rem;
-  --size-small:   0.8125rem;
-  --size-body:    0.9375rem;
+  --size-small:   0.875rem;
+  --size-body:    0.875rem;
   --size-subhead: 1rem;
   --size-title:   1.25rem;
-  --size-metric:  1.875rem;
-  --size-display: 2.25rem;
+  --size-page:    1.5rem;
+  --size-metric:  2rem;
+  --size-display: 2.5rem;
 
   --tracking-kicker:  0.06em;
   --tracking-subhead: 0;
@@ -111,9 +144,11 @@
   --leading-tight: 1.25;
   --leading-body:  1.5;
 
+  /* Múltiplos de 8. O meio-passo de 4px só separa rótulo e valor dentro de
+     um mesmo componente. */
   --space-1: 0.25rem;
   --space-2: 0.5rem;
-  --space-3: 0.75rem;
+  --space-3: 1rem;
   --space-4: 1rem;
   --space-5: 1.5rem;
   --space-6: 2rem;

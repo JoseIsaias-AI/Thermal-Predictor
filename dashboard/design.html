@@ -8,11 +8,11 @@
   <!-- Mesmos componentes das telas anteriores: .page-head, .config,
        .data-table, .state e .btn vêm de triagem.css; o modelo 3D, de
        fogao.css. publicos.css só acrescenta o que falta. -->
-  <link rel="stylesheet" href="css/tokens.css?v=3">
-  <link rel="stylesheet" href="css/app.css?v=5">
-  <link rel="stylesheet" href="css/triagem.css?v=3">
-  <link rel="stylesheet" href="css/fogao.css?v=7">
-  <link rel="stylesheet" href="css/publicos.css?v=8">
+  <link rel="stylesheet" href="css/tokens.css?v=4">
+  <link rel="stylesheet" href="css/app.css?v=6">
+  <link rel="stylesheet" href="css/triagem.css?v=4">
+  <link rel="stylesheet" href="css/fogao.css?v=8">
+  <link rel="stylesheet" href="css/publicos.css?v=9">
   <link rel="stylesheet" href="css/historico.css?v=2">
 </head>
 <body>
@@ -55,7 +55,10 @@
 
   <div class="page-head">
     <div class="page-head__text">
-      <h2 class="page-head__title">Calor nas peças que a pessoa toca</h2>
+      <!-- O nome da leitura vira sobretítulo; o título é a conclusão sobre as
+           peças de contato, preenchido por design.js. -->
+      <p class="page-head__kicker">Calor nas peças que a pessoa toca</p>
+      <h2 class="page-head__title" id="page-title">Calor nas peças que a pessoa toca</h2>
       <p class="page-head__sub">Leitura das escolhas de acabamento antes de fechar o desenho · manípulos, console e o efeito do que o design controla</p>
     </div>
     <div class="page-head__actions">
@@ -82,10 +85,18 @@
     </div>
   </div>
 
-  <ul class="avisos">
-    <li><strong>Estimativa, não medição.</strong> A leitura serve para escolher o que vale levar à engenharia primeiro. Não substitui a <abbr class="termo" title="Cálculo detalhado do comportamento térmico feito por dinâmica de fluidos computacional. Leva semanas, e esta ferramenta ajuda a priorizar quais configurações merecem passar por ele.">simulação</abbr> nem o ensaio do protótipo.</li>
-    <li><strong>Não é aprovação de peça.</strong> Uma peça viável nesta leitura ainda passa pela verificação formal antes de entrar no desenho final.</li>
-  </ul>
+  <!-- Os dois avisos numa linha; o texto por extenso abre a um clique. -->
+  <details class="ressalva">
+    <summary>
+      <strong>Estimativa, não medição</strong> ·
+      <strong>Não é aprovação de peça</strong>
+      <span class="ressalva__abrir">Ver os 2 avisos</span>
+    </summary>
+    <ul class="ressalva__corpo">
+      <li><strong>Estimativa, não medição.</strong> A leitura serve para escolher o que vale levar à engenharia primeiro. Não substitui a <abbr class="termo" title="Cálculo detalhado do comportamento térmico feito por dinâmica de fluidos computacional. Leva semanas, e esta ferramenta ajuda a priorizar quais configurações merecem passar por ele.">simulação</abbr> nem o ensaio do protótipo.</li>
+      <li><strong>Não é aprovação de peça.</strong> Uma peça viável nesta leitura ainda passa pela verificação formal antes de entrar no desenho final.</li>
+    </ul>
+  </details>
 
   <section class="config" id="config-panel" hidden>
     <h2 class="config__title">Configuração avaliada
@@ -110,7 +121,10 @@
     </div>
 
     <div class="design-split">
-      <ul class="cards" id="contato-cards"></ul>
+      <div>
+        <p class="legend-note design-split__dica">Clique numa peça para vê-la no modelo 3D.</p>
+        <ul class="cards" id="contato-cards"></ul>
+      </div>
 
       <div class="viewport viewport--leitura">
         <div class="viewport__bar viewport__bar--camera">
@@ -144,11 +158,21 @@
       <p class="panel__meta">Como cada escolha apareceu nas rodadas já simuladas</p>
     </div>
 
-    <p class="panel__note">
-      As rodadas da base não variam uma escolha de cada vez. O que aparece aqui
-      é <strong>o que se observou</strong> junto de cada opção, e não o efeito
-      isolado dela.
-    </p>
+    <!-- A ressalva de leitura fica numa linha, junto do dado; a explicação,
+         a um clique. -->
+    <details class="ressalva">
+      <summary>
+        <strong>Observado junto de cada opção, não efeito isolado</strong>
+        <span class="ressalva__abrir">Por quê</span>
+      </summary>
+      <div class="ressalva__corpo">
+        <p>
+          As rodadas da base não variam uma escolha de cada vez. O que aparece aqui
+          é <strong>o que se observou</strong> junto de cada opção, e não o efeito
+          isolado dela.
+        </p>
+      </div>
+    </details>
 
     <div id="fatores-blocos"></div>
   </section>
@@ -193,10 +217,10 @@
 <script src="js/fogao3d.js?v=9"></script>
 <script src="js/leitura_publicos.js?v=8"></script>
 <script src="js/planilha.js?v=2"></script>
-<script src="js/resumo_executivo.js?v=2"></script>
+<script src="js/resumo_executivo.js?v=3"></script>
 <script src="js/documento_pdf.js?v=1"></script>
 <script src="js/registro_pdf.js?v=1"></script>
 <script src="js/historico_sessao.js?v=2"></script>
-<script src="js/design.js?v=7"></script>
+<script src="js/design.js?v=8"></script>
 </body>
 </html>

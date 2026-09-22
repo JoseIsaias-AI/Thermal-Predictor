@@ -5,12 +5,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Triagem térmica — Thermal Predictor</title>
 
-  <link rel="stylesheet" href="css/tokens.css?v=3">
-  <link rel="stylesheet" href="css/app.css?v=5">
-  <link rel="stylesheet" href="css/triagem.css?v=3">
-  <link rel="stylesheet" href="css/fogao.css?v=7">
-  <link rel="stylesheet" href="css/grafico.css?v=3">
-  <link rel="stylesheet" href="css/executivo.css?v=2">
+  <link rel="stylesheet" href="css/tokens.css?v=4">
+  <link rel="stylesheet" href="css/app.css?v=6">
+  <link rel="stylesheet" href="css/triagem.css?v=4">
+  <link rel="stylesheet" href="css/fogao.css?v=8">
+  <link rel="stylesheet" href="css/grafico.css?v=4">
+  <link rel="stylesheet" href="css/executivo.css?v=3">
   <link rel="stylesheet" href="css/historico.css?v=2">
 </head>
 <body>
@@ -53,7 +53,10 @@
 
   <div class="page-head">
     <div class="page-head__text">
-      <h2 class="page-head__title">Triagem térmica</h2>
+      <!-- O nome da tela vira sobretítulo; o título é a conclusão, preenchida
+           por triagem.js com a contagem da própria tabela. -->
+      <p class="page-head__kicker">Triagem térmica</p>
+      <h2 class="page-head__title" id="page-title">Triagem térmica</h2>
       <p class="page-head__sub">Pontos de medição ordenados por risco estimado · apoio à fila de simulação, não substitui CFD</p>
     </div>
     <div class="page-head__actions">
@@ -91,7 +94,7 @@
   </div>
 
   <!-- Primeiro elemento do modo executivo, antes de qualquer tabela ou gráfico. -->
-  <section id="resumo-exec" data-leitura="executiva" hidden></section>
+  <section id="resumo-exec" data-leitura="executiva" data-titulo-na-pagina hidden></section>
 
   <div class="kpis" id="kpis" data-leitura="tecnica" hidden></div>
 
@@ -295,6 +298,7 @@
           Folga por ponto
           <span class="viz__sub">do mais crítico ao menos crítico</span>
           <button type="button" class="viz__acao" id="viz-ranking-todos" hidden></button>
+          <a class="ver-tabela" href="#screening-panel">Ver como tabela</a>
         </h3>
         <div class="chart__scroll">
           <svg class="chart__svg" id="viz-ranking" role="img"
@@ -307,6 +311,7 @@
           <h3 class="viz__titulo">
             Folga por subsistema
             <span class="viz__sub">quartis e pontos</span>
+            <a class="ver-tabela viz__acao--fim" href="#screening-panel">Ver como tabela</a>
           </h3>
           <div class="chart__scroll">
             <svg class="chart__svg" id="viz-subsistema" role="img"
@@ -317,6 +322,7 @@
           <h3 class="viz__titulo">
             Previsão contra limite
             <span class="viz__sub">acima da reta ultrapassa</span>
+            <a class="ver-tabela viz__acao--fim" href="#screening-panel">Ver como tabela</a>
           </h3>
           <div class="chart__scroll">
             <svg class="chart__svg" id="viz-criterio" role="img"
@@ -403,18 +409,18 @@
 <script src="vendor/three.min.js"></script>
 <script src="js/fogao.js?v=5"></script>
 <script src="js/fogao3d.js?v=9"></script>
-<script src="js/painel_peca.js?v=5"></script>
+<script src="js/painel_peca.js?v=6"></script>
 <script src="js/tour.js?v=1"></script>
 <!-- Stub da confiança por ponto: valor ilustrativo, não métrica do modelo. -->
 <script src="js/confianca.js?v=4"></script>
-<script src="js/grafico.js?v=3"></script>
+<script src="js/grafico.js?v=4"></script>
 <script src="js/leitura_publicos.js?v=8"></script>
-<script src="js/resumo_executivo.js?v=2"></script>
+<script src="js/resumo_executivo.js?v=3"></script>
 <script src="js/modo_leitura.js?v=1"></script>
 <script src="js/planilha.js?v=2"></script>
 <script src="js/documento_pdf.js?v=1"></script>
 <script src="js/registro_pdf.js?v=1"></script>
 <script src="js/historico_sessao.js?v=2"></script>
-<script src="js/triagem.js?v=8"></script>
+<script src="js/triagem.js?v=9"></script>
 </body>
 </html>

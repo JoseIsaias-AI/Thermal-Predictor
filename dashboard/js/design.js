@@ -49,8 +49,20 @@
     return td;
   }
 
+  // Na tela, pt-BR: vírgula decimal e sinal de menos tipográfico.
   function grausC(valor) {
-    return valor === null || valor === undefined ? "—" : valor.toFixed(1);
+    if (valor === null || valor === undefined) return "—";
+    var t = valor.toFixed(1);
+    if (Number(t) === 0) t = t.replace("-", "");
+    return t.replace(".", ",").replace("-", "−");
+  }
+
+  // Número grande com a unidade menor e mais leve ao lado.
+  function metrica(valor, classe) {
+    var p = el("p", classe);
+    p.appendChild(document.createTextNode(grausC(valor)));
+    p.appendChild(el("span", "card__unit", "°C"));
+    return p;
   }
 
   function mostrarErro(mensagem) {
@@ -117,21 +129,26 @@
     cartao.setAttribute("tabindex", "0");
     cartao.setAttribute("aria-pressed", "false");
 
-    cartao.appendChild(el("h3", "card__title", NOME_DA_AREA[area] || area));
+    // O que é a peça vai no balão do título (e para leitor de tela), e não
+    // numa terceira linha de texto no cartão.
+    var titulo = el("h3", "card__title", NOME_DA_AREA[area] || area);
+    if (DESCRICAO_DA_AREA[area]) {
+      titulo.title = DESCRICAO_DA_AREA[area];
+      titulo.appendChild(el("span", "sr-only", " — " + DESCRICAO_DA_AREA[area]));
+    }
+    cartao.appendChild(titulo);
     cartao.appendChild(marcaDeEstado(estado));
 
     if (pior) {
-      var metrica = el("p", "card__metric" + (pior.margem_c < 0 ? " card__metric--negative" : ""),
-        grausC(pior.margem_c) + " °C");
-      cartao.appendChild(metrica);
+      cartao.appendChild(metrica(pior.margem_c,
+        "card__metric" + (pior.margem_c < 0 ? " card__metric--negative" : "")));
       cartao.appendChild(el("p", "card__note",
         "de folga no ponto mais quente da peça, " + pior.TC_Name + "."));
     }
 
-    cartao.appendChild(el("p", "card__note", DESCRICAO_DA_AREA[area] || ""));
+    // A instrução de clique fica uma vez só, acima dos cartões (design.html).
     cartao.appendChild(el("p", "card__note card__note--acao",
-      avaliados.length + (avaliados.length === 1 ? " ponto medido" : " pontos medidos") +
-      " · clique para ver a peça em 3D"));
+      avaliados.length + (avaliados.length === 1 ? " ponto medido" : " pontos medidos")));
 
     cartao.addEventListener("click", function () { acender(area); });
     cartao.addEventListener("keydown", function (evento) {
@@ -157,8 +174,37 @@
       lista.appendChild(cartaoDaPeca(area, porArea[area]));
     });
 
+    renderTitulo(ordem.map(function (area) {
+      return { nome: NOME_DA_AREA[area] || area, estado: LP.severidade(porArea[area]) };
+    }));
+
     document.getElementById("contato-count").textContent = pecas.length;
     document.getElementById("contato-panel").hidden = false;
+  }
+
+  /* Título da tela como conclusão: o estado das peças de contato, pela mesma
+     severidade dos cartões. */
+  function renderTitulo(pecas) {
+    function nomes(estado) {
+      return pecas.filter(function (p) { return p.estado === estado; })
+        .map(function (p) { return p.nome.toLowerCase(); });
+    }
+    function lista(itens) {
+      return itens.length > 1 ? itens.slice(0, -1).join(", ") + " e " + itens[itens.length - 1] : itens[0];
+    }
+    function inicial(t) { return t.charAt(0).toUpperCase() + t.slice(1); }
+
+    var acima = nomes("acima_do_limite");
+    var banda = nomes("banda_de_incerteza");
+    var texto;
+    if (acima.length) {
+      texto = acima.length + " de " + pecas.length + (acima.length === 1 ? " peça de contato acima do limite" : " peças de contato acima do limite");
+    } else if (banda.length) {
+      texto = "Nenhuma peça de contato acima do limite; " + lista(banda) + " a verificar";
+    } else {
+      texto = inicial(lista(pecas.map(function (p) { return p.nome.toLowerCase(); }))) + " viáveis nesta triagem";
+    }
+    document.getElementById("page-title").textContent = texto;
   }
 
   /* ----- O que está na sua mão ----- */
@@ -179,69 +225,125 @@
     });
   }
 
-  function blocoDoFator(chave, niveis, nivelAtual) {
+  /* Opções de um fator como barras horizontais, e não como cartões: a leitura
+     é uma comparação, e comprimento a partir do mesmo zero compara melhor que
+     números soltos em caixas. Pior folga primeiro; a escala é a mesma para os
+     dois fatores, para as barras de um se lerem contra as do outro. */
+  function blocoDoFator(chave, niveis, nivelAtual, escala) {
     var fator = rotuloDoFator(chave);
     var bloco = el("section", "fator");
 
     bloco.appendChild(el("h3", "fator__titulo", fator ? fator.label : chave));
 
-    var lista = el("ul", "cards cards--densa");
-    niveis.forEach(function (nivel) {
-      /* Sem a cor de estado: aqui o estado é o pior caso já visto com esta
-         opção, e não o resultado da configuração consultada. Pintar a opção
-         em vigor de vermelho diria que ela reprovou, o que não é o caso. */
-      var cartao = el("li", "card card--opcao");
-      var atual = nivel.nivel === nivelAtual;
-      if (atual) cartao.className += " card--atual";
-
-      cartao.appendChild(el("h4", "card__title",
-        fator ? LP.rotuloDoNivel(fator.levels, nivel.nivel) : nivel.nivel));
-
-      /* O selo sai do desenho mas guarda o lugar: sem isso os cartões com e
-         sem selo põem o número em alturas diferentes, e a comparação entre as
-         opções, que é o que a seção existe para fazer, fica torta. */
-      var selo = el("span", "config__tag", "escolha atual");
-      if (!atual) {
-        selo.className += " config__tag--reservado";
-        selo.setAttribute("aria-hidden", "true");
-      }
-      cartao.appendChild(selo);
-
-      if (nivel.pior_margem_c !== null) {
-        cartao.appendChild(el("p", "card__metric" + (nivel.pior_margem_c < 0 ? " card__metric--negative" : ""),
-          grausC(nivel.pior_margem_c) + " °C"));
-        cartao.appendChild(el("p", "card__note",
-          "menor folga já vista nas peças de contato com esta opção, em " +
-          nivel.pior_ponto.nome + "."));
-      }
-
-      cartao.appendChild(el("p", "card__note",
-        nivel.configuracoes + (nivel.configuracoes === 1 ? " configuração" : " configurações") +
-        " na base · " + nivel.criticas + " com peça de contato acima do limite"));
-
-      lista.appendChild(cartao);
-    });
-
-    bloco.appendChild(lista);
-
-    /* Quando todas as opções terminam na mesma folga, o cartão repetido parece
-       defeito. A resposta que interessa é justamente essa: aqui a escolha não
-       mexe no que a pessoa toca. */
+    /* Quando todas as opções terminam na mesma folga, a resposta que interessa
+       é justamente essa: aqui a escolha não mexe no que a pessoa toca. Vira a
+       conclusão do fator, logo abaixo do nome. */
     if (naoSepara(niveis)) {
-      bloco.appendChild(el("p", "panel__note",
+      bloco.appendChild(el("p", "fator__conclusao",
         "Nas rodadas já simuladas, esta escolha não separou as peças de contato: " +
         "a menor folga é a mesma em todas as opções. O que muda entre elas aparece " +
         "em outras partes do produto."));
     }
 
+    function pos(v) { return (v - escala.lo) / (escala.hi - escala.lo) * 100; }
+    // Percentual da largura útil do trilho, sem o respiro da coluna (1rem).
+    function x(p) { return "calc((100% - 1rem) * " + (p / 100).toFixed(4) + ")"; }
+    var zero = pos(0);
+
+    var lista = el("ul", "opcoes");
+    lista.setAttribute("aria-label", (fator ? fator.label : chave) + ": menor folga já vista nas peças de contato, por opção");
+
+    var cab = el("li", "opcoes__cab");
+    cab.setAttribute("aria-hidden", "true");
+    cab.appendChild(el("span", null, "Opção"));
+    cab.appendChild(el("span", null, "Menor folga já vista nas peças de contato"));
+    cab.appendChild(el("span", null, "°C"));
+    lista.appendChild(cab);
+
+    var ordenados = niveis.slice().sort(function (a, b) {
+      if (a.pior_margem_c === null) return 1;
+      if (b.pior_margem_c === null) return -1;
+      return a.pior_margem_c - b.pior_margem_c;
+    });
+
+    ordenados.forEach(function (nivel) {
+      /* Sem a cor de estado na barra: aqui o estado é o pior caso já visto com
+         esta opção, e não o resultado da configuração consultada. Pintar a
+         opção em vigor de vermelho diria que ela reprovou, o que não é o caso. */
+      var atual = nivel.nivel === nivelAtual;
+      var linha = el("li", "opcao" + (atual ? " opcao--atual" : ""));
+
+      var nome = el("span", "opcao__nome", fator ? LP.rotuloDoNivel(fator.levels, nivel.nivel) : nivel.nivel);
+      if (atual) nome.appendChild(el("span", "config__tag", "escolha atual"));
+      var partes = [];
+      if (nivel.pior_ponto) partes.push("em " + nivel.pior_ponto.nome);
+      partes.push(nivel.configuracoes + (nivel.configuracoes === 1 ? " configuração" : " configurações") +
+        " na base · " + nivel.criticas + " com peça de contato acima do limite");
+      nome.appendChild(el("span", "opcao__nota", partes.join(" · ")));
+      linha.appendChild(nome);
+
+      var trilho = el("span", "opcao__trilho");
+      trilho.setAttribute("aria-hidden", "true");
+      if (nivel.pior_margem_c !== null) {
+        var v = pos(nivel.pior_margem_c);
+        var barra = el("span", "opcao__barra" + (nivel.pior_margem_c < 0 ? " opcao__barra--negativa" : ""));
+        barra.style.left = x(Math.min(v, zero));
+        barra.style.width = x(Math.max(0.6, Math.abs(v - zero)));
+        trilho.appendChild(barra);
+      }
+      var z = el("span", "opcao__zero");
+      z.style.left = x(zero);
+      trilho.appendChild(z);
+      linha.appendChild(trilho);
+
+      linha.appendChild(el("span", "opcao__valor" + (nivel.pior_margem_c < 0 ? " opcao__valor--negativo" : ""),
+        grausC(nivel.pior_margem_c)));
+
+      lista.appendChild(linha);
+    });
+
+    // Eixo: só o zero, que é o limite, e as pontas da escala.
+    var eixo = el("li", "opcoes__eixo");
+    eixo.setAttribute("aria-hidden", "true");
+    eixo.appendChild(el("span"));
+    var trilhoEixo = el("span", "opcao__trilho");
+    [[escala.lo, grausC(escala.lo)], [0, "0 · limite"], [escala.hi, grausC(escala.hi)]].forEach(function (m) {
+      if (m[0] !== 0 && Math.abs(pos(m[0]) - zero) < 12) return;
+      var r = el("span", "opcoes__eixo-rotulo", m[1]);
+      r.style.left = x(pos(m[0]));
+      if (m[0] === escala.lo) r.style.transform = "none";
+      if (m[0] === escala.hi) r.style.transform = "translateX(-100%)";
+      trilhoEixo.appendChild(r);
+    });
+    eixo.appendChild(trilhoEixo);
+    eixo.appendChild(el("span"));
+    lista.appendChild(eixo);
+
+    bloco.appendChild(lista);
     return bloco;
   }
 
   function renderFatores(catalogo, config) {
     var destino = document.getElementById("fatores-blocos");
 
-    LP.FATORES_DE_DESIGN.forEach(function (chave) {
-      destino.appendChild(blocoDoFator(chave, LP.efeitoDoFator(catalogo, chave), config[chave]));
+    var efeitos = LP.FATORES_DE_DESIGN.map(function (chave) {
+      return { chave: chave, niveis: LP.efeitoDoFator(catalogo, chave) };
+    });
+
+    // Escala comum aos fatores, sempre com o zero dentro e uma folga nas pontas.
+    var lo = 0, hi = 0;
+    efeitos.forEach(function (e) {
+      e.niveis.forEach(function (n) {
+        if (n.pior_margem_c === null) return;
+        lo = Math.min(lo, n.pior_margem_c);
+        hi = Math.max(hi, n.pior_margem_c);
+      });
+    });
+    var folga = Math.max(1, (hi - lo) * 0.08);
+    var escala = { lo: lo < 0 ? lo - folga : 0, hi: hi > 0 ? hi + folga : folga };
+
+    efeitos.forEach(function (e) {
+      destino.appendChild(blocoDoFator(e.chave, e.niveis, config[e.chave], escala));
     });
 
     document.getElementById("fatores-panel").hidden = false;
