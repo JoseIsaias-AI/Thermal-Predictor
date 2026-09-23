@@ -248,10 +248,10 @@ var PAINEL_PECA = (function () {
       if (p.measurement_id === op.pontoSel) b.setAttribute("aria-current", "true");
       b.appendChild(glifo(p, op.rampa));
       b.appendChild(el("span", "part__item-name", p.TC_Name));
-      var num = el("span", "part__item-num", num(p.temperatura_prevista_c) + " °C");
-      num.appendChild(el("small", p.is_monitor_only ? null : (p.margem_c < 0 ? "is-neg" : null),
+      var valor = el("span", "part__item-num", num(p.temperatura_prevista_c) + " °C");
+      valor.appendChild(el("small", p.is_monitor_only ? null : (p.margem_c < 0 ? "is-neg" : null),
         p.is_monitor_only ? "sem limite" : "folga " + sinal(p.margem_c, 1)));
-      b.appendChild(num);
+      b.appendChild(valor);
       b.addEventListener("click", function () { if (op.aoEscolherPonto) op.aoEscolherPonto(p); });
       item.appendChild(b);
       lista.appendChild(item);
@@ -355,9 +355,9 @@ var PAINEL_PECA = (function () {
       cor.setAttribute("aria-hidden", "true");
       linha.appendChild(cor);
       linha.appendChild(el("span", "part__item-name", l.TC_Name));
-      var num = el("span", "part__item-num", sinal(l.diferenca_c, 1) + " °C");
-      num.appendChild(el("small", null, num(l.a) + " → " + num(l.b)));
-      linha.appendChild(num);
+      var valor = el("span", "part__item-num", sinal(l.diferenca_c, 1) + " °C");
+      valor.appendChild(el("small", null, num(l.a) + " → " + num(l.b)));
+      linha.appendChild(valor);
       item.appendChild(linha);
       lista.appendChild(item);
     });
