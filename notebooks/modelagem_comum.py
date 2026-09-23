@@ -322,7 +322,9 @@ GRADES = {
     ],
     "Gradient Boosting": [
         {"n_estimators": n, "learning_rate": taxa, "max_depth": profundidade, "subsample": 0.8}
-        for profundidade in (2, 3) for taxa in (0.05, 0.1) for n in (300, 600)
+        for profundidade in (3, 4, 5, 6)
+        for taxa in (0.015, 0.03, 0.05)
+        for n in (300, 600, 1200)
     ],
 }
 
