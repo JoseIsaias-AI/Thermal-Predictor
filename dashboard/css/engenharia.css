@@ -35,7 +35,7 @@
   border-radius: var(--radius);
   font-size: var(--size-kicker);
   font-weight: var(--weight-semibold);
-  color: var(--wp-charcoal);
+  color: var(--color-text-strong);
 }
 
 /* ----- Critério de aceitação ----- */
@@ -83,7 +83,7 @@
 /* Pendência é estado declarado, não falha: sem cor de alerta. */
 .criterion__meta dd.is-pending {
   font-weight: var(--weight-semibold);
-  color: var(--wp-charcoal);
+  color: var(--color-text-strong);
 }
 
 /* ----- Números de destaque ----- */
@@ -273,7 +273,7 @@
   margin: 0;
   font-size: var(--size-kicker);
   font-weight: var(--weight-semibold);
-  color: var(--wp-charcoal);
+  color: var(--color-text-strong);
 }
 
 /* ----- Gráficos -----
@@ -320,7 +320,7 @@
 }
 
 .chart__label--forte {
-  fill: var(--wp-near-black);
+  fill: var(--color-text);
   font-weight: var(--weight-semibold);
 }
 

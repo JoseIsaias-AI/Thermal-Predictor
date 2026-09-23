@@ -85,6 +85,9 @@
 /* Multiplica em vez de cobrir: a faixa alternada não apaga a banda de
    incerteza nem a linha do limite que passam por baixo dela. */
 .ax-faixa-alt { fill: var(--color-grid-alt); mix-blend-mode: multiply; }
+/* No escuro o tom da faixa é translúcido: multiplicar escureceria até o
+   preto, e a transparência já deixa passar o que está por baixo. */
+:root[data-tema="escuro"] .ax-faixa-alt { mix-blend-mode: normal; }
 
 /* Subsistema fora do isolamento: continua desenhado, e apenas recua. */
 .ax-recuado { opacity: 0.28; }
@@ -232,16 +235,16 @@
 
 .ax-marca { transition: opacity 120ms ease-out; }
 .viz-apagando .ax-marca:not(.is-realce) { opacity: 0.25; }
-.ax-marca.is-realce { stroke: var(--wp-blue-accent) !important; stroke-width: 2.4 !important; }
+.ax-marca.is-realce { stroke: var(--color-highlight) !important; stroke-width: 2.4 !important; }
 
-.ax-guia { stroke: var(--wp-blue-accent); stroke-width: 1; stroke-dasharray: 3 3; }
+.ax-guia { stroke: var(--color-highlight); stroke-width: 1; stroke-dasharray: 3 3; }
 .ax-anotacao { font-family: var(--font-body); font-size: 12px; fill: var(--color-text); }
 
 /* ----- Coordenadas paralelas ----- */
 
 .pc-linha { fill: none; stroke-width: 1.1; transition: opacity 140ms ease-out; }
 .pc-linha--fora { opacity: 0.06; }
-.pc-linha--contexto { stroke: var(--wp-gray-medium); opacity: 0.42; }
+.pc-linha--contexto { stroke: var(--color-data-muted); opacity: 0.42; }
 .pc-linha--sel { stroke-width: 2.6; opacity: 1; }
 .pc-linha--alvo { cursor: pointer; stroke: transparent; stroke-width: 9; fill: none; }
 

@@ -56,9 +56,9 @@ var PAINEL_PECA = (function () {
     };
   }
 
-  // A mesma cor do marcador e da tabela: monitorado é branco, o resto segue a faixa.
+  // A mesma cor do marcador e da tabela: monitorado é vazado (cor do cartão), o resto segue a faixa.
   function corDoPonto(p, rampa) {
-    if (p.is_monitor_only) return "#ffffff";
+    if (p.is_monitor_only) return "var(--color-surface)";
     return rampa[FOGAO.faixaDaRampa(p.margem_percentual)];
   }
 
@@ -83,7 +83,7 @@ var PAINEL_PECA = (function () {
     var forma = document.createElementNS(SVG, "path");
     forma.setAttribute("d", FOGAO.formaDoPonto(6, 6, p.estado, p.is_monitor_only));
     forma.setAttribute("fill", corDoPonto(p, rampa));
-    forma.setAttribute("stroke", p.is_monitor_only ? "#767777" : "#484949");
+    forma.setAttribute("stroke", p.is_monitor_only ? "var(--color-glyph-line-mono)" : "var(--color-glyph-line)");
     forma.setAttribute("stroke-width", "0.8");
     if (p.is_monitor_only) forma.setAttribute("stroke-dasharray", "2.5 2");
     svg.appendChild(forma);

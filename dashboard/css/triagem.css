@@ -116,7 +116,7 @@
   height: 16px;
   border-radius: 50%;
   background: var(--color-accent);
-  color: var(--color-text-inverse);
+  color: var(--color-on-accent);
   font-size: var(--size-kicker);
   font-weight: 700;
 }
@@ -136,10 +136,10 @@
   z-index: 15;
   width: min(26rem, 90vw);
   padding: var(--space-4);
-  background: var(--color-surface);
+  background: var(--color-surface-raised);
   border: var(--border-width) solid var(--color-border);
   border-radius: var(--radius-lg);
-  box-shadow: 0 8px 24px rgba(16, 21, 31, 0.12);
+  box-shadow: var(--shadow-pop);
 }
 
 .scope-notice__body p {
