@@ -435,4 +435,3 @@ test("todo estado tem uma consequência escrita para quem planeja campanha", fun
   // Nenhuma consequência pode soar como liberação: a tela não autoriza peça.
   assert.equal(/(aprovad|liberado para publica|pode publicar)/i.test(textos), false, textos);
 });
-
