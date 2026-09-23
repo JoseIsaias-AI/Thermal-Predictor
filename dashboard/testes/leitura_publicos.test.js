@@ -391,37 +391,47 @@ test("configuração sem par no histórico não inventa alternativa", function (
 });
 
 test("os temas da tela de marketing cobrem os sete subsistemas", function () {
-  /* Os temas são conteúdo da tela e moram em js/marketing.js. O que se cobra
-     aqui é que nenhum subsistema fique de fora: um subsistema sem tema some da
-     leitura de quem planeja campanha, e um risco deixaria de aparecer. */
-  var fonte = fs.readFileSync(path.join(JS, "marketing.js"), "utf8");
-  var bloco = fonte.slice(fonte.indexOf("var TEMAS = ["), fonte.indexOf("var CONSEQUENCIA"));
+  /* Os temas moram em js/leitura_publicos.js, lidos pela tela de marketing e
+     pelo registro em PDF. O que se cobra aqui é que nenhum subsistema fique de
+     fora: um subsistema sem tema some da leitura de quem planeja campanha, e
+     um risco deixaria de aparecer. */
+  var cobertos = {};
   var subsistemas = {};
 
   TODOS.forEach(function (p) { subsistemas[p.Key_Area] = true; });
+  LP.TEMAS_MARKETING.forEach(function (t) { t.areas.forEach(function (a) { cobertos[a] = true; }); });
 
   assert.equal(Object.keys(subsistemas).length, 7);
   Object.keys(subsistemas).forEach(function (area) {
-    assert.ok(bloco.indexOf('"' + area + '"') > 0, "subsistema sem tema na tela: " + area);
+    assert.ok(cobertos[area], "subsistema sem tema na tela: " + area);
   });
 
   // E nenhum tema inventa subsistema que não existe na base.
-  (bloco.match(/areas: \[([^\]]+)\]/g) || []).forEach(function (linha) {
-    (linha.match(/"([^"]+)"/g) || []).forEach(function (bruto) {
-      var area = bruto.replace(/"/g, "");
-      assert.ok(subsistemas[area], "tema aponta para subsistema inexistente: " + area);
-    });
+  Object.keys(cobertos).forEach(function (area) {
+    assert.ok(subsistemas[area], "tema aponta para subsistema inexistente: " + area);
   });
 });
 
-test("todo estado tem uma consequência escrita para quem planeja campanha", function () {
-  var fonte = fs.readFileSync(path.join(JS, "marketing.js"), "utf8");
-  var bloco = fonte.slice(fonte.indexOf("var CONSEQUENCIA"), fonte.indexOf("var loading"));
+test("a leitura de cada tema é o pior estado dos seus subsistemas", function () {
+  var leituras = LP.leiturasDeMarketing(TODOS);
 
-  LP.ORDEM_ESTADOS.forEach(function (estado) {
-    assert.ok(bloco.indexOf(estado + ":") > 0, "estado sem consequência: " + estado);
+  assert.equal(leituras.length, LP.TEMAS_MARKETING.length);
+  leituras.forEach(function (l) {
+    var doTema = TODOS.filter(function (p) { return l.tema.areas.indexOf(p.Key_Area) >= 0; });
+    assert.equal(l.estado, LP.severidade(doTema), l.tema.nome);
   });
+  for (var i = 1; i < leituras.length; i++) {
+    assert.ok(LP.ORDEM_ESTADOS.indexOf(leituras[i - 1].estado) <= LP.ORDEM_ESTADOS.indexOf(leituras[i].estado),
+      "do que trava a campanha para o que já se sustenta");
+  }
+});
+
+test("todo estado tem uma consequência escrita para quem planeja campanha", function () {
+  var textos = LP.ORDEM_ESTADOS.map(function (estado) {
+    assert.ok(LP.CONSEQUENCIA_MARKETING[estado], "estado sem consequência: " + estado);
+    return LP.CONSEQUENCIA_MARKETING[estado];
+  }).join(" ");
 
   // Nenhuma consequência pode soar como liberação: a tela não autoriza peça.
-  assert.equal(/(aprovad|liberado para publica|pode publicar)/i.test(bloco), false, bloco);
+  assert.equal(/(aprovad|liberado para publica|pode publicar)/i.test(textos), false, textos);
 });

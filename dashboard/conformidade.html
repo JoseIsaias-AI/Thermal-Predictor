@@ -8,10 +8,11 @@
   <!-- triagem.css vem junto: .page-head, .config, .data-table, .state e .btn
        são os mesmos componentes das telas anteriores, e é o que impede esta
        parecer outro sistema. publicos.css só acrescenta o que falta. -->
-  <link rel="stylesheet" href="css/tokens.css?v=3">
-  <link rel="stylesheet" href="css/app.css?v=5">
-  <link rel="stylesheet" href="css/triagem.css?v=3">
-  <link rel="stylesheet" href="css/publicos.css?v=8">
+  <link rel="stylesheet" href="css/tokens.css?v=4">
+  <link rel="stylesheet" href="css/app.css?v=6">
+  <link rel="stylesheet" href="css/triagem.css?v=4">
+  <link rel="stylesheet" href="css/publicos.css?v=9">
+  <link rel="stylesheet" href="css/historico.css?v=2">
 </head>
 <body>
 
@@ -53,7 +54,10 @@
 
   <div class="page-head">
     <div class="page-head__text">
-      <h2 class="page-head__title">Conformidade térmica</h2>
+      <!-- O nome da tela vira sobretítulo; o título é a conclusão, preenchido
+           por conformidade.js com a contagem da própria tabela. -->
+      <p class="page-head__kicker">Conformidade térmica</p>
+      <h2 class="page-head__title" id="page-title">Conformidade térmica</h2>
       <p class="page-head__sub">Leitura por componente contra o limite admissível · insumo para decidir quando iniciar a validação formal</p>
     </div>
     <div class="page-head__actions">
@@ -77,20 +81,43 @@
           </p>
         </div>
       </details>
-      <!-- RF-22. Rotulado no próprio botão, e não só no arquivo: é onde a
-           pessoa decide exportar. -->
-      <button class="btn btn--ghost" type="button" id="export-csv" disabled>Exportar planilha</button>
+      <!-- As duas exportações e a opção da planilha num controle só: três
+           controles soltos disputavam a linha com a leitura. -->
+      <details class="scope-notice exportar">
+        <summary>Exportar</summary>
+        <div class="scope-notice__body exportar__corpo">
+          <!-- RF-22. Rotulado no próprio botão, e não só no arquivo: é onde a
+               pessoa decide exportar. -->
+          <button class="btn btn--ghost" type="button" id="export-csv" disabled>Exportar planilha</button>
+          <!-- A aba do histórico é opcional: por padrão sai só a análise em
+               exibição, como antes. -->
+          <label class="export-opcao" title="Acrescenta à planilha uma aba com uma linha por configuração analisada nesta sessão">
+            <input type="checkbox" id="export-historico" disabled>
+            <span>Incluir histórico da sessão (<span id="export-historico-n">0 análises</span>)</span>
+          </label>
+          <button class="btn btn--ghost" type="button" data-exportar-pdf disabled title="Registro desta análise em PDF, com o resumo e as tabelas das telas de triagem, conformidade e marketing">Exportar PDF</button>
+        </div>
+      </details>
       <a class="btn btn--ghost" href="index.html">Alterar configuração</a>
     </div>
   </div>
 
-  <!-- RF-15, RF-16 e RF-17 ficam abertos nesta tela, e não recolhidos como na
-       triagem: é aqui que a saída mais tenderia a ser lida como parecer. -->
-  <ul class="avisos">
-    <li><strong>Triagem pré-simulação.</strong> A saída estima o comportamento térmico para ordenar o que simular primeiro. Não substitui a <abbr class="termo" title="Cálculo detalhado do comportamento térmico feito por dinâmica de fluidos computacional. Leva semanas, e esta ferramenta ajuda a priorizar quais configurações merecem passar por ele.">simulação</abbr> nem o ensaio físico.</li>
-    <li><strong>Não é parecer de conformidade.</strong> A ferramenta não declara atendimento a norma e não gera evidência formal para auditoria ou certificação.</li>
-    <li><strong>Arquitetura única.</strong> Esta prova de conceito cobre a arquitetura presente na base disponível, sem distinguir os requisitos de Brasil e México.</li>
-  </ul>
+  <!-- RF-15, RF-16 e RF-17 continuam à vista nesta tela, e não atrás do
+       "Como ler": é aqui que a saída mais tenderia a ser lida como parecer.
+       Os três avisos ficam numa linha; o texto por extenso abre a um clique. -->
+  <details class="ressalva">
+    <summary>
+      <strong>Triagem pré-simulação</strong> ·
+      <strong>Não é parecer de conformidade</strong> ·
+      <strong>Arquitetura única</strong>
+      <span class="ressalva__abrir">Ver os 3 avisos</span>
+    </summary>
+    <ul class="ressalva__corpo">
+      <li><strong>Triagem pré-simulação.</strong> A saída estima o comportamento térmico para ordenar o que simular primeiro. Não substitui a <abbr class="termo" title="Cálculo detalhado do comportamento térmico feito por dinâmica de fluidos computacional. Leva semanas, e esta ferramenta ajuda a priorizar quais configurações merecem passar por ele.">simulação</abbr> nem o ensaio físico.</li>
+      <li><strong>Não é parecer de conformidade.</strong> A ferramenta não declara atendimento a norma e não gera evidência formal para auditoria ou certificação.</li>
+      <li><strong>Arquitetura única.</strong> Esta prova de conceito cobre a arquitetura presente na base disponível, sem distinguir os requisitos de Brasil e México.</li>
+    </ul>
+  </details>
 
   <section class="config" id="config-panel" hidden>
     <h2 class="config__title">Configuração avaliada
@@ -169,8 +196,12 @@
 <script src="js/schema.js?v=3"></script>
 <script src="js/dados_triagem.js?v=3"></script>
 <script src="js/dados_comparacao.js?v=3"></script>
-<script src="js/planilha.js?v=1"></script>
-<script src="js/leitura_publicos.js?v=5"></script>
-<script src="js/conformidade.js?v=5"></script>
+<script src="js/planilha.js?v=2"></script>
+<script src="js/leitura_publicos.js?v=8"></script>
+<script src="js/resumo_executivo.js?v=3"></script>
+<script src="js/documento_pdf.js?v=1"></script>
+<script src="js/registro_pdf.js?v=1"></script>
+<script src="js/historico_sessao.js?v=2"></script>
+<script src="js/conformidade.js?v=7"></script>
 </body>
 </html>

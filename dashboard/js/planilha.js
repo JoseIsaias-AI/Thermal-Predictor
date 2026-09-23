@@ -15,6 +15,7 @@
  *     colunas: [{ titulo: "Componente", tipo: "texto", valor: fn }, ...],
  *     linhas: [...]
  *   }));
+ * Mais de uma aba: `{ abas: [{ aba, colunas, linhas }, ...] }`.
  */
 
 var PLANILHA = (function () {
@@ -160,13 +161,17 @@ var PLANILHA = (function () {
   var NS_PLANILHA = "http://schemas.openxmlformats.org/spreadsheetml/2006/main";
   var NS_RELACAO = "http://schemas.openxmlformats.org/officeDocument/2006/relationships";
 
-  function tiposDeConteudo() {
+  function tiposDeConteudo(totalDeAbas) {
+    var abas = "";
+    for (var i = 1; i <= totalDeAbas; i++) {
+      abas += '<Override PartName="/xl/worksheets/sheet' + i + '.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>';
+    }
     return CABECALHO_XML +
       '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">' +
       '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>' +
       '<Default Extension="xml" ContentType="application/xml"/>' +
       '<Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>' +
-      '<Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>' +
+      abas +
       '<Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>' +
       '</Types>';
   }
@@ -178,23 +183,31 @@ var PLANILHA = (function () {
       '</Relationships>';
   }
 
-  function pasta(aba) {
+  // Aba i tem sheetId i e relação rId i; o estilo fica com o rId seguinte.
+  function pasta(nomes) {
     return CABECALHO_XML +
       '<workbook xmlns="' + NS_PLANILHA + '" xmlns:r="' + NS_RELACAO + '">' +
-      '<sheets><sheet name="' + escapar(aba) + '" sheetId="1" r:id="rId1"/></sheets>' +
+      '<sheets>' + nomes.map(function (nome, i) {
+        return '<sheet name="' + escapar(nome) + '" sheetId="' + (i + 1) + '" r:id="rId' + (i + 1) + '"/>';
+      }).join("") + '</sheets>' +
       '</workbook>';
   }
 
-  function relacoesDaPasta() {
+  function relacoesDaPasta(totalDeAbas) {
+    var abas = "";
+    for (var i = 1; i <= totalDeAbas; i++) {
+      abas += '<Relationship Id="rId' + i + '" Type="' + NS_RELACAO + '/worksheet" Target="worksheets/sheet' + i + '.xml"/>';
+    }
     return CABECALHO_XML +
       '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
-      '<Relationship Id="rId1" Type="' + NS_RELACAO + '/worksheet" Target="worksheets/sheet1.xml"/>' +
-      '<Relationship Id="rId2" Type="' + NS_RELACAO + '/styles" Target="styles.xml"/>' +
+      abas +
+      '<Relationship Id="rId' + (totalDeAbas + 1) + '" Type="' + NS_RELACAO + '/styles" Target="styles.xml"/>' +
       '</Relationships>';
   }
 
-  /* Quatro formatos, na ordem em que `estiloDaColuna` os referencia:
-     0 texto, 1 cabeçalho, 2 número com duas casas, 3 número com uma casa. */
+  /* Cinco formatos, na ordem em que `estiloDaColuna` os referencia:
+     0 texto, 1 cabeçalho, 2 número com duas casas, 3 número com uma casa,
+     4 inteiro. */
   function estilos() {
     return CABECALHO_XML +
       '<styleSheet xmlns="' + NS_PLANILHA + '">' +
@@ -213,11 +226,12 @@ var PLANILHA = (function () {
       '<border><left/><right/><top/><bottom style="thin"><color rgb="FFCFD5DD"/></bottom><diagonal/></border>' +
       '</borders>' +
       '<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>' +
-      '<cellXfs count="4">' +
+      '<cellXfs count="5">' +
       '<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0" applyAlignment="1"><alignment vertical="center"/></xf>' +
       '<xf numFmtId="0" fontId="1" fillId="2" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment vertical="center"/></xf>' +
       '<xf numFmtId="2" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1" applyAlignment="1"><alignment horizontal="right" vertical="center"/></xf>' +
       '<xf numFmtId="164" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1" applyAlignment="1"><alignment horizontal="right" vertical="center"/></xf>' +
+      '<xf numFmtId="1" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1" applyAlignment="1"><alignment horizontal="right" vertical="center"/></xf>' +
       '</cellXfs>' +
       '<cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles>' +
       '</styleSheet>';
@@ -226,11 +240,12 @@ var PLANILHA = (function () {
   function estiloDaColuna(coluna) {
     if (coluna.tipo === "numero") return 2;
     if (coluna.tipo === "numero1") return 3;
+    if (coluna.tipo === "inteiro") return 4;
     return 0;
   }
 
   function ehNumerica(coluna) {
-    return coluna.tipo === "numero" || coluna.tipo === "numero1";
+    return coluna.tipo === "numero" || coluna.tipo === "numero1" || coluna.tipo === "inteiro";
   }
 
   /* Largura pelo conteúdo mais longo da coluna, com piso e teto para nenhuma
@@ -238,7 +253,8 @@ var PLANILHA = (function () {
      tamanho que a célula exibe, e não pelo do ponto flutuante: -89,67 ocupa
      seis caracteres na tela e dezoito na representação bruta. */
   function larguraDaColuna(coluna, linhas) {
-    var casas = coluna.tipo === "numero" ? 2 : (coluna.tipo === "numero1" ? 1 : null);
+    var casas = { numero: 2, numero1: 1, inteiro: 0 }[coluna.tipo];
+    if (casas === undefined) casas = null;
     var maior = String(coluna.titulo).length;
 
     linhas.forEach(function (linha) {
@@ -263,7 +279,7 @@ var PLANILHA = (function () {
       escapar(valor) + '</t></is></c>';
   }
 
-  function aba(colunas, linhas) {
+  function aba(colunas, linhas, selecionada) {
     var ultima = referencia(colunas.length - 1, linhas.length + 1);
     var partes = [];
 
@@ -272,7 +288,7 @@ var PLANILHA = (function () {
     partes.push('<dimension ref="A1:' + ultima + '"/>');
     // Título congelado: a tabela passa de trinta linhas e rolar não pode custar
     // o nome da coluna.
-    partes.push('<sheetViews><sheetView tabSelected="1" workbookViewId="0">' +
+    partes.push('<sheetViews><sheetView' + (selecionada ? ' tabSelected="1"' : "") + ' workbookViewId="0">' +
       '<pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/>' +
       '</sheetView></sheetViews>');
     partes.push('<sheetFormatPr defaultRowHeight="15"/>');
@@ -311,17 +327,33 @@ var PLANILHA = (function () {
 
   /* ----- Entrada pública ----- */
 
-  function gerarBytes(planilha) {
-    var nomeDaAba = (planilha.aba || "Planilha1").slice(0, 31);
+  // O Excel recusa aba com mais de 31 caracteres ou com nome repetido.
+  function nomesDasAbas(abas) {
+    var usados = {};
+    return abas.map(function (a, i) {
+      var nome = String(a.aba || "Planilha" + (i + 1)).replace(/[\\/?*\[\]:]/g, " ").slice(0, 31);
+      var base = nome;
+      for (var n = 2; usados[nome.toLowerCase()]; n++) nome = base.slice(0, 28) + " " + n;
+      usados[nome.toLowerCase()] = true;
+      return nome;
+    });
+  }
 
-    return montarZip([
-      { nome: "[Content_Types].xml", conteudo: tiposDeConteudo() },
+  function gerarBytes(planilha) {
+    var abas = planilha.abas || [planilha];
+    var arquivos = [
+      { nome: "[Content_Types].xml", conteudo: tiposDeConteudo(abas.length) },
       { nome: "_rels/.rels", conteudo: relacoesRaiz() },
-      { nome: "xl/workbook.xml", conteudo: pasta(nomeDaAba) },
-      { nome: "xl/_rels/workbook.xml.rels", conteudo: relacoesDaPasta() },
-      { nome: "xl/styles.xml", conteudo: estilos() },
-      { nome: "xl/worksheets/sheet1.xml", conteudo: aba(planilha.colunas, planilha.linhas) }
-    ]);
+      { nome: "xl/workbook.xml", conteudo: pasta(nomesDasAbas(abas)) },
+      { nome: "xl/_rels/workbook.xml.rels", conteudo: relacoesDaPasta(abas.length) },
+      { nome: "xl/styles.xml", conteudo: estilos() }
+    ];
+
+    abas.forEach(function (a, i) {
+      arquivos.push({ nome: "xl/worksheets/sheet" + (i + 1) + ".xml", conteudo: aba(a.colunas, a.linhas, i === 0) });
+    });
+
+    return montarZip(arquivos);
   }
 
   function gerar(planilha) {

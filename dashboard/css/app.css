@@ -20,6 +20,17 @@ body {
 
 h1, h2, h3, h4 { font-family: var(--font-display); letter-spacing: -0.01em; }
 
+/* Animação só como transição de estado: quem pede menos movimento não vê
+   nenhuma, em nenhuma tela. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
 /* ----- Cabeçalho ----- */
 
 .masthead {
@@ -157,7 +168,7 @@ h1, h2, h3, h4 { font-family: var(--font-display); letter-spacing: -0.01em; }
 .panel__title {
   font-family: var(--font-display);
   font-weight: 600;
-  font-size: var(--size-subhead);
+  font-size: var(--size-title);
   line-height: 1.3;
   color: var(--color-text);
   margin: 0 0 var(--space-4);
@@ -192,10 +203,97 @@ h1, h2, h3, h4 { font-family: var(--font-display); letter-spacing: -0.01em; }
   margin: 0 0 var(--space-2);
   font-size: var(--size-small);
   color: var(--color-text-muted);
-  max-width: 62ch;
+  max-width: 68ch;
 }
 
 .more p:last-child { margin-bottom: 0; }
+
+/* ----- Ressalva em uma linha -----
+ *
+ * A ressalva fica perto do dado, numa linha; o texto por extenso abre a um
+ * clique. Sem caixa colorida: o vermelho é só de estado. */
+
+.ressalva {
+  margin: 0 0 var(--space-4);
+  font-size: var(--size-small);
+  color: var(--color-text-muted);
+}
+
+.ressalva > summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-1) var(--space-2);
+  cursor: pointer;
+  list-style: none;
+  width: fit-content;
+  max-width: 100%;
+}
+
+.ressalva > summary::-webkit-details-marker { display: none; }
+
+.ressalva > summary::before {
+  content: "";
+  flex: none;
+  align-self: center;
+  width: 14px;
+  height: 14px;
+  background: currentColor;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 14'%3E%3Ccircle cx='7' cy='7' r='5.6' fill='none' stroke='black' stroke-width='1.3'/%3E%3Cpath d='M7 4.2v3.4' stroke='black' stroke-width='1.3'/%3E%3Ccircle cx='7' cy='9.9' r='0.7'/%3E%3C/svg%3E") center / contain no-repeat;
+          mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 14'%3E%3Ccircle cx='7' cy='7' r='5.6' fill='none' stroke='black' stroke-width='1.3'/%3E%3Cpath d='M7 4.2v3.4' stroke='black' stroke-width='1.3'/%3E%3Ccircle cx='7' cy='9.9' r='0.7'/%3E%3C/svg%3E") center / contain no-repeat;
+}
+
+.ressalva strong { color: var(--color-text); font-weight: var(--weight-semibold); }
+
+.ressalva__abrir {
+  font-weight: var(--weight-semibold);
+  color: var(--color-accent);
+  white-space: nowrap;
+}
+
+.ressalva > summary:hover .ressalva__abrir { text-decoration: underline; }
+.ressalva[open] .ressalva__abrir { display: none; }
+
+.ressalva > summary:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
+}
+
+.ressalva__corpo {
+  margin: var(--space-2) 0 0;
+  padding: 0 0 0 var(--space-3);
+  border-left: 2px solid var(--color-border-strong);
+  list-style: none;
+  max-width: 76ch;
+}
+
+.ressalva__corpo li + li,
+.ressalva__corpo p + p { margin-top: var(--space-2); }
+.ressalva__corpo p { margin: 0; }
+
+/* Aviso que impede, e não só informa: mesmo desenho, texto em peso de título. */
+.ressalva--forte { color: var(--color-text); }
+.ressalva--forte > summary { font-size: var(--size-body); }
+.ressalva--forte > summary::before { color: var(--color-text); }
+
+/* ----- Ver como tabela -----
+ * Todo gráfico tem a leitura exata a um clique. */
+
+.ver-tabela {
+  font-family: var(--font-body);
+  font-size: var(--size-small);
+  font-weight: var(--weight-semibold);
+  color: var(--color-accent);
+  text-decoration: none;
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.ver-tabela:hover { text-decoration: underline; }
+.ver-tabela:focus-visible { outline: 2px solid var(--color-focus-ring); outline-offset: 2px; }
 
 /* ----- Formulário ----- */
 
@@ -280,10 +378,12 @@ h1, h2, h3, h4 { font-family: var(--font-display); letter-spacing: -0.01em; }
 }
 
 .fieldset {
-  border: var(--border-width) solid var(--color-border);
-  border-radius: var(--radius);
-  padding: var(--space-4);
+  border: 0;
+  border-left: 2px solid var(--color-border);
+  border-radius: 0;
+  padding: 0 0 0 var(--space-4);
   margin: var(--space-4) 0 0;
+  min-width: 0;
 }
 
 /* O fator composto ocupa a linha inteira: numa coluna só ele empurrava os
@@ -296,7 +396,9 @@ h1, h2, h3, h4 { font-family: var(--font-display); letter-spacing: -0.01em; }
 .fieldset > legend {
   font-weight: var(--weight-semibold);
   font-size: var(--size-small);
-  padding: 0 var(--space-2);
+  padding: 0 0 var(--space-1);
+  margin-left: calc(var(--space-4) * -1 - 2px);
+  padding-left: calc(var(--space-4) + 2px);
 }
 
 /* ----- Botão ----- */
@@ -329,7 +431,7 @@ h1, h2, h3, h4 { font-family: var(--font-display); letter-spacing: -0.01em; }
 /* A ação fica numa barra própria, colada no rodapé do painel: antes ela era
    o último item de uma coluna longa e desaparecia junto com os campos. */
 .form-actions {
-  margin: var(--space-5) calc(var(--space-5) * -1) calc(var(--space-5) * -1);
+  margin: var(--space-4) calc(var(--space-5) * -1) calc(var(--space-5) * -1);
   padding: var(--space-4) var(--space-5);
   border-top: var(--border-width) solid var(--color-border);
   background: var(--color-surface-sunken);
@@ -339,13 +441,14 @@ h1, h2, h3, h4 { font-family: var(--font-display); letter-spacing: -0.01em; }
   flex-wrap: wrap;
 }
 
+/* A frase encolhe ao lado do botão em vez de empurrá-lo para outra linha:
+   assim a ação cabe na primeira tela em 1366×768. */
 .form-actions__hint {
   margin: 0;
   font-size: var(--size-small);
   color: var(--color-text-muted);
-  line-height: 1.35;
-  flex-grow: 1;
-  min-width: 12rem;
+  line-height: 1.4;
+  flex: 1 1 12rem;
 }
 
 .form-actions__hint strong {
@@ -359,7 +462,7 @@ h1, h2, h3, h4 { font-family: var(--font-display); letter-spacing: -0.01em; }
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
-  margin-bottom: var(--space-5);
+  margin-bottom: var(--space-4);
 }
 
 .form-progress__head {
@@ -370,6 +473,7 @@ h1, h2, h3, h4 { font-family: var(--font-display); letter-spacing: -0.01em; }
 }
 
 .form-progress__count {
+  white-space: nowrap;
   font-family: var(--font-display);
   font-weight: var(--weight-bold);
   font-size: var(--size-small);
@@ -404,7 +508,7 @@ h1, h2, h3, h4 { font-family: var(--font-display); letter-spacing: -0.01em; }
   font-family: var(--font-display);
   font-weight: 600;
   letter-spacing: -0.02em;
-  font-size: 2.5rem;
+  font-size: var(--size-display);
   line-height: 1;
   margin: 0;
   font-variant-numeric: tabular-nums;
@@ -449,6 +553,19 @@ h1, h2, h3, h4 { font-family: var(--font-display); letter-spacing: -0.01em; }
   font-size: var(--size-small);
   display: block;
   margin-bottom: var(--space-1);
+}
+
+/* Fora da tela, dentro do leitor de tela. */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 /* ----- Glossário em tela -----
