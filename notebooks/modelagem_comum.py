@@ -101,12 +101,18 @@ def salvar_figura(fig, nome):
 # Base
 # ------------------------------------------------------------------------------------------------
 
-def carregar_base():
+def carregar_base(incluir_simulacao=False, caminho_simulacao="simulacao_fem.csv"):
     """Leituras observadas das seis áreas, uma linha por medição.
 
     Só entram pares rodada e termopar presentes em `dataset_preprocessado.csv`, que guarda apenas o
     que foi medido: valores imputados nas tabelas por área ficam fora, conforme a Seção 4.2.2 da
     documentação.
+
+    Com `incluir_simulacao`, as linhas simuladas por `fem_termico.py` são acrescentadas às medidas, e
+    a tabela ganha as colunas `origem` e `peso`, conforme o contrato de
+    `documents/extras/projeto-integracao-fem.md`. O padrão é desligado, e nesse caso a tabela
+    devolvida é exatamente a mesma de antes desta extensão, o que mantém intactos os notebooks 12 a
+    20.
     """
     catalogo = (
         pd.read_csv(caminho_dado("dataset_completo_com_flags_de_auditoria.csv"))
@@ -148,7 +154,37 @@ def carregar_base():
     termopares = sorted(base["TC_Name"].unique())
     base["indice_termopar"] = base["TC_Name"].map({t: i for i, t in enumerate(termopares)})
 
-    return base
+    if not incluir_simulacao:
+        return base
+
+    return _acrescentar_simulacao(base, catalogo, caminho_simulacao)
+
+
+def _acrescentar_simulacao(base, catalogo, caminho_simulacao):
+    """Concatena as linhas simuladas às medidas, no mesmo formato da tabela de modelagem."""
+    import fem_termico as ft
+
+    colunas = colunas_configuracao(base)
+    simulada = ft.carregar_simulacao(caminho_dado(caminho_simulacao),
+                                     pontos_validos=set(base["TC_Name"]),
+                                     areas_validas=set(base["Key_Area"]), colunas_configuracao=colunas)
+    area_do_ponto = base.drop_duplicates("TC_Name").set_index("TC_Name")
+    simulada = simulada.assign(
+        Run_ID=simulada["simulacao_id"],
+        Conjunto=simulada["TC_Name"].map(area_do_ponto["Conjunto"]),
+        limit_c=simulada["TC_Name"].map(area_do_ponto["limit_c"]),
+        codigo_na_area=simulada["TC_Name"].map(area_do_ponto["codigo_na_area"]),
+        indice_termopar=simulada["TC_Name"].map(area_do_ponto["indice_termopar"]),
+        configuracao=simulada[colunas].astype(int).astype(str).agg("".join, axis=1),
+    )
+    simulada["modo"] = np.select(
+        [simulada["Run_Case_Broil C1"] == 1, simulada["Run_Case_Broil C2"] == 1,
+         simulada["Run_Case_Pyro"] == 1],
+        ["Broil C1", "Broil C2", "Pyro"], default="Broil Qualitative",
+    )
+    base = base.assign(origem=ft.ORIGEM_MEDICAO, peso=1.0)
+
+    return pd.concat([base, simulada[base.columns]], ignore_index=True)
 
 
 def colunas_configuracao(base):
@@ -160,9 +196,14 @@ def colunas_configuracao(base):
 # ------------------------------------------------------------------------------------------------
 
 def sortear_configuracoes_de_teste(base, semente=SEMENTE):
-    """Configurações de teste, sorteadas dentro de cada modo de ensaio conforme `COTAS_TESTE`."""
+    """Configurações de teste, sorteadas dentro de cada modo de ensaio conforme `COTAS_TESTE`.
+
+    O sorteio considera apenas configurações realmente ensaiadas: linha simulada nunca define nem
+    ocupa o conjunto de teste.
+    """
+    medidas = base[base["origem"] == "medicao"] if "origem" in base.columns else base
     gerador = np.random.default_rng(semente)
-    modo_da_configuracao = base.drop_duplicates("configuracao").set_index("configuracao")["modo"]
+    modo_da_configuracao = medidas.drop_duplicates("configuracao").set_index("configuracao")["modo"]
     teste = []
 
     for modo, cota in COTAS_TESTE.items():
@@ -173,10 +214,23 @@ def sortear_configuracoes_de_teste(base, semente=SEMENTE):
 
 
 def dividir_treino_teste(base, semente=SEMENTE):
-    """Índices de treino e de teste. Todas as medições de uma configuração ficam do mesmo lado."""
-    no_teste = base["configuracao"].isin(sortear_configuracoes_de_teste(base, semente)).to_numpy()
+    """Índices de treino e de teste. Todas as medições de uma configuração ficam do mesmo lado.
 
-    return np.where(~no_teste)[0], np.where(no_teste)[0]
+    Com linhas simuladas na tabela, valem duas regras adicionais do projeto de integração: o teste é
+    formado só por medições, e as linhas simuladas de uma configuração sorteada para o teste são
+    descartadas dos dois lados, para que o modelo não treine na simulação daquilo que será avaliado.
+    """
+    configuracoes_de_teste = sortear_configuracoes_de_teste(base, semente)
+    da_configuracao_de_teste = base["configuracao"].isin(configuracoes_de_teste).to_numpy()
+
+    if "origem" not in base.columns:
+        return np.where(~da_configuracao_de_teste)[0], np.where(da_configuracao_de_teste)[0]
+
+    simulada = (base["origem"] == "simulacao").to_numpy()
+    teste = np.where(da_configuracao_de_teste & ~simulada)[0]
+    treino = np.where(~da_configuracao_de_teste)[0]
+
+    return treino, teste
 
 
 def resumo_divisao(base, treino, teste):
