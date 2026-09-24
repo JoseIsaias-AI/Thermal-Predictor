@@ -65,7 +65,7 @@
   border-radius: var(--radius);
   /* Fundo chapado: o degradê radial era decoração, e o modelo se destaca pelo
      próprio sombreamento. */
-  background: var(--color-surface-sunken);
+  background: var(--color-stage-3d);
   overflow: hidden;
   cursor: grab;
   touch-action: none;
@@ -99,7 +99,7 @@
   margin: 0;
   padding: 4px 12px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.86);
+  background: var(--color-surface-glass);
   border: var(--border-width) solid var(--color-border);
   backdrop-filter: blur(6px);
   font-size: var(--size-kicker);
@@ -156,7 +156,7 @@
   left: var(--space-4);
   top: var(--space-4);
   background: var(--color-accent);
-  color: var(--color-text-inverse);
+  color: var(--color-on-accent);
   padding: 3px var(--space-2);
   font-family: var(--font-body);
   font-weight: var(--weight-semibold);
@@ -197,7 +197,7 @@
   color: var(--color-text);
 }
 
-.state-item dd.is-flow { color: var(--wp-blue-accent); }
+.state-item dd.is-flow { color: var(--color-highlight); }
 .state-item dd.is-none { color: var(--color-text-subtle); font-weight: var(--weight-regular); }
 
 /* ----- Alternâncias -----
@@ -230,7 +230,7 @@
 .toggle button[aria-pressed="true"] {
   background: var(--color-surface);
   color: var(--color-text);
-  box-shadow: 0 1px 2px rgba(16, 21, 31, 0.12), 0 0 0 1px rgba(16, 21, 31, 0.04);
+  box-shadow: var(--shadow-control);
 }
 
 .toggle button:focus-visible { outline: 2px solid var(--color-focus-ring); outline-offset: -2px; }
@@ -287,7 +287,7 @@
 
 .heat__side { border-right: var(--border-width) solid var(--color-border); min-width: 0; }
 .heat__side--right { border-right: 0; border-left: var(--border-width) solid var(--color-border); }
-.heat__main { background: var(--color-surface-sunken); min-width: 0; display: flex; flex-direction: column; }
+.heat__main { background: var(--color-stage-3d); min-width: 0; display: flex; flex-direction: column; }
 
 /* Lado a lado, a coluna dos painéis de seleção não dita a altura da linha:
    senão cada peça escolhida (no clique ou no tour) esticava o grid e o 3D,
@@ -381,7 +381,7 @@
 /* A fronteira do limite é marcada na própria legenda. */
 .ramp__row--boundary { border-bottom: 1px solid var(--color-border-strong); }
 
-.ramp__chip { width: 14px; height: 14px; flex: none; border-radius: 3px; box-shadow: inset 0 0 0 1px rgba(16, 21, 31, 0.08); }
+.ramp__chip { width: 14px; height: 14px; flex: none; border-radius: 3px; box-shadow: inset 0 0 0 1px var(--color-swatch-ring); }
 .ramp__range { flex: 1; font-variant-numeric: tabular-nums; }
 .ramp__count { font-variant-numeric: tabular-nums; font-weight: var(--weight-semibold); color: var(--color-text-muted); min-width: 1.4rem; text-align: right; }
 
@@ -500,7 +500,7 @@
 
 .conf__body { display: flex; align-items: center; gap: var(--space-3); margin-top: var(--space-2); min-width: 0; }
 .conf__glifo { flex: none; }
-.conf__halo { fill: rgba(93, 102, 117, 0.16); stroke: rgba(93, 102, 117, 0.55); stroke-width: 1; }
+.conf__halo { fill: color-mix(in srgb, var(--color-3d-halo) 16%, transparent); stroke: color-mix(in srgb, var(--color-3d-halo) 55%, transparent); stroke-width: 1; }
 
 .conf__dados { flex: 1; min-width: 0; margin: 0; display: grid; gap: var(--space-1); }
 .conf__dados div { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 0 var(--space-2); }
@@ -510,8 +510,8 @@
 .conf__nivel { display: inline-flex; align-items: center; gap: 6px; font-size: var(--size-small); }
 
 .conf__passos { display: inline-flex; gap: 2px; }
-.conf__passo { width: 8px; height: 8px; border-radius: 2px; background: var(--wp-gray-light); }
-.conf__passo.is-on { background: var(--wp-gray-dark); }
+.conf__passo { width: 8px; height: 8px; border-radius: 2px; background: var(--color-border); }
+.conf__passo.is-on { background: var(--status-neutral); }
 
 .conf__nota { margin: var(--space-2) 0 0; font-size: var(--size-kicker); line-height: 1.45; color: var(--color-text-subtle); }
 
@@ -587,7 +587,7 @@
 .part__state--acima_do_limite { background: var(--status-critical-bg); color: var(--status-critical); box-shadow: inset 0 0 0 1px var(--status-critical-line); }
 .part__state--banda_de_incerteza { background: var(--status-attention-bg); color: var(--status-attention); box-shadow: none; }
 .part__state--dentro_do_limite { color: var(--color-text); }
-.part__state--mono { background: none; box-shadow: inset 0 0 0 1px var(--color-border-strong); color: var(--wp-charcoal); }
+.part__state--mono { background: none; box-shadow: inset 0 0 0 1px var(--color-border-strong); color: var(--color-text-strong); }
 .part__state svg { flex: none; }
 
 .part__ref { margin: 0 0 var(--space-2); font-size: var(--size-kicker); color: var(--color-text-subtle); }
@@ -619,9 +619,9 @@
 .part__seg { flex-basis: 0; min-width: 3px; }
 .part__seg--acima_do_limite { background: var(--color-critical); }
 .part__seg--banda_de_incerteza { background: var(--color-accent); }
-.part__seg--dentro_do_limite { background: var(--wp-gray); }
+.part__seg--dentro_do_limite { background: var(--color-border-strong); }
 .part__seg--monitoramento {
-  background: repeating-linear-gradient(135deg, var(--color-surface) 0 3px, var(--wp-gray-medium) 3px 4px);
+  background: repeating-linear-gradient(135deg, var(--color-surface) 0 3px, var(--color-data-muted) 3px 4px);
 }
 
 .part__legend { margin: var(--space-1) 0 0; font-size: var(--size-kicker); color: var(--color-text-muted); font-variant-numeric: tabular-nums; }
@@ -633,7 +633,7 @@
   border-radius: var(--radius);
   box-shadow: inset 0 0 0 1px var(--color-border-strong);
   font-size: var(--size-kicker);
-  color: var(--wp-charcoal);
+  color: var(--color-text-strong);
 }
 .part__trio { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-1); margin: 0; }
 .part__trio-cel {
@@ -664,7 +664,7 @@
   width: 10px;
   height: 10px;
   border-radius: 2px;
-  box-shadow: inset 0 0 0 1px rgba(16, 21, 31, 0.35);
+  box-shadow: inset 0 0 0 1px var(--color-swatch-ring-strong);
 }
 .part__trio-nota { margin: var(--space-1) 0 var(--space-2); font-size: var(--size-kicker); color: var(--color-text-subtle); }
 .part__item--dif { cursor: default; }
@@ -787,7 +787,7 @@
 .chips button[aria-pressed="true"] {
   background: var(--color-accent);
   border-color: var(--color-accent);
-  color: var(--color-text-inverse);
+  color: var(--color-on-accent);
 }
 
 .chips button:focus-visible { outline: 2px solid var(--color-focus-ring); outline-offset: 1px; }
@@ -968,10 +968,11 @@ tr[hidden] { display: none; }
   position: absolute;
   z-index: 3;
   pointer-events: none;
-  background: var(--wp-black);
+  background: var(--color-tooltip);
   color: var(--color-text-inverse);
+  border: var(--border-width) solid var(--color-tooltip-line);
   border-radius: var(--radius);
-  box-shadow: 0 8px 24px rgba(16, 21, 31, 0.24);
+  box-shadow: var(--shadow-float);
   padding: var(--space-2) var(--space-3);
   font-size: var(--size-small);
   line-height: 1.45;
@@ -992,7 +993,7 @@ tr[hidden] { display: none; }
   content: " · em foco";
   font-weight: var(--weight-regular);
   font-size: var(--size-kicker);
-  color: var(--wp-blue-accent);
+  color: var(--color-highlight);
 }
 
 .subsys button[aria-pressed="true"]:first-child .subsys__name::after { content: ""; }

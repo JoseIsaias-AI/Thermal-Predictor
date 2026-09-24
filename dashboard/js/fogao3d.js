@@ -27,6 +27,12 @@ var FOGAO3D = (function () {
   function lerp(a, b, t) { return a + (b - a) * t; }
   var GRAU = Math.PI / 180;
 
+  // Cor de um token de tokens.css no tema em vigor; sem TEMA, a do tema claro.
+  function corDoTema(nome, reserva) {
+    var v = typeof TEMA !== "undefined" ? TEMA.token(nome) : "";
+    return new T.Color(v || reserva);
+  }
+
   /* ----- Texturas procedurais -----
      Tudo desenhado em canvas: nenhum arquivo de imagem a carregar, e o painel
      segue abrindo sem servidor. */
@@ -773,12 +779,16 @@ var FOGAO3D = (function () {
       return t;
     }
 
-    function texturaRampa(rampa) {
-      var n = 256, px = new Uint8Array(n * 4);
-      for (var i = 0; i < n; i++) {
+    function preencherRampa(px, rampa) {
+      for (var i = 0, n = px.length / 4; i < n; i++) {
         var c = FOGAO.corDaRampa(rampa, i / (n - 1));
         px[i * 4] = c[0]; px[i * 4 + 1] = c[1]; px[i * 4 + 2] = c[2]; px[i * 4 + 3] = 255;
       }
+    }
+
+    function texturaRampa(rampa) {
+      var n = 256, px = new Uint8Array(n * 4);
+      preencherRampa(px, rampa);
       var t = new T.DataTexture(px, n, 1, T.RGBAFormat);
       t.colorSpace = T.SRGBColorSpace;
       t.minFilter = T.LinearFilter;
@@ -946,8 +956,9 @@ var FOGAO3D = (function () {
       // Arame do domínio: a caixa em que o campo foi interpolado fica declarada.
       var fio = new T.LineSegments(
         new T.EdgesGeometry(new T.BoxGeometry(DOM.x * U, DOM.z * U, DOM.y * U)),
-        new T.LineBasicMaterial({ color: 0x2b3038, transparent: true, opacity: 0.35 }));
+        new T.LineBasicMaterial({ color: corDoTema("--color-3d-arame", 0x2b3038), transparent: true, opacity: 0.35 }));
       fio.position.y = DOM.z / 2 * U;
+      grupoVolume.userData.fio = fio;
       grupoVolume.add(fio);
       grupoVolume.visible = false;
       cena.add(grupoVolume);
@@ -1263,8 +1274,8 @@ var FOGAO3D = (function () {
 
     var anelSel = new T.Group();
     (function () {
-      var a = new T.Mesh(new T.RingGeometry(1.55, 1.95, 48), new T.MeshBasicMaterial({ color: 0x0d436b, depthTest: false, transparent: true, toneMapped: false }));
-      var eco = new T.Mesh(new T.RingGeometry(2.2, 2.45, 48), new T.MeshBasicMaterial({ color: 0x0d436b, depthTest: false, transparent: true, opacity: 0.35, toneMapped: false }));
+      var a = new T.Mesh(new T.RingGeometry(1.55, 1.95, 48), new T.MeshBasicMaterial({ color: corDoTema("--color-selecao", 0x0d436b), depthTest: false, transparent: true, toneMapped: false }));
+      var eco = new T.Mesh(new T.RingGeometry(2.2, 2.45, 48), new T.MeshBasicMaterial({ color: corDoTema("--color-selecao", 0x0d436b), depthTest: false, transparent: true, opacity: 0.35, toneMapped: false }));
       a.renderOrder = eco.renderOrder = 10;
       anelSel.add(a, eco);
       anelSel.userData.eco = eco;
@@ -1280,8 +1291,8 @@ var FOGAO3D = (function () {
        forma do marcador, que continuam sendo só o estado de risco. */
     function criarHalo() {
       var g = new T.Group();
-      var disco = new T.Mesh(new T.CircleGeometry(1, 48), new T.MeshBasicMaterial({ color: 0x5d6675, transparent: true, opacity: 0.16, depthTest: false, depthWrite: false, toneMapped: false }));
-      var borda = new T.Mesh(new T.RingGeometry(0.97, 1, 64), new T.MeshBasicMaterial({ color: 0x5d6675, transparent: true, opacity: 0.55, depthTest: false, depthWrite: false, toneMapped: false }));
+      var disco = new T.Mesh(new T.CircleGeometry(1, 48), new T.MeshBasicMaterial({ color: corDoTema("--color-3d-halo", 0x5d6675), transparent: true, opacity: 0.16, depthTest: false, depthWrite: false, toneMapped: false }));
+      var borda = new T.Mesh(new T.RingGeometry(0.97, 1, 64), new T.MeshBasicMaterial({ color: corDoTema("--color-3d-halo", 0x5d6675), transparent: true, opacity: 0.55, depthTest: false, depthWrite: false, toneMapped: false }));
       // Abaixo da réplica em transparência dos marcadores (5) e do anel de seleção (10).
       disco.renderOrder = borda.renderOrder = 4;
       g.add(disco, borda);
@@ -1319,7 +1330,7 @@ var FOGAO3D = (function () {
     var TIPOS_REALCE = {
       sel: { cor: 0x00a0dd, alfa: 0.10, borda: 0.60, oculto: 0.20, arestas: 0.95, cantos: 1, pulso: true, campo: { alfa: 0, borda: 0, oculto: 0, arestas: 0.1, cantos: 1 } },
       pairar: { cor: 0x00a0dd, alfa: 0.04, borda: 0.32, oculto: 0, arestas: 0.35, cantos: 0, pulso: false, campo: { alfa: 0, borda: 0, oculto: 0, arestas: 0, cantos: 0.55 } },
-      nega: { cor: 0x505863, alfa: 0, borda: 0.18, oculto: 0, arestas: 0.8, cantos: 0, pulso: true, vida: 0.75 }
+      nega: { cor: corDoTema("--color-3d-nega", 0x505863).getHex(), alfa: 0, borda: 0.18, oculto: 0, arestas: 0.8, cantos: 0, pulso: true, vida: 0.75 }
     };
 
     /* Colchetes nos oito cantos da caixa da peça, ou do quadrado que cerca a
@@ -2290,6 +2301,30 @@ var FOGAO3D = (function () {
         if (visivel) pedir();
       }).observe(host);
     }
+
+    /* ----- Tema -----
+       O palco é transparente e herda o fundo do CSS; o que o 3D pinta por
+       conta própria relê o tema aqui. FOGAO já trocou as paradas das rampas
+       (assina antes), então basta repreencher as texturas e refazer os focos
+       com a leitura guardada. Modelo, luz e marcadores de folga não mudam. */
+    function aplicarTema() {
+      preencherRampa(RAMPAS.absoluto.image.data, FOGAO.RAMPA_CAMPO);
+      preencherRampa(RAMPAS.diferenca.image.data, FOGAO.RAMPA_DIFF);
+      RAMPAS.absoluto.needsUpdate = RAMPAS.diferenca.needsUpdate = true;
+
+      var selecao = corDoTema("--color-selecao", 0x0d436b), halo = corDoTema("--color-3d-halo", 0x5d6675);
+      anelSel.children.forEach(function (m) { m.material.color.copy(selecao); });
+      [haloSel, haloPairado].forEach(function (g) {
+        g.children.forEach(function (m) { m.material.color.copy(halo); });
+      });
+      TIPOS_REALCE.nega.cor = corDoTema("--color-3d-nega", 0x505863).getHex();
+      grupoVolume.userData.fio.material.color.copy(corDoTema("--color-3d-arame", 0x2b3038));
+
+      var l = estado.campoLeitura;
+      if (l) construirFocos(l.colocados, l.eq, l.valor, l.rampa, l.rampa === FOGAO.RAMPA_DIFF);
+      pedir();
+    }
+    if (typeof TEMA !== "undefined") TEMA.aoMudar(aplicarTema);
 
     /* ----- Interface pública ----- */
 

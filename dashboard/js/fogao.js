@@ -32,6 +32,39 @@ var FOGAO = (function () {
      por isso nem a RAMPA_A, que também vai de azul a vermelho, nem a do campo. */
   var RAMPA_DIFF = ["#053061", "#2166ac", "#4393c3", "#92c5de", "#f7f7f7", "#f4a582", "#d6604d", "#b2182b", "#67001f"];
 
+  /* Variantes do tema escuro para as duas escalas calibradas sobre fundo
+     claro. As de folga (A e B) não mudam: são lidas sobre o modelo 3D, cuja
+     luz é a mesma nos dois temas, e a legenda tem de bater com o marcador.
+
+     Campo: mesmas matizes na mesma ordem; só as paradas que sumiam no palco
+     escuro (#232b39) — o violeta e o azul frios e o vermelho do topo — sobem
+     em luminosidade (OKLCH, matiz e croma mantidos) até 3:1 contra ele.
+
+     Diferença: a luminosidade espelhada em torno do fundo, como a "berlin"
+     de Crameri. No claro o meio neutro é o que mais se parece com o fundo e
+     os extremos os que mais se afastam; no escuro também, então o neutro
+     vira cinza-escuro e os extremos clareiam. Azul continua frio em B e
+     vermelho quente em B. */
+  var ESCURO = {
+    RAMPA_CAMPO: ["#8463ba", "#406be3", "#1f9fd8", "#35c4c0", "#8ecf5c", "#dcd247", "#e8912f", "#d43d2b"],
+    RAMPA_DIFF: ["#a8ceff", "#70aff4", "#3999cf", "#437993", "#4d4d4d", "#9e5f48", "#d76a58", "#f68482", "#feb3b9"]
+  };
+  var CLARO = { RAMPA_CAMPO: RAMPA_CAMPO.slice(), RAMPA_DIFF: RAMPA_DIFF.slice() };
+
+  /* Troca as paradas no próprio array: quem guardou a referência (o 3D
+     compara `rampa === FOGAO.RAMPA_DIFF`) continua certo. */
+  function usarTema(tema) {
+    var fonte = tema === "escuro" ? ESCURO : CLARO;
+    [[RAMPA_CAMPO, fonte.RAMPA_CAMPO], [RAMPA_DIFF, fonte.RAMPA_DIFF]].forEach(function (par) {
+      par[0].splice.apply(par[0], [0, par[0].length].concat(par[1]));
+    });
+  }
+
+  if (typeof TEMA !== "undefined") {
+    usarTema(TEMA.atual());
+    TEMA.aoMudar(usarTema);
+  }
+
   var FAIXAS = ["≥ +50%", "+30 a +50%", "+10 a +30%", "0 a +10%", "−10 a 0%", "−30 a −10%", "−50 a −30%", "< −50%"];
 
   /* ----- Peças -----
@@ -398,6 +431,8 @@ var FOGAO = (function () {
     RAMPA_A: RAMPA_A,
     RAMPA_B: RAMPA_B,
     RAMPA_CAMPO: RAMPA_CAMPO,
+    RAMPAS_ESCURO: ESCURO,
+    usarTema: usarTema,
     FAIXAS: FAIXAS
   };
 })();

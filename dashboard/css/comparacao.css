@@ -20,6 +20,16 @@
   --slot-b: var(--wp-charcoal);
   --slot-c: var(--wp-blue-accent);
   --slot-d: var(--wp-near-black);
+  --slot-ink: var(--color-text-inverse);
+}
+
+/* No escuro as colunas clareiam na mesma ordem, e a letra passa a escura. */
+:root[data-tema="escuro"] {
+  --slot-a: #8ec3ec;
+  --slot-b: #a9b2bf;
+  --slot-c: #4a9ad3;
+  --slot-d: #e8ecf1;
+  --slot-ink: var(--wp-black);
 }
 
 /* ----- Resposta de abertura -----
@@ -151,7 +161,7 @@
   flex: none;
   font-size: var(--size-kicker);
   line-height: 1;
-  color: var(--color-text-inverse);
+  color: var(--color-on-accent);
   background: var(--color-accent);
   border-radius: var(--radius);
 }
@@ -279,8 +289,8 @@
   font-weight: var(--weight-bold);
   font-size: var(--size-kicker);
   line-height: 1;
-  color: var(--color-text-inverse);
-  background: var(--slot, var(--wp-gray-medium));
+  color: var(--slot-ink);
+  background: var(--slot, var(--color-data-muted));
   border-radius: var(--radius);
 }
 
@@ -329,7 +339,7 @@
   color: var(--color-text);
 }
 
-.cfg-card__counts .is-over { color: var(--wp-near-black); }
+.cfg-card__counts .is-over { color: var(--color-text); }
 
 /* ----- Impressão digital dos sete fatores ----- */
 
@@ -407,7 +417,7 @@
 }
 
 .cmp-tray__slot span[aria-hidden] { color: var(--color-text-muted); }
-.cmp-tray__slot:hover span[aria-hidden] { color: var(--wp-near-black); }
+.cmp-tray__slot:hover span[aria-hidden] { color: var(--color-text); }
 .cmp-tray__slot:focus-visible { outline: 2px solid var(--color-focus-ring); outline-offset: 1px; }
 
 /* ----- Cabeçalhos de resumo ----- */
@@ -488,7 +498,7 @@
 .cmp-head__ref[aria-pressed="true"] {
   background: var(--color-accent);
   border-color: var(--color-accent);
-  color: var(--color-text-inverse);
+  color: var(--color-on-accent);
   font-weight: var(--weight-semibold);
   cursor: default;
 }
@@ -690,7 +700,7 @@
   font-size: var(--size-kicker);
   letter-spacing: var(--tracking-kicker);
   text-transform: uppercase;
-  color: var(--wp-near-black);
+  color: var(--color-text);
   background: none;
   border: 1px solid var(--color-border-strong);
   border-radius: 4px;
@@ -705,7 +715,7 @@
   font-family: var(--font-mono);
   font-size: var(--size-kicker);
   color: var(--color-accent);
-  border: 1px solid var(--wp-blue-accent);
+  border: 1px solid var(--color-highlight);
   border-radius: 4px;
   padding: 0 3px;
   margin-left: var(--space-2);
@@ -802,7 +812,7 @@
   overflow: hidden;
   margin-bottom: var(--space-3);
 }
-.cmp3d__main { background: var(--color-surface-sunken); min-width: 0; display: flex; flex-direction: column; }
+.cmp3d__main { background: var(--color-stage-3d); min-width: 0; display: flex; flex-direction: column; }
 .cmp3d__side {
   border-left: var(--border-width) solid var(--color-border);
   padding: var(--space-4);
@@ -835,10 +845,10 @@
   font-weight: var(--weight-semibold);
   letter-spacing: 0.02em;
   text-transform: uppercase;
-  color: var(--color-text-inverse);
-  background: var(--wp-charcoal);
+  color: var(--color-surface);
+  background: var(--color-text-strong);
 }
-.cmp3d__modo-tag--diferenca { background: var(--color-diff); }
+.cmp3d__modo-tag--diferenca { background: var(--color-diff); color: var(--color-on-accent); }
 
 .cmp3d__legenda {
   padding: var(--space-3) var(--space-4);
