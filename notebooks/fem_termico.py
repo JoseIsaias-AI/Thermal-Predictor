@@ -63,6 +63,10 @@ PARAMETROS_PADRAO = {
         "base": 15.0, "blower_para_tras": 1.30, "alojamento_aberto": 1.20,
         "defletor_aberto_acrescimo": 8.0, "minimo": 3.0,
     },
+    # Efeito do escoamento, desligado por padrão. Com valores positivos, o ar desloca o ponto quente
+    # para jusante e chega aquecido aos pontos mais distantes da entrada, conforme a direção do
+    # soprador. É o mecanismo descrito na Seção 4.3(b.5) da documentação, arbitrado aqui.
+    "escoamento": {"deslocamento_da_fonte": 0.0, "aquecimento_do_ar": 0.0},
     "temperatura_ambiente": 40.0,
     "peso_simulacao": 0.25,
     "tolerancia_residuo": 1e-6,
@@ -145,6 +149,7 @@ class ModeloDeArea:
 
         self.nome = nome
         self.parametros = parametros
+        self.geometria = parametros["areas"][nome]
         self.pontos = list(pontos)
         geometria = parametros["areas"][nome]
         malha = parametros["malha"]
@@ -155,17 +160,19 @@ class ModeloDeArea:
         self.unitario = np.ones(len(self.nos))
         self.integral = self.M @ self.unitario
         self.carga_unitaria = self._carga_da_fonte(geometria)
+        self._cargas = {0.0: self.carga_unitaria}
         self.posicao_do_ponto = self._posicionar_pontos(geometria)
         self.interpolacao_do_ponto = {ponto: self._pesos_de_interpolacao(posicao)
                                       for ponto, posicao in self.posicao_do_ponto.items()}
 
-    def _carga_da_fonte(self, geometria):
+    def _carga_da_fonte(self, geometria, deslocamento=0.0):
         # Fonte concentrada no centro da placa, com perfil gaussiano de desvio igual a 5% do menor
         # lado. O perfil é uma função suave, e não uma região recortada da malha, para que o refino
         # não mude a fonte: é o que faz a solução convergir. O vetor devolvido integra 1 W, e a
         # potência de cada configuração o multiplica.
         desvio = 0.05 * min(geometria["largura"], geometria["altura"])
-        distancia2 = ((self.nos[:, 0] - geometria["largura"] / 2) ** 2
+        centro_x = geometria["largura"] * (0.5 + deslocamento)
+        distancia2 = ((self.nos[:, 0] - centro_x) ** 2
                       + (self.nos[:, 1] - geometria["altura"] / 2) ** 2)
         perfil = np.exp(-distancia2 / (2 * desvio ** 2))
         carga = self.M @ perfil
@@ -219,16 +226,37 @@ class ModeloDeArea:
 
         return float(campo[nos] @ pesos)
 
-    def resolver(self, potencia, coeficiente_conveccao, temperatura_ambiente):
-        """Campo de temperatura e resíduo relativo da solução."""
+    def resolver(self, potencia, coeficiente_conveccao, temperatura_ambiente, sentido=0):
+        """Campo de temperatura e resíduo relativo da solução.
+
+        `sentido` é o sentido do escoamento ao longo da largura da placa: +1 com o soprador para
+        trás, -1 para a frente e 0 sem efeito de escoamento. Só tem efeito quando os parâmetros de
+        `escoamento` são positivos; com os padrões, o resultado independe dele.
+        """
         if potencia < 0 or coeficiente_conveccao <= 0:
             raise ErroDeSimulacao(f"área {self.nome}: potência de {potencia} W e coeficiente de "
                                   f"{coeficiente_conveccao} exigem potência não negativa e "
                                   f"coeficiente positivo.")
 
+        if sentido not in (-1, 0, 1):
+            raise ErroDeSimulacao(f"área {self.nome}: sentido de escoamento {sentido} inválido; "
+                                  f"use -1, 0 ou 1.")
+
+        escoamento = self.parametros.get("escoamento", PARAMETROS_PADRAO["escoamento"])
+        deslocamento = round(escoamento["deslocamento_da_fonte"] * sentido, 6)
+
+        if deslocamento not in self._cargas:
+            self._cargas[deslocamento] = self._carga_da_fonte(self.geometria, deslocamento)
+
+        ar = np.full(len(self.nos), float(temperatura_ambiente))
+
+        if escoamento["aquecimento_do_ar"] and sentido:
+            fracao_a_jusante = self.nos[:, 0] / self.geometria["largura"]
+            fracao_a_jusante = fracao_a_jusante if sentido > 0 else 1 - fracao_a_jusante
+            ar = ar + escoamento["aquecimento_do_ar"] * fracao_a_jusante
+
         A = (self.K + 2 * coeficiente_conveccao * self.M).tocsr()
-        b = (self.carga_unitaria * potencia
-             + 2 * coeficiente_conveccao * temperatura_ambiente * self.integral)
+        b = self._cargas[deslocamento] * potencia + 2 * coeficiente_conveccao * (self.M @ ar)
         campo = spsolve(A, b)
 
         if not np.all(np.isfinite(campo)):
@@ -263,6 +291,19 @@ def potencia_dissipada(configuracao, nome_area, parametros=None):
             potencia *= fator
 
     return float(potencia)
+
+
+def sentido_do_escoamento(configuracao):
+    """+1 com o soprador para trás e -1 para a frente."""
+    return 1 if float(configuracao.get("Blower_Direction_To Back", 0)) == 1 else -1
+
+
+def versao_do_modelo(parametros=None):
+    """`substituto-0.1` com o escoamento desligado e `substituto-0.2` com ele ligado."""
+    escoamento = (parametros or PARAMETROS_PADRAO).get("escoamento",
+                                                        PARAMETROS_PADRAO["escoamento"])
+
+    return VERSAO_MODELO if not any(escoamento.values()) else "substituto-0.2"
 
 
 def coeficiente_de_conveccao(configuracao, parametros=None):
@@ -332,7 +373,8 @@ def simular_lote(configuracoes, catalogo, colunas_configuracao, parametros=None,
         for nome, modelo in modelos.items():
             potencia = potencia_dissipada(configuracao, nome, parametros)
             campo, residuo = modelo.resolver(potencia, coeficiente,
-                                             parametros["temperatura_ambiente"])
+                                             parametros["temperatura_ambiente"],
+                                             sentido_do_escoamento(configuracao))
 
             if residuo > parametros["tolerancia_residuo"]:
                 raise ErroDeSimulacao(f"área {nome}: resíduo de {residuo:.2e} acima da tolerância "
@@ -351,7 +393,7 @@ def simular_lote(configuracoes, catalogo, colunas_configuracao, parametros=None,
                     "potencia_w": potencia,
                     "malha_elementos": int(len(modelo.elementos)),
                     "residuo_convergencia": residuo,
-                    "versao_modelo": VERSAO_MODELO,
+                    "versao_modelo": versao_do_modelo(parametros),
                 })
 
     lote = pd.DataFrame(linhas)
