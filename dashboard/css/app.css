@@ -144,6 +144,42 @@ h1, h2, h3, h4 { font-family: var(--font-display); letter-spacing: -0.01em; }
 .model-chip strong { font-weight: var(--weight-semibold); color: var(--color-text); }
 .model-chip svg { flex: none; color: var(--color-accent); }
 
+/* ----- Alternador de tema -----
+ * Mesma pílula do chip do modelo, só com o ícone: a lua chama o escuro e o
+ * sol devolve o claro. O estado vai para o leitor de tela em aria-pressed. */
+
+.tema-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  background: var(--color-surface-sunken);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: 999px;
+  color: var(--color-text-muted);
+  cursor: pointer;
+}
+
+.tema-toggle:hover { color: var(--color-text); border-color: var(--color-border-strong); }
+
+.tema-toggle:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
+}
+
+.tema-toggle__sol,
+.tema-toggle[aria-pressed="true"] .tema-toggle__lua { display: none; }
+.tema-toggle[aria-pressed="true"] .tema-toggle__sol { display: block; }
+
+/* Na troca de tema nada transiciona: a página inteira muda no mesmo quadro,
+   sem elemento atravessando a cor antiga no próprio ritmo. */
+.tema-trocando *,
+.tema-trocando *::before,
+.tema-trocando *::after { transition: none !important; }
+
 /* ----- Estrutura ----- */
 
 .page {
@@ -411,7 +447,7 @@ h1, h2, h3, h4 { font-family: var(--font-display); letter-spacing: -0.01em; }
   font-family: var(--font-body);
   font-weight: var(--weight-semibold);
   font-size: 0.875rem;
-  color: var(--color-text-inverse);
+  color: var(--color-on-accent);
   background: var(--color-accent);
   border: var(--border-width) solid var(--color-accent);
   border-radius: var(--radius);
@@ -493,7 +529,7 @@ h1, h2, h3, h4 { font-family: var(--font-display); letter-spacing: -0.01em; }
   display: block;
   height: 3px;
   width: 0;
-  background: var(--wp-blue-accent);
+  background: var(--color-highlight);
   transition: width 0.15s ease;
 }
 

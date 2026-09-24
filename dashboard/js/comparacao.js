@@ -1200,7 +1200,7 @@
      ["dentro_do_limite", false, "dentro"], [null, true, "sem limite"]].forEach(function (f) {
       var marca = svgEl("path", { d: FOGAO.formaDoPonto(lx + 6, 16, f[0], f[1]) });
       marca.style.fill = f[1] ? "var(--color-surface)" : "var(--color-surface-sunken)";
-      marca.style.stroke = "var(--wp-gray-dark)";
+      marca.style.stroke = "var(--color-text-muted)";
       marca.style.strokeWidth = "1";
       if (f[1]) marca.style.strokeDasharray = "2.5 2";
       svgVista.appendChild(marca);
@@ -1217,7 +1217,7 @@
       svgVista.appendChild(chip);
 
       var letra = textoSvg(x0 + 7.5, TOPO - 14.5, LETRAS[c], "ax-rotulo", "middle");
-      letra.style.fill = "var(--color-text-inverse)";
+      letra.style.fill = "var(--slot-ink)";
       svgVista.appendChild(letra);
       svgVista.appendChild(textoSvg(x0 + 21, TOPO - 14, id, "ax-text ax-text--forte"));
 
@@ -1232,7 +1232,7 @@
             class: "malha-celula"
           });
           marca.style.fill = p.mono ? "var(--color-surface)" : r[faixaDe(cfg, i)];
-          marca.style.stroke = p.mono ? "var(--wp-gray-dark)" : "var(--wp-near-black)";
+          marca.style.stroke = p.mono ? "var(--color-text-muted)" : "var(--color-text)";
           marca.style.strokeWidth = p.mono ? "1.1" : "0.7";
           if (p.mono) marca.style.strokeDasharray = "2.5 2";
           svgVista.appendChild(marca);
@@ -1753,7 +1753,7 @@
       caixa.appendChild(el("p", "cmp3d__legenda-nota",
         "Extremos em ±" + c.escala.extremo + " °C, a maior diferença do par arredondada para cima. " +
         "Maior diferença real: " + assinado1(pior.diferenca_c) + " °C em " + pior.TC_Name + ". " +
-        "Branco até ±" + fmt(c.escala.limiar, 1) + " °C. A cor não indica limite nem estado."));
+        "Tom neutro até ±" + fmt(c.escala.limiar, 1) + " °C. A cor não indica limite nem estado."));
     } else {
       caixa.appendChild(el("p", "cmp3d__legenda-nota",
         "Mesma escala do campo térmico da triagem: equalizada por quantil, os rótulos marcam os quartis. A cor é temperatura, não estado de risco."));
@@ -1899,7 +1899,11 @@
     montarMonitorados();
 
     // O viewport nasce na primeira vez que a comparação aparece: antes disso o palco não tem tamanho.
-    if (!modelo3d && typeof FOGAO3D !== "undefined") criarModelo3d();
+    if (!modelo3d && typeof FOGAO3D !== "undefined") {
+      criarModelo3d();
+      // Legenda e painel de peça pintam com a rampa do campo ou da diferença, que mudam no escuro.
+      if (typeof TEMA !== "undefined") TEMA.aoMudar(desenhar3d);
+    }
     desenhar3d();
 
     // RNF-06: toda previsão exibida acompanhada do identificador de versão.

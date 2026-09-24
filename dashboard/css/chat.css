@@ -1,0 +1,467 @@
+/* Robertão, o assistente, como widget fixo no canto.
+ *
+ * Fica fora do fluxo da página de propósito: as quatro telas já ocupam a
+ * largura toda, e abrir espaço para uma coluna de conversa empurraria o
+ * modelo 3D e as tabelas. Flutuando, o painel aparece só quando chamado.
+ */
+
+.chat-launcher {
+  position: fixed;
+  right: var(--space-5);
+  bottom: var(--space-5);
+  z-index: 60;
+
+  width: 60px;
+  height: 60px;
+  padding: 0;
+  border: 2px solid var(--color-surface);
+  border-radius: 50%;
+  background: var(--color-surface);
+  box-shadow: 0 6px 20px rgba(16, 21, 31, 0.22);
+  cursor: pointer;
+  overflow: hidden;
+
+  transition: box-shadow 120ms ease;
+  /* Flutuação lenta: o botão precisa ser notado numa tela cheia de números,
+     sem competir com ela. */
+  animation: chat-flutuar 4.5s ease-in-out infinite;
+}
+
+/* No hover a flutuação sai de cena para o transform declarado valer — uma
+   animação em curso venceria a regra. */
+.chat-launcher:hover,
+.chat-launcher:focus-visible {
+  animation: none;
+  transform: translateY(-3px) scale(1.04);
+  box-shadow: 0 10px 26px rgba(16, 21, 31, 0.28);
+}
+
+@keyframes chat-flutuar {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-4px); }
+}
+
+.chat-launcher:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 3px;
+}
+
+.chat-launcher__avatar {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  /* Gira pelo queixo, não pelo centro da imagem: o movimento vira inclinação
+     de cabeça em vez de roda. A escala acima de 1 cobre as bordas do círculo
+     que a rotação descobriria. */
+  transform-origin: 50% 80%;
+  animation: chat-olhada 9s ease-in-out infinite;
+}
+
+.chat-launcher:hover .chat-launcher__avatar {
+  animation: chat-aceno 1.1s ease-in-out infinite;
+}
+
+.chat-launcher--pensando .chat-launcher__avatar {
+  animation: chat-respirar 1.5s ease-in-out infinite;
+}
+
+/* Fica parado quase o ciclo inteiro e dá uma olhada no fim: movimento
+   contínuo no canto da tela cansa quem está lendo uma tabela. */
+@keyframes chat-olhada {
+  0%, 86%, 100% { transform: scale(1.05) rotate(0deg); }
+  89%           { transform: scale(1.05) rotate(-7deg); }
+  93%           { transform: scale(1.05) rotate(6deg); }
+  96%           { transform: scale(1.05) rotate(-2deg); }
+}
+
+@keyframes chat-aceno {
+  0%, 100% { transform: scale(1.07) rotate(-5deg); }
+  50%      { transform: scale(1.07) rotate(5deg); }
+}
+
+@keyframes chat-respirar {
+  0%, 100% { transform: scale(1.05); }
+  50%      { transform: scale(1.12); }
+}
+
+/* Enquanto a arte não estiver em img/, o botão continua utilizável em vez de
+   virar um quadrado vazio. */
+.chat-launcher__initial {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  background: var(--color-accent);
+  color: var(--color-text-inverse);
+  font-family: var(--font-display);
+  font-size: var(--size-title);
+  font-weight: var(--weight-semibold);
+}
+
+/* Resposta chegou com o painel fechado: além do ponto, um halo que pulsa. */
+.chat-launcher--novo {
+  animation:
+    chat-flutuar 4.5s ease-in-out infinite,
+    chat-chamada 1.9s ease-out infinite;
+}
+
+@keyframes chat-chamada {
+  0%        { box-shadow: 0 6px 20px rgba(16, 21, 31, 0.22), 0 0 0 0 rgba(31, 127, 192, 0.5); }
+  70%, 100% { box-shadow: 0 6px 20px rgba(16, 21, 31, 0.22), 0 0 0 16px rgba(31, 127, 192, 0); }
+}
+
+/* Ponto que avisa que há resposta nova com o painel fechado. */
+.chat-launcher__dot {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 12px;
+  height: 12px;
+  border: 2px solid var(--color-surface);
+  border-radius: 50%;
+  background: var(--color-accent-hover);
+}
+
+.chat-panel {
+  position: fixed;
+  right: var(--space-5);
+  bottom: calc(var(--space-5) + 60px + var(--space-3));
+  z-index: 60;
+
+  display: flex;
+  flex-direction: column;
+  width: 24rem;
+  max-width: calc(100vw - var(--space-5) * 2);
+  height: 32rem;
+  max-height: calc(100vh - var(--space-7) * 2);
+
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  box-shadow: 0 16px 40px rgba(16, 21, 31, 0.24);
+  overflow: hidden;
+  /* Sobe do botão ao abrir: sem isso o painel simplesmente aparece, e não
+     fica claro de onde ele veio. */
+  animation: chat-abrir 180ms ease-out;
+  transform-origin: 100% 100%;
+}
+
+/* `display: flex` acima vence a regra [hidden] { display: none } do próprio
+   navegador, então esconder o painel precisa ser dito aqui. Sem esta linha o
+   painel nasce aberto e o botão de fechar não tem efeito visível. */
+.chat-panel[hidden] {
+  display: none;
+}
+
+@keyframes chat-abrir {
+  from { opacity: 0; transform: translateY(10px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.chat-panel__head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-bottom: var(--border-width) solid var(--color-border);
+  background: var(--color-surface-accent);
+}
+
+.chat-panel__avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex: none;
+}
+
+/* O mesmo estado aparece nos dois lugares: quem está com o painel aberto olha
+   para o cabeçalho, não para o botão atrás dele. */
+.chat-panel--pensando .chat-panel__avatar {
+  animation: chat-respirar 1.5s ease-in-out infinite;
+}
+
+.chat-panel__identity {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.chat-panel__name {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--size-subhead);
+  font-weight: var(--weight-semibold);
+  color: var(--color-text);
+}
+
+.chat-panel__role {
+  margin: 0;
+  font-size: var(--size-small);
+  color: var(--color-text-muted);
+}
+
+.chat-panel__close {
+  flex: none;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: var(--border-width) solid transparent;
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+}
+
+.chat-panel__close:hover {
+  border-color: var(--color-border-strong);
+  color: var(--color-text);
+}
+
+.chat-panel__close:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 1px;
+}
+
+.chat-log {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  padding: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  background: var(--color-surface-sunken);
+}
+
+.chat-msg {
+  max-width: 85%;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-lg);
+  font-size: var(--size-body);
+  line-height: var(--leading-body);
+  overflow-wrap: anywhere;
+  animation: chat-balao 160ms ease-out;
+}
+
+/* O conteúdo do balão é montado em parágrafos e listas pelo chat.js, a partir
+   do Markdown que o modelo escreve. Sem estas regras, a margem padrão do
+   navegador abriria um vão no topo e no pé de cada balão. */
+.chat-msg__p {
+  margin: 0;
+}
+
+.chat-msg__p + .chat-msg__p,
+.chat-msg__p + .chat-msg__list,
+.chat-msg__list + .chat-msg__p {
+  margin-top: var(--space-2);
+}
+
+.chat-msg__list {
+  margin: 0;
+  padding-left: 1.1rem;
+}
+
+.chat-msg__list li + li {
+  margin-top: var(--space-1);
+}
+
+.chat-msg strong {
+  font-weight: var(--weight-bold);
+}
+
+.chat-msg code {
+  padding: 0 3px;
+  border-radius: 3px;
+  background: var(--color-surface-sunken);
+  font-family: var(--font-mono);
+  font-size: 0.9em;
+}
+
+/* No balão do usuário o fundo é azul: o cinza do código sumiria nele. */
+.chat-msg--user code {
+  background: rgba(255, 255, 255, 0.18);
+}
+
+@keyframes chat-balao {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.chat-msg--user {
+  align-self: flex-end;
+  background: var(--color-accent);
+  color: var(--color-text-inverse);
+  border-bottom-right-radius: var(--radius);
+}
+
+.chat-msg--bot {
+  align-self: flex-start;
+  border: var(--border-width) solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text);
+  border-bottom-left-radius: var(--radius);
+}
+
+/* Recusa por falta de evidência não pode parecer resposta confirmada. */
+.chat-msg--insufficient {
+  border-left: 3px solid var(--color-text-subtle);
+  background: var(--color-surface-sunken);
+  color: var(--color-text-muted);
+}
+
+.chat-msg--erro {
+  border-left: 3px solid var(--color-critical-soft);
+  background: var(--color-critical-bg);
+  color: var(--color-critical);
+}
+
+.chat-msg__sources {
+  display: block;
+  margin-top: var(--space-2);
+  padding-top: var(--space-2);
+  border-top: var(--border-width) solid var(--color-border);
+  font-size: var(--size-small);
+  color: var(--color-text-subtle);
+  white-space: normal;
+}
+
+/* Estado inicial: não é fala do assistente, e por isso não tem balão. Ele só
+   se apresenta depois da primeira pergunta. */
+.chat-empty {
+  margin: auto 0;
+  padding: 0 var(--space-3);
+  text-align: center;
+  font-size: var(--size-small);
+  line-height: var(--leading-body);
+  color: var(--color-text-subtle);
+}
+
+.chat-typing {
+  align-self: flex-start;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--size-small);
+  color: var(--color-text-muted);
+}
+
+.chat-typing__dots {
+  display: inline-flex;
+  gap: 3px;
+}
+
+.chat-typing__dots span {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--color-text-subtle);
+  animation: chat-pontinho 1.2s ease-in-out infinite;
+}
+
+.chat-typing__dots span:nth-child(2) { animation-delay: 0.15s; }
+.chat-typing__dots span:nth-child(3) { animation-delay: 0.3s; }
+
+@keyframes chat-pontinho {
+  0%, 60%, 100% { opacity: 0.25; transform: translateY(0); }
+  30%           { opacity: 1;    transform: translateY(-3px); }
+}
+
+.chat-form {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border-top: var(--border-width) solid var(--color-border);
+  background: var(--color-surface);
+}
+
+.chat-form__input {
+  flex: 1 1 auto;
+  resize: none;
+  max-height: 7rem;
+  padding: var(--space-2) var(--space-3);
+  border: var(--border-width) solid var(--color-border-strong);
+  border-radius: var(--radius);
+  font-family: var(--font-body);
+  font-size: var(--size-body);
+  line-height: var(--leading-body);
+  color: var(--color-text);
+  background: var(--color-surface);
+}
+
+.chat-form__input:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 1px;
+}
+
+.chat-form__send {
+  flex: none;
+  width: 38px;
+  height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: var(--radius);
+  background: var(--color-accent);
+  color: var(--color-text-inverse);
+  cursor: pointer;
+}
+
+.chat-form__send:hover:not(:disabled) {
+  background: var(--color-accent-hover);
+}
+
+.chat-form__send:disabled {
+  background: var(--color-border-strong);
+  cursor: default;
+}
+
+.chat-form__send:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
+}
+
+/* Em telas estreitas o painel ocupa a largura toda: 24rem flutuando sobre um
+   celular esconderia a própria página. */
+@media (max-width: 30rem) {
+  .chat-panel {
+    right: var(--space-3);
+    left: var(--space-3);
+    bottom: calc(var(--space-3) + 60px + var(--space-2));
+    width: auto;
+    max-width: none;
+  }
+
+  .chat-launcher {
+    right: var(--space-3);
+    bottom: var(--space-3);
+  }
+}
+
+/* Movimento no canto da tela é exatamente o que incomoda quem ativou esta
+   preferência: aqui o widget fica parado e continua inteiro. */
+@media (prefers-reduced-motion: reduce) {
+  .chat-launcher,
+  .chat-launcher--novo,
+  .chat-launcher__avatar,
+  .chat-launcher:hover .chat-launcher__avatar,
+  .chat-launcher--pensando .chat-launcher__avatar,
+  .chat-panel,
+  .chat-panel--pensando .chat-panel__avatar,
+  .chat-msg,
+  .chat-typing__dots span {
+    animation: none;
+  }
+
+  .chat-launcher {
+    transition: none;
+  }
+
+  .chat-launcher__avatar {
+    transform: scale(1.05);
+  }
+}

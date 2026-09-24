@@ -249,7 +249,7 @@
         "translate(" + cx + " " + cy + ") scale(" + escala + ") translate(" + (-cx) + " " + (-cy) + ")");
     }
     m.style.fill = rampaAtual()[FOGAO.faixaDaRampa(p.margem_percentual)];
-    m.style.stroke = p.measurement_id === mapa.sel ? "#0d436b" : "#484949";
+    m.style.stroke = p.measurement_id === mapa.sel ? "var(--color-selecao)" : "var(--color-glyph-line)";
     m.style.strokeWidth = p.measurement_id === mapa.sel ? "2.4" : "0.7";
 
     m.addEventListener("pointerenter", function () {
@@ -551,11 +551,11 @@
           x: q1, y: meio - 9, width: Math.max(1, q3 - q1), height: 18, rx: 1
         });
         caixa.style.fill = "none";
-        caixa.style.stroke = "var(--wp-gray-medium)";
+        caixa.style.stroke = "var(--color-data-muted)";
         caixa.style.strokeWidth = "1";
         g.appendChild(caixa);
         var mediana = GRAFICO.el("line", { x1: med, y1: meio - 9, x2: med, y2: meio + 9 });
-        mediana.style.stroke = "var(--wp-gray-dark)";
+        mediana.style.stroke = "var(--color-text-muted)";
         mediana.style.strokeWidth = "1.6";
         g.appendChild(mediana);
       }
@@ -611,8 +611,8 @@
     var svg = svgEl("svg", { width: 12, height: 12, "aria-hidden": "true" });
     svg.appendChild(svgEl("path", {
       d: FOGAO.formaDoPonto(6, 6, estado, mono),
-      fill: mono ? "#ffffff" : cor,
-      stroke: mono ? "#767777" : "#484949",
+      fill: mono ? "var(--color-surface)" : cor,
+      stroke: mono ? "var(--color-glyph-line-mono)" : "var(--color-glyph-line)",
       "stroke-width": 0.8,
       "stroke-dasharray": mono ? "2.5 2" : ""
     }));
@@ -768,7 +768,7 @@
       "<div class=\"conf__body\">" +
         "<svg class=\"conf__glifo\" width=\"" + 2 * C + "\" height=\"" + 2 * C + "\" viewBox=\"0 0 " + 2 * C + " " + 2 * C + "\" aria-hidden=\"true\">" +
           "<circle class=\"conf__halo\" cx=\"" + C + "\" cy=\"" + C + "\" r=\"" + raio.toFixed(1) + "\"></circle>" +
-          "<path d=\"" + marca + "\" fill=\"" + (p.is_monitor_only ? "#ffffff" : cor) + "\" stroke=\"" + (p.is_monitor_only ? "#767777" : "#484949") + "\" stroke-width=\"0.8\"" +
+          "<path d=\"" + marca + "\" fill=\"" + (p.is_monitor_only ? "var(--color-surface)" : cor) + "\" stroke=\"" + (p.is_monitor_only ? "var(--color-glyph-line-mono)" : "var(--color-glyph-line)") + "\" stroke-width=\"0.8\"" +
             (p.is_monitor_only ? " stroke-dasharray=\"2.5 2\"" : "") + "></path>" +
         "</svg>" +
         "<dl class=\"conf__dados\">" +
@@ -794,7 +794,7 @@
     var html = "<p class=\"detail__name\">" + p.TC_Name + "</p>" +
       "<span class=\"detail__area\">" + p.Key_Area + "</span>" +
       "<p class=\"detail__state detail__state--" + (p.is_monitor_only ? "mono" : p.estado) + "\">" +
-      "<span class=\"detail__swatch\" style=\"background:" + cor + ";box-shadow:inset 0 0 0 1px rgba(16,21,31,.35)\"></span>" +
+      "<span class=\"detail__swatch\" style=\"background:" + cor + ";box-shadow:inset 0 0 0 1px var(--color-swatch-ring-strong)\"></span>" +
       "<span>" + (p.is_monitor_only ? "Limite não declarado" : p.estado_rotulo) + "</span></p>" +
       // A temperatura prevista mora no cartão, ao lado da confiança.
       cartaoConfianca(p, cor) +
@@ -1038,7 +1038,10 @@
     desenharVisuais();
   }
 
+  var infoDoCampo = null;
+
   function montarLegendaDoCampo(info) {
+    infoDoCampo = info;
     var bloco = document.getElementById("field-legend");
     bloco.hidden = mapa.vista !== "campo";
     if (mapa.vista !== "campo" || !info) return;
@@ -1164,6 +1167,8 @@
 
   function montarMapa() {
     criarModelo();
+    // A rampa do campo tem variante escura: a barra da legenda acompanha o 3D.
+    if (typeof TEMA !== "undefined") TEMA.aoMudar(function () { montarLegendaDoCampo(infoDoCampo); });
     montarEscolhaDePeca();
     desenharPainelPeca();
     montarRampa();

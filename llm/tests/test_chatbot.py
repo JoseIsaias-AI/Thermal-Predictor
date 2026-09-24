@@ -1,0 +1,231 @@
+import asyncio
+
+import pytest
+from fakes import FakeTool, ScriptedProvider, answer, routing
+
+from thermal_chatbot.chatbot import ChatbotService
+from thermal_chatbot.providers.base import ProviderResponseError
+from thermal_chatbot.schemas import (
+    ChatAction,
+    ChatRequest,
+    RoutingDecision,
+    ToolName,
+)
+from thermal_chatbot.tools import ToolResult
+
+
+def test_returns_direct_answer_and_sends_system_prompt() -> None:
+    provider = ScriptedProvider(
+        routings=[routing(action="answer", tool_name=None)],
+        answers=[answer("É uma etapa preliminar de análise.", sources=["fonte-inventada"])],
+    )
+    service = ChatbotService(provider, model_name="test-model")
+
+    response = asyncio.run(service.reply(ChatRequest(message="O que é triagem?")))
+
+    assert response.action == ChatAction.ANSWER
+    assert response.model == "test-model"
+    assert response.tool_name is None
+    # Nenhuma fonte foi entregue ao modelo: a citação dele não é verificável.
+    assert response.sources == []
+    assert "triagem" in provider.calls[0][0]["content"].lower()
+    assert provider.calls[0][-1]["content"] == "O que é triagem?"
+
+
+def test_fails_closed_when_model_requests_unavailable_tool() -> None:
+    provider = ScriptedProvider(
+        routings=[routing(tool_name="thermal_prediction", tool_arguments={"housing": "metal"})]
+    )
+    service = ChatbotService(provider, model_name="test-model")
+
+    response = asyncio.run(
+        service.reply(ChatRequest(message="Qual será a temperatura?"))
+    )
+
+    assert response.action == ChatAction.INSUFFICIENT_DATA
+    assert "não vou estimar nem inventar" in response.answer.lower()
+    # A recusa é decidida em código: não custa uma geração de texto.
+    assert provider.answer_calls == []
+
+
+def test_keeps_history_between_system_prompt_and_current_message() -> None:
+    provider = ScriptedProvider(
+        routings=[routing(action="answer", tool_name=None)],
+        answers=[answer("Resposta contextual.")],
+    )
+    service = ChatbotService(provider, model_name="test-model")
+    request = ChatRequest(
+        message="Pode explicar melhor?",
+        history=[
+            {"role": "user", "content": "O que é margem térmica?"},
+            {"role": "assistant", "content": "É a distância até o limite."},
+        ],
+    )
+
+    asyncio.run(service.reply(request))
+
+    assert [message["role"] for message in provider.calls[0]] == [
+        "system",
+        "user",
+        "assistant",
+        "user",
+    ]
+
+
+def test_rejects_model_response_outside_contract() -> None:
+    provider = ScriptedProvider(
+        routings=[routing(action="answer", tool_name=None)],
+        answers=[answer("")],
+    )
+    service = ChatbotService(provider, model_name="test-model")
+
+    with pytest.raises(ProviderResponseError):
+        asyncio.run(service.reply(ChatRequest(message="Responda sem conteúdo")))
+
+
+def test_routing_stage_never_offers_a_text_field() -> None:
+    """Redigir na etapa de decisão gastaria tokens que seriam descartados."""
+
+    provider = ScriptedProvider(
+        routings=[routing(action="answer", tool_name=None)],
+        answers=[answer("Resposta.")],
+    )
+    service = ChatbotService(provider, model_name="test-model")
+
+    asyncio.run(service.reply(ChatRequest(message="O que é margem térmica?")))
+
+    assert len(provider.routing_calls) == 1
+    assert len(provider.answer_calls) == 1
+
+
+def test_decisao_nao_pede_texto_nenhum_ao_modelo() -> None:
+    """Cada campo de texto na etapa de decisão é espera que ninguém lê.
+
+    O campo `reason` existia aqui para auditoria e custava, medido nesta
+    máquina, 22 s dos 27 s da etapa — sem que nada no código o lesse.
+    """
+
+    provider = ScriptedProvider(
+        routings=[{"action": "answer", "tool_name": None, "tool_arguments": {}}],
+        answers=[answer("Resposta.")],
+    )
+    service = ChatbotService(provider, model_name="test-model")
+
+    response = asyncio.run(service.reply(ChatRequest(message="O que é margem térmica?")))
+
+    assert response.action == ChatAction.ANSWER
+
+    schema = RoutingDecision.model_json_schema()
+    assert set(schema["properties"]) == {"action", "tool_name", "tool_arguments"}
+
+
+def test_recorta_historico_longo_preservando_o_prompt_de_sistema() -> None:
+    """Histórico grande empurraria o prompt de sistema para fora do contexto."""
+
+    provider = ScriptedProvider(
+        routings=[routing(action="answer", tool_name=None)],
+        answers=[answer("Resposta.")],
+    )
+    service = ChatbotService(provider, model_name="test-model")
+    request = ChatRequest(
+        message="E agora?",
+        history=[
+            {"role": "user" if i % 2 == 0 else "assistant", "content": f"mensagem {i} " * 100}
+            for i in range(20)
+        ],
+    )
+
+    asyncio.run(service.reply(request))
+
+    enviadas = provider.calls[0]
+    assert enviadas[0]["role"] == "system"
+    assert "ESCOPO" in enviadas[0]["content"]
+    assert enviadas[-1]["content"] == "E agora?"
+    # Sobram poucas trocas, e são as mais recentes.
+    historico = enviadas[1:-1]
+    assert len(historico) < 20
+    assert "mensagem 19" in historico[-1]["content"]
+
+
+def test_saudacao_e_respondida_sem_chamar_o_modelo() -> None:
+    """Dizer "olá" não depende de fonte nenhuma e não deve custar geração."""
+
+    provider = ScriptedProvider()
+    service = ChatbotService(provider, model_name="test-model")
+
+    response = asyncio.run(service.reply(ChatRequest(message="Oi, tudo bem?")))
+
+    assert response.action == ChatAction.ANSWER
+    assert response.tool_name is None
+    assert response.sources == []
+    assert response.answer.rstrip().endswith("Qual é a sua dúvida?")
+    assert provider.calls == []
+
+
+def test_saudacao_com_pergunta_segue_o_fluxo_normal() -> None:
+    """A pergunta é o que importa: responder só "olá" a deixaria sem resposta."""
+
+    provider = ScriptedProvider(
+        routings=[routing(action="answer", tool_name=None)],
+        answers=[answer("Margem térmica é a distância até o limite.")],
+    )
+    service = ChatbotService(provider, model_name="test-model")
+
+    response = asyncio.run(
+        service.reply(ChatRequest(message="Oi, o que é margem térmica?"))
+    )
+
+    assert response.answer == "Margem térmica é a distância até o limite."
+    assert len(provider.routing_calls) == 1
+
+
+def test_comparacao_estruturada_nao_vira_cortesia() -> None:
+    """Campos estruturados declaram intenção; o texto ao lado é só rótulo."""
+
+    provider = ScriptedProvider()
+    tool = FakeTool(
+        ToolName.THERMAL_PREDICTION,
+        ToolResult(found=True, context="", direct_answer="Delta de 3,1 °C."),
+    )
+    service = ChatbotService(
+        provider, model_name="test-model", available_tools={tool.name: tool}
+    )
+
+    response = asyncio.run(
+        service.reply(
+            ChatRequest(
+                message="Oi",
+                comparison={
+                    "factor": "blower_direction",
+                    "levels": ["To Front", "To Back"],
+                },
+            )
+        )
+    )
+
+    assert response.answer == "Delta de 3,1 °C."
+    assert tool.runs == 1
+
+
+def test_aquecimento_usa_o_mesmo_prompt_das_perguntas_reais() -> None:
+    """O cache do Ollama casa por prefixo: um texto diferente não aqueceria nada.
+
+    Medido com qwen3:4b em CPU, avaliar esse prompt custa ~124 s na primeira
+    chamada e 0,4 s nas seguintes.
+    """
+
+    provider = ScriptedProvider()
+    tool = FakeTool(ToolName.DOCUMENTATION_SEARCH, ToolResult(found=False, context=""))
+    service = ChatbotService(
+        provider, model_name="test-model", available_tools={tool.name: tool}
+    )
+
+    asyncio.run(service.warmup())
+
+    assert len(provider.warmups) == 1
+    aquecido = provider.warmups[0][0]["content"]
+    esperado = service._build_messages(ChatRequest(message="oi"))[0]["content"]
+    assert aquecido == esperado
+    # Aquecer não gera resposta nem executa ferramenta.
+    assert provider.calls == []
+    assert tool.runs == 0
