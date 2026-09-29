@@ -1,6 +1,10 @@
 {
-  "familia_padrao": null,
+  "familia_padrao": "modelo_final",
   "familias": {
+    "modelo_final": {
+      "rotulo": "Modelo final por dataset (Seção 4.4)",
+      "tipo_preditor": "sklearn_joblib"
+    },
     "random_forest": {
       "rotulo": "Random Forest",
       "tipo_preditor": "sklearn_joblib"

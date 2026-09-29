@@ -102,10 +102,10 @@ def test_separar_colunas_exige_a_coluna_do_termopar():
         separar_colunas(COLUNAS)
 
 
-def test_preditor_indisponivel_recusa_prever():
+def test_preditor_indisponivel_recusa_prever(catalogo_sem_familia):
     from api.predicao.registro import construir_registro
 
-    registro = construir_registro(montar_configuracao())
+    registro = construir_registro(montar_configuracao(caminho_catalogo=catalogo_sem_familia))
     preditor = registro.preditor("Coil Temps")
 
     assert preditor.estado == "indisponivel"
