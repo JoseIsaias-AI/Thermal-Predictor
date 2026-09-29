@@ -1,0 +1,25 @@
+# Bibliotecas usadas pelos notebooks (pasta notebooks/).
+# Instale com:  pip install -r requirements.txt
+#
+# O chatbot (pasta llm/) e a API do painel (pasta dashboard/api/) têm ambientes e
+# dependências próprios; veja a seção "Como executar o projeto" do README.md.
+
+# Leitura e tratamento dos dados
+pandas>=2.2
+numpy>=2.0
+openpyxl>=3.1
+tabulate>=0.9            # usado por DataFrame.to_markdown() nos notebooks 04 e 05
+
+# Gráficos
+matplotlib>=3.8
+seaborn>=0.13
+
+# Estatística e modelagem
+scipy>=1.13
+scikit-learn>=1.7
+joblib>=1.4
+torch>=2.4
+shap>=0.46
+
+# Execução dos notebooks no VS Code / Jupyter
+ipykernel>=6.29
