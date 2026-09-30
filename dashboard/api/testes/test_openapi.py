@@ -19,6 +19,19 @@ def test_openapi_descreve_os_tres_endpoints(cliente):
         assert operacao["responses"]["200"]["content"]["application/json"]["schema"]
 
 
+def test_openapi_descreve_a_rota_de_predicao(cliente):
+    documento = cliente.get("/openapi.json").json()
+    operacao = documento["paths"]["/predicao"]["post"]
+    corpo = operacao["requestBody"]["content"]["application/json"]["schema"]
+
+    assert operacao["summary"]
+    assert operacao["description"]
+    assert operacao["tags"] == ["predição"]
+    assert corpo["$ref"].endswith("/RequisicaoPredicao")
+    assert documento["components"]["schemas"]["RequisicaoPredicao"]["examples"]
+    assert {"200", "422", "503", "500"} <= set(operacao["responses"])
+
+
 def test_swagger_esta_no_ar(cliente):
     resposta = cliente.get("/docs")
 

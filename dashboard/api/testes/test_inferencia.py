@@ -18,12 +18,10 @@ from api.predicao.inferencia import ORDEM_ESTADOS, classificar, inferir, prever_
 from api.predicao.protocolo import CatalogoIndisponivel, ConfiguracaoInvalida, ModeloIndisponivel
 from api.predicao.registro import construir_registro
 
-from .apoio import PASTA_DASHBOARD, RAIZ_REPOSITORIO, montar_configuracao
+from .apoio import PASTA_MODELO_FINAL, RAIZ_REPOSITORIO, ler_stub_do_painel, montar_configuracao
 
 PASTA_EXPORTACAO = RAIZ_REPOSITORIO / "notebooks" / "5_implantacao"
 PASTA_RESULTADOS = RAIZ_REPOSITORIO / "notebooks" / "4_avaliacao" / "comparacao_de_modelos" / "resultados"
-PASTA_MODELO_FINAL = RAIZ_REPOSITORIO / "modelos" / "modelo_final"
-CAMINHO_STUB = PASTA_DASHBOARD / "js" / "dados_triagem.js"
 CAMINHO_PONTOS_REAL = catalogo_pontos_padrao()
 
 exige_catalogo_real = pytest.mark.skipif(
@@ -111,11 +109,6 @@ def _tabela_impressa(impresso):
             (valores if bloco_dos_numeros else nomes)[partes[0]] = partes[1]
 
     return {nomes[indice]: float(valores[indice]) for indice in nomes}
-
-
-def ler_stub_do_painel():
-    texto = CAMINHO_STUB.read_text(encoding="utf-8")
-    return json.loads(texto.split("=", 1)[1].rsplit(";", 1)[0])
 
 
 @pytest.fixture(scope="module")

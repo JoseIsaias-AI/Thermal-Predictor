@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends
 
 from .. import VERSAO_API
 from ..dominio.contratos import RespostaSaude
-from .dependencias import obter_esquema, obter_registro
+from .dependencias import obter_catalogo_pontos, obter_esquema, obter_registro
 
 roteador = APIRouter(tags=["operação"])
 
@@ -18,10 +18,15 @@ roteador = APIRouter(tags=["operação"])
     description=(
         "Confirma que a aplicação está no ar e informa, por subsistema, se o modelo foi "
         "carregado na inicialização. Responde 200 mesmo sem modelo ativo: o campo `status` "
-        "distingue `ok`, `degradado` e `sem_modelo`."
+        "distingue `ok`, `degradado` e `sem_modelo`. `catalogo_pontos` diz se há limites "
+        "para classificar a previsão."
     ),
 )
-def saude(registro=Depends(obter_registro), esquema=Depends(obter_esquema)):
+def saude(
+    registro=Depends(obter_registro),
+    esquema=Depends(obter_esquema),
+    catalogo_pontos=Depends(obter_catalogo_pontos),
+):
     subsistemas = [
         {
             "subsistema": nome,
@@ -47,4 +52,9 @@ def saude(registro=Depends(obter_registro), esquema=Depends(obter_esquema)):
             "carregados": len(registro.carregados()),
         },
         "subsistemas": subsistemas,
+        "catalogo_pontos": {
+            "disponivel": catalogo_pontos.disponivel,
+            "pontos": len(catalogo_pontos.pontos),
+            "motivo": catalogo_pontos.motivo,
+        },
     }
