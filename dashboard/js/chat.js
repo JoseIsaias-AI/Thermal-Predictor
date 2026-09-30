@@ -14,7 +14,7 @@
   // Origem do backend. O CORS da API libera 127.0.0.1:5500 e localhost:5500,
   // que é onde o Live Server publica este painel.
   var API_BASE = baseDaApi();
-  var AVATAR = "img/robertao.png";
+  var AVATAR = "../assets/dashboard/robertao.png";
   var NOME = "Robertão";
 
   // A API aceita 20 mensagens de histórico e recorta as seis últimas no
@@ -50,7 +50,7 @@
     img.className = classe;
     img.src = AVATAR;
     img.alt = "";
-    // Enquanto a arte não estiver em img/, uma inicial mantém o botão legível.
+    // Enquanto a arte não estiver em assets/dashboard/, uma inicial mantém o botão legível.
     img.addEventListener("error", function () {
       var inicial = document.createElement("span");
       inicial.className = "chat-launcher__initial";
