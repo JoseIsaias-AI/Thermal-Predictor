@@ -270,3 +270,31 @@
 }
 
 /* ===== Regras de cada recurso ===== */
+
+/* ----- Tamanho da fonte -----
+ * Na raiz: o painel inteiro está em rem, e o texto cresce junto com o
+ * espaço em volta. O texto dos gráficos fica em unidade do SVG, que já
+ * acompanha a largura do gráfico; em rem ele cresceria dentro do mesmo
+ * viewBox e os rótulos se sobreporiam. */
+html[data-a11y-fonte="1"] { font-size: 115%; }
+html[data-a11y-fonte="2"] { font-size: 130%; }
+html[data-a11y-fonte="3"] { font-size: 150%; }
+
+/* No celular, teto de 115%: o mesmo limite de 600px do acessibilidade.js. */
+@media (max-width: 600px) {
+  html[data-a11y-fonte="2"],
+  html[data-a11y-fonte="3"] { font-size: 115%; }
+}
+
+/* Com a fonte maior, a dica da barra do 3D quebra linha em vez de virar
+   reticências: quem aumentou a fonte é quem mais precisa do texto inteiro. */
+html[data-a11y-fonte] .hint {
+  white-space: normal;
+  overflow: visible;
+}
+
+html[data-a11y-fonte] .stage-hint {
+  white-space: normal;
+  text-align: center;
+  border-radius: var(--radius-lg);
+}

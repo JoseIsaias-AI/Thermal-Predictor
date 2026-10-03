@@ -276,6 +276,82 @@ var ACESSIBILIDADE = (function () {
     }
   }
 
+  /* ----- Recursos ----- */
+
+  var SVG = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" ' +
+    'stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">';
+
+  /* Tudo no painel está em rem: a fonte da raiz escala texto, espaço e
+     controle juntos, e a grade reflui em vez de cortar. */
+  var ESCALAS = [1, 1.15, 1.3, 1.5];
+
+  /* Media query em rem não enxerga a fonte da raiz: mede sempre pelos 16px do
+     navegador. Com a fonte a 150% numa tela de 1366px, a página continuaria
+     no arranjo de tela larga com tudo maior, e as colunas estourariam. Aqui
+     cada limite de largura cresce na mesma proporção da fonte, como faz o
+     zoom do navegador: a tela passa ao arranjo que já foi desenhado para a
+     largura equivalente, em vez de um arranjo novo e não testado. */
+  var LIMITE = /((?:min|max)-width\s*:\s*)([\d.]+)(rem|em|px)/g;
+  var originais = typeof WeakMap === "function" ? new WeakMap() : null;
+
+  function escalarLimites(escala) {
+    if (!originais) return;
+    Array.prototype.forEach.call(document.styleSheets, function (folha) {
+      // Os limites desta folha já são pensados em px de tela, sem escala.
+      if (folha.href && folha.href.indexOf("acessibilidade.css") >= 0) return;
+      var regras;
+      try { regras = folha.cssRules; } catch (e) { return; /* folha de outra origem */ }
+      percorrer(regras, escala);
+    });
+  }
+
+  function percorrer(regras, escala) {
+    if (!regras) return;
+    Array.prototype.forEach.call(regras, function (regra) {
+      if (regra.media && regra.cssRules) {
+        if (!originais.has(regra)) originais.set(regra, regra.media.mediaText);
+        var original = originais.get(regra);
+        if (LIMITE.test(original)) {
+          LIMITE.lastIndex = 0;
+          var novo = original.replace(LIMITE, function (_, prefixo, valor, unidade) {
+            return prefixo + +(parseFloat(valor) * escala).toFixed(3) + unidade;
+          });
+          if (regra.media.mediaText !== novo) regra.media.mediaText = novo;
+        }
+        LIMITE.lastIndex = 0;
+        percorrer(regra.cssRules, escala);
+      }
+    });
+  }
+
+  /* No celular a fonte para em 115% (css/acessibilidade.css): 150% numa tela
+     de 390px equivale a uma de 260px, largura para a qual o painel não foi
+     desenhado. A pinça do celular continua ampliando. */
+  var CELULAR = window.matchMedia ? window.matchMedia("(max-width: 600px)") : null;
+
+  function aplicarEscala() {
+    var escala = ESCALAS[nivel("fonte")];
+    if (CELULAR && CELULAR.matches) escala = Math.min(escala, ESCALAS[1]);
+    escalarLimites(escala);
+  }
+
+  if (CELULAR && CELULAR.addEventListener) CELULAR.addEventListener("change", aplicarEscala);
+
+  registrar({
+    id: "fonte", grupo: "texto", rotulo: "Tamanho da fonte",
+    icone: SVG + '<path d="M3 19L8.5 5 14 19M5.2 14h6.6M18.5 7v6M15.5 10h6"></path></svg>',
+    niveis: ["115%", "130%", "150%"],
+    aoAplicar: aplicarEscala
+  });
+
+  /* As folhas antes deste script já estão prontas. As que carregarem depois
+     (inclusive as recarregadas pelo Live Server) chegam com os limites
+     originais e são escaladas quando terminam de carregar. */
+  if (nivel("fonte")) aplicarEscala();
+  document.addEventListener("load", function (e) {
+    if (e.target && e.target.tagName === "LINK" && nivel("fonte")) aplicarEscala();
+  }, true);
+
   function iniciar() {
     montarLancador();
     montarPainel();
