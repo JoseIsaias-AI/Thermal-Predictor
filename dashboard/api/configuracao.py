@@ -10,6 +10,17 @@ RAIZ_REPOSITORIO = PASTA_API.parent.parent
 # Dataset auditado de onde sai o limite de cada ponto. Não é versionado (dado do parceiro).
 NOME_CATALOGO_PONTOS = "dataset_completo_com_flags_de_auditoria.csv"
 
+# Origens que podem chamar a API pelo navegador. São as do servidor estático usado para
+# abrir o painel em desenvolvimento, as mesmas que o chatbot aceita
+# (`llm/src/thermal_chatbot/settings.py`). A lista é fechada de propósito: o serviço
+# responde na máquina do usuário e não deve aceitar página de outra origem.
+ORIGENS_PADRAO = (
+    "http://127.0.0.1:5500",
+    "http://localhost:5500",
+    "http://127.0.0.1:5501",
+    "http://localhost:5501",
+)
+
 
 @dataclass(frozen=True)
 class Configuracao:
@@ -20,6 +31,7 @@ class Configuracao:
     caminho_esquema: Path
     familia_padrao: str | None
     caminho_catalogo_pontos: Path | None = None
+    origens_permitidas: tuple[str, ...] = ORIGENS_PADRAO
 
     @property
     def raiz_repositorio(self):
@@ -47,6 +59,7 @@ def carregar_configuracao():
     caminho_catalogo = _texto_ou_nulo(os.environ.get("THERMAL_API_CATALOGO"))
     caminho_esquema = _texto_ou_nulo(os.environ.get("THERMAL_API_ESQUEMA"))
     caminho_pontos = _texto_ou_nulo(os.environ.get("THERMAL_API_CATALOGO_PONTOS"))
+    origens = _texto_ou_nulo(os.environ.get("THERMAL_API_ORIGENS"))
 
     return Configuracao(
         pasta_modelos=Path(pasta_modelos) if pasta_modelos else RAIZ_REPOSITORIO / "modelos",
@@ -61,4 +74,10 @@ def carregar_configuracao():
         # Sobrepõe a família do catálogo; sem nenhuma das duas, o serviço sobe sem preditor.
         familia_padrao=_texto_ou_nulo(os.environ.get("THERMAL_API_FAMILIA_MODELO")),
         caminho_catalogo_pontos=Path(caminho_pontos) if caminho_pontos else catalogo_pontos_padrao(),
+        # Lista separada por vírgula, como no chatbot; vazio mantém o padrão do repositório.
+        origens_permitidas=(
+            tuple(o.strip() for o in origens.split(",") if o.strip())
+            if origens
+            else ORIGENS_PADRAO
+        ),
     )

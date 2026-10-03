@@ -2,6 +2,7 @@ import pytest
 
 from thermal_chatbot.schemas import ToolName
 from thermal_chatbot.triage.smalltalk import (
+    COMPLIMENT_ANSWER,
     FAREWELL_ANSWER,
     GREETING_ANSWER,
     NAME_ANSWER,
@@ -54,6 +55,18 @@ def test_thanks_is_answered_locally(mensagem: str) -> None:
 
 @pytest.mark.parametrize(
     "mensagem",
+    [
+        "Oi, lindão!",
+        "Olá, Robertão, você é muito inteligente",
+        "Você é incrível!",
+    ],
+)
+def test_compliment_is_answered_locally(mensagem: str) -> None:
+    assert smalltalk_answer(mensagem) == COMPLIMENT_ANSWER
+
+
+@pytest.mark.parametrize(
+    "mensagem",
     ["Tchau", "até mais", "falou, até logo", "Até amanhã!"],
 )
 def test_farewell_is_answered_locally(mensagem: str) -> None:
@@ -86,6 +99,7 @@ def test_capability_question_is_answered_locally(mensagem: str) -> None:
         "Explique o que é margem térmica",
         "até que temperatura o ponto é aprovado?",
         "como funciona o preditor?",
+        "Oi, lindão, o que é Blower Direction?",
     ],
 )
 def test_question_with_content_is_not_treated_as_courtesy(mensagem: str) -> None:

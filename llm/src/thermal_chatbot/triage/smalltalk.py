@@ -133,6 +133,33 @@ THANKS_FILLERS = frozenset(
     }
 )
 
+COMPLIMENT_WORDS = frozenset(
+    {
+        "lindo",
+        "lindao",
+        "bonito",
+        "fofo",
+        "querido",
+        "legal",
+        "incrivel",
+        "inteligente",
+    }
+)
+
+COMPLIMENT_FILLERS = frozenset(
+    {
+        "muito",
+        "demais",
+        "mesmo",
+        "voce",
+        "vc",
+        "robertao",
+        "assistente",
+        "meu",
+        "cara",
+    }
+)
+
 FAREWELL_WORDS = frozenset(
     {
         "tchau",
@@ -253,6 +280,8 @@ THANKS_ANSWER = (
     "comparação de cenários, é só perguntar."
 )
 
+COMPLIMENT_ANSWER = "Olá! Obrigado pelo elogio. Qual é a sua dúvida?"
+
 FAREWELL_ANSWER = (
     "Até mais! Quando precisar de outra consulta ou comparação térmica, é só "
     "chamar."
@@ -283,6 +312,8 @@ def smalltalk_answer(
         return THANKS_ANSWER
     if _is_farewell(words):
         return FAREWELL_ANSWER
+    if _is_compliment(words):
+        return COMPLIMENT_ANSWER
     if _is_greeting(words):
         return GREETING_ANSWER
     return None
@@ -301,6 +332,20 @@ def _is_farewell(words: list[str]) -> bool:
     )
     allowed = FAREWELL_WORDS | FAREWELL_FILLERS | GREETING_WORDS | GREETING_FILLERS
     return triggered and _all_within(words, allowed)
+
+
+def _is_compliment(words: list[str]) -> bool:
+    """Reconhece elogio puro, opcionalmente acompanhado de saudação."""
+
+    allowed = (
+        COMPLIMENT_WORDS
+        | COMPLIMENT_FILLERS
+        | GREETING_WORDS
+        | GREETING_FILLERS
+    )
+    return any(word in COMPLIMENT_WORDS for word in words) and _all_within(
+        words, allowed
+    )
 
 
 def _is_only(words: list[str], triggers: frozenset[str], allowed: frozenset[str]) -> bool:

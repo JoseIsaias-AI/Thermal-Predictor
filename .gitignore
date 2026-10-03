@@ -16,3 +16,7 @@ __pycache__/
 # ensaio do parceiro. Mesmo motivo que bloqueia os CSVs acima, e os notebooks regeneram os
 # arquivos em qualquer máquina.
 previsao_triagem*.json
+
+# Logs do servidor de desenvolvimento da API e do chatbot.
+*.stdout.log
+*.stderr.log

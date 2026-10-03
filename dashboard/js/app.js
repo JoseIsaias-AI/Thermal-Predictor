@@ -10,6 +10,11 @@
 
   var MODEL_VERSION = "stub";
   var TELA_RESULTADO = "triagem.html";
+  /* A previsão não cabe em query string, então viaja por sessionStorage. A
+     tela de resultado confere a configuração guardada contra a que veio na
+     URL antes de usar: assim um link antigo não mostra a previsão de outra
+     consulta. */
+  var CHAVE_PREVISAO = "thermal_predictor.previsao";
 
   var form = document.getElementById("prediction-form");
   var fieldsContainer = document.getElementById("factor-fields");
@@ -135,6 +140,20 @@
   function showError(message) {
     document.getElementById("error-message").textContent = message;
     errorSection.hidden = false;
+  }
+
+  /* Guardar é melhor esforço: por `file://` o navegador pode recusar o
+     armazenamento, e nesse caso a tela de resultado refaz a consulta. Por isso
+     a falha aqui não interrompe a navegação nem vira erro na tela. */
+  function guardarPrevisao(resultado) {
+    try {
+      window.sessionStorage.setItem(CHAVE_PREVISAO, JSON.stringify({
+        configuracao: resultado.enviado,
+        resposta: resultado.dados
+      }));
+    } catch (semArmazenamento) {
+      // segue sem guardar
+    }
   }
 
   // Campo ausente de `input` foi desabilitado por `requires` e não se
@@ -360,12 +379,38 @@
       return;
     }
 
+    var url = TELA_RESULTADO + "?" + paraQueryString(input);
+
+    /* A previsão sai agora e corre junto com a coreografia, em vez de somar-se
+       a ela: `destino` só resolve quando a resposta volta. É o que o cabeçalho
+       de js/analise.js antecipava — o intervalo da animação vira tempo de
+       cálculo. */
+    var previsao = API_PREDICAO.prever(input);
+
     /* A passagem leva o mesmo modelo que o formulário montou para o centro da
-       tela e navega ao terminar. O destino já sai calculado daqui: o que a
-       animação faz é ocupar o intervalo, não escolher para onde ir. */
+       tela e navega ao terminar. */
     ANALISE.executar({
       palco: palco,
-      destino: TELA_RESULTADO + "?" + paraQueryString(input),
+      destino: function () {
+        return previsao.then(function (resultado) {
+          if (resultado.ok) {
+            guardarPrevisao(resultado);
+            return url;
+          }
+
+          /* Configuração fora do contrato ou falha do servidor param aqui:
+             seguir mostraria número de demonstração como se fosse resposta do
+             modelo. Já API fora do ar é o caso normal de abrir o painel por
+             `file://`, e aí a consulta segue com os valores sintéticos e o
+             aviso que a barra já exibe. */
+          if (resultado.erro.tipo === "validacao" || resultado.erro.tipo === "falha") {
+            showError(resultado.erro.mensagem);
+            return null;
+          }
+
+          return url;
+        });
+      },
       aoExplodir: function (valor) {
         explodido = valor;
         redesenhar({ arrastando: true });

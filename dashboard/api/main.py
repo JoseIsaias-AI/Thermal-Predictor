@@ -8,6 +8,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.exceptions import RequestValidationError
+from fastapi.middleware.cors import CORSMiddleware
 
 from . import VERSAO_API
 from .configuracao import carregar_configuracao
@@ -44,6 +45,9 @@ def montar_estado(app, configuracao=None):
 
 def criar_app(configuracao=None):
     """Fábrica da aplicação; recebe a configuração pronta nos testes."""
+    # O CORS é montado junto com o app, antes do ciclo de vida, então a configuração
+    # precisa existir aqui. Ler o ambiente é barato e não depende dos arquivos de dados.
+    origens = (configuracao or carregar_configuracao()).origens_permitidas
 
     @asynccontextmanager
     async def ciclo_de_vida(app):
@@ -62,6 +66,17 @@ def criar_app(configuracao=None):
             {"name": "modelos", "description": "Metadados dos modelos por subsistema."},
             {"name": "predição", "description": "Temperatura prevista de cada componente."},
         ],
+    )
+
+    # Sem isto o navegador bloqueia a chamada do painel: a página é servida por um
+    # servidor estático e a API responde em outra porta, o que é origem diferente.
+    # Só `Content-Type` é liberado, e sem credenciais: a API não usa sessão nem cookie.
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=list(origens),
+        allow_credentials=False,
+        allow_methods=["GET", "POST"],
+        allow_headers=["Content-Type"],
     )
 
     app.add_exception_handler(RequestValidationError, tratar_entrada_mal_formada)
