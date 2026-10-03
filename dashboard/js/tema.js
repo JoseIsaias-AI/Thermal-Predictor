@@ -14,7 +14,7 @@ var TEMA = (function () {
 
   var CHAVE = "thermal-predictor.tema";
   var TEMAS = ["claro", "escuro"];
-  var LOGO = { claro: "img/logo-whirlpool.png", escuro: "img/logo-whirlpool-negativo.png" };
+  var LOGO = { claro: "../assets/dashboard/logo-whirlpool.png", escuro: "../assets/dashboard/logo-whirlpool-negativo.png" };
   var raiz = document.documentElement;
 
   function lerGuardado() {

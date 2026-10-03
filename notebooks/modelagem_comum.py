@@ -87,7 +87,7 @@ def caminho_dado(nome):
 def salvar_figura(fig, nome):
     """Grava a figura na pasta de imagens da documentação."""
     for raiz in (".", "..", os.path.join("..", ".."), os.path.join("..", "..", "..")):
-        destino = os.path.join(raiz, "documents", "assets documentacao")
+        destino = os.path.join(raiz, "assets")
 
         if os.path.isdir(destino):
             fig.savefig(os.path.join(destino, nome), dpi=150, bbox_inches="tight")
