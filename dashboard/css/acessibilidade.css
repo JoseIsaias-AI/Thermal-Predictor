@@ -280,21 +280,62 @@ html[data-a11y-fonte="1"] { font-size: 115%; }
 html[data-a11y-fonte="2"] { font-size: 130%; }
 html[data-a11y-fonte="3"] { font-size: 150%; }
 
+/* Cabeçalho em duas linhas arrumadas: identidade, estado do modelo e tema em
+   cima, as sete telas numa linha só embaixo. Sem isso as abas quebravam em
+   duas ou três linhas espremidas dentro da barra. O cabeçalho deixa de
+   grudar no topo: com a fonte grande, cada linha de tela conta. Vale também
+   para a fonte legível, mais larga: a barra já estava no limite em 1280px. */
+:root:is([data-a11y-fonte], [data-a11y-legivel]) .masthead { position: static; }
+:root:is([data-a11y-fonte], [data-a11y-legivel]) .masthead__inner { flex-wrap: wrap; row-gap: 0; }
+:root:is([data-a11y-fonte], [data-a11y-legivel]) .nav {
+  order: 1;
+  flex-basis: 100%;
+  margin-left: 0;
+  min-height: 2.75rem;
+}
+:root:is([data-a11y-fonte], [data-a11y-legivel]) .split__view { top: var(--space-4); }
+
 /* No celular, teto de 115%: o mesmo limite de 600px do acessibilidade.js. */
 @media (max-width: 600px) {
   html[data-a11y-fonte="2"],
   html[data-a11y-fonte="3"] { font-size: 115%; }
 }
 
-/* Com a fonte maior, a dica da barra do 3D quebra linha em vez de virar
-   reticências: quem aumentou a fonte é quem mais precisa do texto inteiro. */
-html[data-a11y-fonte] .hint {
+/* ----- Texto que não cabe -----
+ * Com qualquer recurso de texto ligado, o que hoje vira reticências quebra
+ * linha: quem aumentou ou trocou a fonte é quem mais precisa do texto
+ * inteiro. Cada recurso de texto entra na lista do :is(). */
+:root:is([data-a11y-fonte], [data-a11y-legivel]) :is(
+  .hint,
+  .kpi__nota,
+  .viewport__foot .viewport__disclaimer span,
+  .cfg-item dt,
+  .part__trio-cel dt,
+  .cmp-head__line > b
+) {
   white-space: normal;
   overflow: visible;
+  text-overflow: clip;
 }
 
-html[data-a11y-fonte] .stage-hint {
+:root:is([data-a11y-fonte], [data-a11y-legivel]) .stage-hint {
   white-space: normal;
   text-align: center;
   border-radius: var(--radius-lg);
 }
+
+/* ----- Fonte legível -----
+ * Troca as duas famílias pelos papéis, e não elemento por elemento: título,
+ * corpo, tabela e controle mudam juntos. A Atkinson é mais larga que a Source
+ * Sans 3; os ajustes abaixo seguram o que estava no limite da largura. */
+html[data-a11y-legivel] {
+  --font-display: "Atkinson Hyperlegible", "Segoe UI", Arial, sans-serif;
+  --font-body:    "Atkinson Hyperlegible", "Segoe UI", Arial, sans-serif;
+}
+
+/* Botões, campos e o texto dos gráficos (SVG) declaram a família por conta
+   própria ou herdam do navegador. */
+html[data-a11y-legivel] button,
+html[data-a11y-legivel] input,
+html[data-a11y-legivel] select,
+html[data-a11y-legivel] textarea { font-family: var(--font-body); }

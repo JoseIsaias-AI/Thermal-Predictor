@@ -344,6 +344,12 @@ var ACESSIBILIDADE = (function () {
     aoAplicar: aplicarEscala
   });
 
+  registrar({
+    id: "legivel", grupo: "texto", rotulo: "Fonte legível",
+    icone: SVG + '<rect x="3" y="3" width="18" height="18" rx="2.5"></rect><path d="M7.5 16.5L12 7l4.5 9.5M9.2 13h5.6"></path></svg>',
+    niveis: ["Atkinson Hyperlegible"]
+  });
+
   /* As folhas antes deste script já estão prontas. As que carregarem depois
      (inclusive as recarregadas pelo Live Server) chegam com os limites
      originais e são escaladas quando terminam de carregar. */
