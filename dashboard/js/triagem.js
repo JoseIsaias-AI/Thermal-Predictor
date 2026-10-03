@@ -156,10 +156,8 @@
 
     document.getElementById("page-title").textContent = tituloConclusao(dados.pontos);
 
-    if (dados.preditor_e_stub) {
-      document.getElementById("model-version").textContent = dados.versao_modelo;
-      document.getElementById("stub-banner").hidden = false;
-    }
+    // Chip e aviso de demonstração ficam com js/previsao_sessao.js, que vale para
+    // as cinco telas e já sabe se o dado veio do modelo ou do stub.
 
     // Ordem já vem pronta no dado; reordenar aqui duplicaria a regra.
     dados.pontos.forEach(function (ponto) {
