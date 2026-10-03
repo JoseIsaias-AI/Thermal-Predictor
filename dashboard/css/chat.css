@@ -85,7 +85,7 @@
   50%      { transform: scale(1.12); }
 }
 
-/* Enquanto a arte não estiver em img/, o botão continua utilizável em vez de
+/* Enquanto a arte não estiver em assets/dashboard/, o botão continua utilizável em vez de
    virar um quadrado vazio. */
 .chat-launcher__initial {
   display: flex;
