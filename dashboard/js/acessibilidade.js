@@ -82,6 +82,7 @@ var ACESSIBILIDADE = (function () {
   function definir(id, n) {
     var r = buscar(id);
     if (!r || !r.niveis) return;
+    var antes = nivel(id);
     if (n > 0 && n <= r.niveis.length) estado[id] = n;
     else delete estado[id];
     guardar();
@@ -89,7 +90,7 @@ var ACESSIBILIDADE = (function () {
     if (r.aoAplicar) r.aoAplicar(nivel(id));
     sincronizarCartao(r);
     avisar(id);
-    if (r.recarregar) recarregar(id);
+    if (r.recarregar && r.recarregar(antes, nivel(id))) recarregar(id);
   }
 
   /* O que é pintado com as rampas (mapa, legenda, 3D, comparação) lê a paleta
@@ -402,11 +403,53 @@ var ACESSIBILIDADE = (function () {
     niveis: ["Reforçado", "Máximo"]
   });
 
+  /* Modo daltônico em duas camadas.
+     1. A página inteira passa por um filtro de correção do tipo escolhido
+        (daltonização: a diferença de cor que aquele olho perde é deslocada
+        para os canais que ele enxerga). Vale para texto, gráfico e 3D.
+     2. As rampas dos mapas térmicos trocam por paletas seguras para os três
+        tipos (js/fogao.js), que é o que garante a leitura da temperatura.
+     As matrizes de simulação são as de Machado, Oliveira e Fernandes (2009),
+     severidade total; a correção é I + E·(I − S), com E deslocando o erro
+     vermelho-verde para o azul (deuteranopia e protanopia) e o erro azul
+     para o vermelho e o verde (tritanopia). */
+  var FILTROS = {
+    deuteranopia: "1 0 0 0 0  0.163 0.725 0.112 0 0  0.455 -0.645 1.191 0 0  0 0 0 1 0",
+    protanopia:   "1 0 0 0 0  0.479 0.477 0.044 0 0  0.597 -0.689 1.091 0 0  0 0 0 1 0",
+    tritanopia:   "0.741 -0.407 0.666 0 0  0.075 0.585 0.340 0 0  0 0 1 0 0  0 0 0 1 0"
+  };
+
+  function montarFiltros() {
+    var svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    svg.setAttribute("aria-hidden", "true");
+    svg.setAttribute("focusable", "false");
+    svg.setAttribute("class", "a11y-filtros");
+    svg.innerHTML = Object.keys(FILTROS).map(function (tipo) {
+      return '<filter id="a11y-' + tipo + '" color-interpolation-filters="linearRGB">' +
+        '<feColorMatrix type="matrix" values="' + FILTROS[tipo] + '"></feColorMatrix></filter>';
+    }).join("");
+    document.body.insertBefore(svg, document.body.firstChild);
+    // Só agora o CSS liga o filtro: apontar para um filtro que ainda não existe apagaria a página.
+    raiz.setAttribute("data-a11y-filtros", "");
+  }
+
+  /* O <body> ainda não existe quando este script roda no <head>; o filtro entra
+     assim que ele nasce, antes do resto da página pintar sem correção. */
+  if (document.body) montarFiltros();
+  else if (typeof MutationObserver === "function") {
+    new MutationObserver(function (_, observador) {
+      if (!document.body) return;
+      observador.disconnect();
+      montarFiltros();
+    }).observe(raiz, { childList: true });
+  } else document.addEventListener("DOMContentLoaded", montarFiltros);
+
   registrar({
     id: "daltonico", grupo: "cor", rotulo: "Modo daltônico",
     icone: SVG + '<path d="M2.5 12s3.5-6.5 9.5-6.5S21.5 12 21.5 12s-3.5 6.5-9.5 6.5S2.5 12 2.5 12z"></path><circle cx="12" cy="12" r="3"></circle><path d="M12 9v6" stroke-width="1.6"></path></svg>',
-    niveis: ["Paletas seguras"],
-    recarregar: true
+    niveis: ["Deuteranopia (verde)", "Protanopia (vermelho)", "Tritanopia (azul)"],
+    // As rampas seguras servem aos três tipos: só ligar ou desligar repinta.
+    recarregar: function (antes, depois) { return (antes > 0) !== (depois > 0); }
   });
 
   /* As folhas antes deste script já estão prontas. As que carregarem depois

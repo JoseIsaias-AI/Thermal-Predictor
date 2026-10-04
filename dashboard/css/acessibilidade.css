@@ -212,7 +212,7 @@
 
 /* O nível em vigor, por extenso: o ponto aceso diz quanto, o texto diz o quê. */
 .a11y-cartao__nivel {
-  font-size: var(--size-kicker);
+  font-size: var(--size-small);
   line-height: 1.3;
   color: var(--color-accent);
   font-weight: var(--weight-semibold);
@@ -597,7 +597,17 @@ html[data-a11y-animacoes] *::after {
   --shadow-control: 0 0 0 1px #ffffff;
 }
 
-/* ----- Modo daltônico -----
+/* ----- Modo daltônico: filtro da página -----
+ * Na raiz, para valer em tudo, inclusive no 3D e neste painel. Os filtros
+ * moram num <svg> que o acessibilidade.js injeta; o atributo data-a11y-filtros
+ * só aparece depois que ele existe. */
+.a11y-filtros { position: absolute; width: 0; height: 0; overflow: hidden; }
+
+html[data-a11y-filtros][data-a11y-daltonico="1"] { filter: url(#a11y-deuteranopia); }
+html[data-a11y-filtros][data-a11y-daltonico="2"] { filter: url(#a11y-protanopia); }
+html[data-a11y-filtros][data-a11y-daltonico="3"] { filter: url(#a11y-tritanopia); }
+
+/* ----- Modo daltônico: estados -----
  * As rampas mudam em js/fogao.js. Aqui, o estado "acima do limite" acompanha
  * a rampa de folga: o vermelho vira laranja-queimado, que não se confunde com
  * o azul de "com folga" em nenhum tipo de daltonismo. O estado continua com
