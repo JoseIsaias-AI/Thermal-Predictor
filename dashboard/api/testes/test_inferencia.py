@@ -18,7 +18,13 @@ from api.predicao.inferencia import ORDEM_ESTADOS, classificar, inferir, prever_
 from api.predicao.protocolo import CatalogoIndisponivel, ConfiguracaoInvalida, ModeloIndisponivel
 from api.predicao.registro import construir_registro
 
-from .apoio import PASTA_MODELO_FINAL, RAIZ_REPOSITORIO, ler_stub_do_painel, montar_configuracao
+from .apoio import (
+    PASTA_MODELO_FINAL,
+    RAIZ_REPOSITORIO,
+    area_do_termopar,
+    ler_stub_do_painel,
+    montar_configuracao,
+)
 
 PASTA_EXPORTACAO = RAIZ_REPOSITORIO / "notebooks" / "5_implantacao"
 PASTA_RESULTADOS = RAIZ_REPOSITORIO / "notebooks" / "4_avaliacao" / "comparacao_de_modelos" / "resultados"
@@ -127,16 +133,21 @@ def registros_por_familia():
 
 @pytest.fixture(scope="module")
 def catalogo_sintetico(registro_final):
-    """Limite fictício de 150 °C em todo ponto, e AC Blower Inlet sem limite, como na base."""
+    """Limite fictício de 150 °C em todo ponto, e AC Blower Inlet sem limite, como na base.
+
+    A área vem de `area_do_termopar`, e não do nome do modelo: na base real as duas
+    coisas não coincidem (ver `apoio.AREA_REAL_DO_TERMOPAR`).
+    """
     pontos = {}
 
     for subsistema, preditor in registro_final.preditores.items():
         sem_limite = subsistema == "AC Blower Inlet"
         for termopar in preditor.metadados.termopares:
+            area = area_do_termopar(termopar, subsistema)
             pontos[termopar] = PontoDeMedicao(
                 termopar=termopar,
-                area=subsistema,
-                measurement_id=f"{termopar} | {subsistema}",
+                area=area,
+                measurement_id=f"{termopar} | {area}",
                 limite_c=None if sem_limite else 150.0,
                 so_monitoramento=sem_limite,
             )
@@ -164,9 +175,19 @@ def test_payload_tem_o_formato_que_o_painel_consome(registro_final, catalogo_sin
     stub = ler_stub_do_painel()
     payload = inferir(CONFIGURACAO, registro_final, catalogo_sintetico)
 
+    # Contém o que o stub tem, e pode conter mais. O ponto da resposta traz
+    # `subsistema_modelo`, que o stub não tem: o dado de demonstração não sai de
+    # modelo nenhum, e os consumidores tratam a ausência como desconhecida
+    # (`js/previsao_sessao.js`, `pontoAferido`). O que o teste fixa é que nenhum
+    # campo lido pelas telas desapareça.
     assert set(stub) <= set(payload)
-    assert set(payload["pontos"][0]) == set(stub["pontos"][0])
-    assert set(payload["monitoramento"][0]) == set(stub["monitoramento"][0])
+    assert set(stub["pontos"][0]) <= set(payload["pontos"][0])
+    assert set(stub["monitoramento"][0]) <= set(payload["monitoramento"][0])
+
+    # E que o campo novo chegue em todos os pontos, não só no primeiro.
+    todos = payload["pontos"] + payload["monitoramento"]
+    assert all(p["subsistema_modelo"] for p in todos)
+    assert {p["subsistema_modelo"] for p in todos} == {m["subsistema"] for m in payload["modelos"]}
 
 
 def test_lista_principal_vem_ordenada_por_estado_e_folga(registro_final, catalogo_sintetico):

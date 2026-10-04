@@ -50,9 +50,11 @@ def test_resposta_tem_o_formato_que_o_painel_consome(cliente_predicao):
     stub = ler_stub_do_painel()
     corpo = cliente_predicao.post("/predicao", json=stub["configuracao"]).json()
 
+    # Contém o que o stub tem, e pode conter mais: `subsistema_modelo` é da
+    # resposta, e não do dado de demonstração. Ver test_inferencia.py.
     assert set(stub) <= set(corpo)
-    assert set(corpo["pontos"][0]) == set(stub["pontos"][0])
-    assert set(corpo["monitoramento"][0]) == set(stub["monitoramento"][0])
+    assert set(stub["pontos"][0]) <= set(corpo["pontos"][0])
+    assert set(stub["monitoramento"][0]) <= set(corpo["monitoramento"][0])
 
 
 def test_endpoint_devolve_o_mesmo_que_a_funcao_de_inferencia(cliente_predicao):

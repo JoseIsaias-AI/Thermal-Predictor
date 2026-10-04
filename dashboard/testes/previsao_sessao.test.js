@@ -43,11 +43,12 @@ var BUSCA =
   "&deflector_hole=Closed&material_coil_support=Aluminium" +
   "&losses.present=declared&losses.config=Config%20S&losses.order=Front%20Order";
 
-function ponto(nome, temperatura, limite) {
+function ponto(nome, temperatura, limite, subsistema, area) {
   return {
     measurement_id: nome.toLowerCase().replace(/\s/g, "_"),
     TC_Name: nome,
-    Key_Area: "Mainback",
+    Key_Area: area || "Mainback",
+    subsistema_modelo: subsistema || "Mainback",
     temperatura_prevista_c: temperatura,
     limit_c: limite,
     is_monitor_only: limite === null,
@@ -69,8 +70,17 @@ function resposta(extra) {
       total_classificados: 1,
       total_monitoramento: 1,
       pontos: [ponto("Mainback P09", 211.39, 220)],
-      monitoramento: [ponto("Entrada do soprador P01", 48.2, null)],
-      modelos: [{ subsistema: "Mainback", algoritmo: "Média RF e GB adotada", termopares: 11 }]
+      /* O caso real: este ponto fica na área `Main Vent Sys`, mas quem o prevê é o
+         modelo de `AC Blower Inlet`, o único sem validação. Casar por área o daria
+         como aferido. */
+      monitoramento: [
+        ponto("Entrada do soprador P01", 48.2, null, "AC Blower Inlet", "Main Vent Sys")
+      ],
+      modelos: [
+        { subsistema: "Mainback", algoritmo: "Média RF e GB adotada", validado: true, termopares: 11 },
+        { subsistema: "Main Vent Sys", algoritmo: "Média RF e GB adotada", validado: true, termopares: 5 },
+        { subsistema: "AC Blower Inlet", algoritmo: "Média RF e GB adotada", validado: false, termopares: 2 }
+      ]
     },
     extra || {}
   );
@@ -335,4 +345,88 @@ test("aplicar mantém o aviso quando fica no stub", function () {
 
   assert.equal(b.aviso.hidden, false);
   assert.equal(b.chip.textContent, "stub");
+});
+
+
+// ------------------------------------------- mescla de modelos por subsistema
+
+/* O modelo final não é um modelo só: há um algoritmo escolhido por área e, em
+   cinco delas, a média de dois. O que estes testes fixam é o casamento entre
+   ponto e modelo, que não pode passar por `Key_Area`: a área `Main Vent Sys`
+   reúne pontos do modelo dela, validado, e do de `AC Blower Inlet`, que não é.
+   Casar por área marcaria como aferidos justamente os dois pontos que ninguém
+   validou. */
+
+test("modeloDoPonto casa pelo subsistema que previu, não pela área", function () {
+  var r = resposta();
+  var doMonitoramento = r.monitoramento[0];
+
+  assert.equal(doMonitoramento.Key_Area, "Main Vent Sys");
+  assert.equal(doMonitoramento.subsistema_modelo, "AC Blower Inlet");
+
+  var modelo = PS.modeloDoPonto(r, doMonitoramento);
+
+  assert.equal(modelo.subsistema, "AC Blower Inlet");
+  assert.equal(modelo.validado, false);
+});
+
+test("pontoAferido é falso no ponto do modelo sem validação", function () {
+  var r = resposta();
+
+  assert.equal(PS.pontoAferido(r, r.monitoramento[0]), false);
+  assert.equal(PS.pontoAferido(r, r.pontos[0]), true);
+});
+
+test("pontoAferido não se deixa enganar pela área do ponto", function () {
+  var r = resposta();
+
+  // Mesma área do ponto não aferido, mas previsto pelo modelo validado dela.
+  var daArea = ponto("Duto P01", 92.5, 150, "Main Vent Sys", "Main Vent Sys");
+
+  assert.equal(PS.pontoAferido(r, daArea), true);
+  assert.equal(PS.modeloDoPonto(r, daArea).subsistema, "Main Vent Sys");
+});
+
+test("sem bloco modelos nada é dado como não aferido", function () {
+  // É o caso dos dados de demonstração: ausência de informação não vira marca.
+  var p = ponto("Mainback P09", 211.39, 220);
+
+  assert.equal(PS.modeloDoPonto({ pontos: [p] }, p), null);
+  assert.equal(PS.pontoAferido({ pontos: [p] }, p), true);
+  assert.equal(PS.pontoAferido(null, p), true);
+  assert.equal(PS.pontoAferido(resposta(), null), true);
+});
+
+test("subsistema fora da lista de modelos não vira marca", function () {
+  var r = resposta();
+  var orfao = ponto("Ponto Novo", 100, 150, "Subsistema Que Não Existe");
+
+  assert.equal(PS.modeloDoPonto(r, orfao), null);
+  assert.equal(PS.pontoAferido(r, orfao), true);
+});
+
+test("validado ausente não vira marca, só validado falso", function () {
+  var r = resposta({
+    modelos: [{ subsistema: "Mainback", algoritmo: "Média RF e GB adotada", termopares: 11 }]
+  });
+
+  assert.equal(PS.pontoAferido(r, r.pontos[0]), true);
+});
+
+test("resposta sem o bloco modelos é recusada e a tela fica no stub", function () {
+  // O painel passou a depender de `modelos`; faltar é formato incompleto.
+  var r = resposta();
+  delete r.modelos;
+
+  assert.equal(PS.respostaCompleta(r), false);
+
+  var escolha = PS.resolver({ stub: STUB, armazenamento: guardar(CONFIG, r), busca: BUSCA });
+  assert.equal(escolha.origem, "incompleta");
+});
+
+test("ponto sem subsistema_modelo é recusado", function () {
+  var r = resposta();
+  delete r.pontos[0].subsistema_modelo;
+
+  assert.equal(PS.respostaCompleta(r), false);
 });

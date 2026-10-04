@@ -98,6 +98,34 @@ def resposta_completa(resposta):
     return _executar("saida = PS.respostaCompleta(dados);", resposta)
 
 
+def aferimento_dos_pontos(resposta):
+    """Como o painel casa cada ponto com o modelo que o previu, em uma passada.
+
+    Devolve `{TC_Name: {area, subsistema_modelo, modelo, validado, aferido}}`, com
+    `modelo` e `validado` saindo de `previsao_sessao.modeloDoPonto` e `aferido` de
+    `pontoAferido`. É aqui que se vê se a mescla por área chegou inteira: o modelo
+    final não é um só, e `AC Blower Inlet` prevê pontos da área `Main Vent Sys`
+    sem ter sido validado.
+
+    Uma chamada e não duas por ponto: a resposta inteira viaja pela linha de
+    comando, e mandá-la 77 vezes estouraria o limite do Windows.
+    """
+    return _executar(
+        "saida = {};"
+        " dados.pontos.concat(dados.monitoramento).forEach(function (p) {"
+        "   var m = PS.modeloDoPonto(dados, p);"
+        "   saida[p.TC_Name] = {"
+        "     area: p.Key_Area,"
+        "     subsistema_modelo: p.subsistema_modelo,"
+        "     modelo: m ? m.subsistema : null,"
+        "     validado: m ? m.validado : null,"
+        "     aferido: PS.pontoAferido(dados, p)"
+        "   };"
+        " });",
+        resposta,
+    )
+
+
 def mesma_configuracao(a, b):
     """Se o painel considera as duas configurações a mesma, para casar previsão e tela."""
     return _executar("saida = PS.mesmaConfiguracao(dados[0], dados[1]);", [a, b])

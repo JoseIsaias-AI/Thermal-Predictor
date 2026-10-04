@@ -106,6 +106,52 @@
     });
   }
 
+  /* `Pyro` e "sem perda declarada" são a mesma condição na base: nas rodadas da base, as de
+     Pyro são exatamente as rodadas sem perda, e a codificação descartou `losses_present_none`
+     por ser idêntica a `Run_Case_Pyro` (Seção 4.2.2d). A API recusa a combinação que não
+     existe, dos dois lados, e oferecer na tela um caminho que termina em erro é pior que
+     não oferecer: aqui o formulário fica impedido de expressá-la.
+
+     O que se desabilita é a *opção*, nunca o `select`: `collectInput` deixa de fora todo
+     campo desabilitado, e um `losses.present` ausente bloquearia o envio em vez de
+     corrigi-lo. */
+  function applyPyroEquivalence() {
+    var runCase = form.elements.run_case;
+    var present = form.elements["losses.present"];
+
+    if (!runCase || !present) return;
+
+    function opcao(valor) {
+      return Array.prototype.filter.call(present.options, function (o) {
+        return o.value === valor;
+      })[0];
+    }
+
+    var semPerda = opcao("none");
+    var comPerda = opcao("declared");
+    var semDado = opcao("missing");
+
+    var sync = function () {
+      var pyro = runCase.value === "Pyro";
+
+      if (semPerda) semPerda.disabled = !pyro;
+      if (comPerda) comPerda.disabled = pyro;
+      if (semDado) semDado.disabled = pyro;
+
+      var alvo = pyro ? "none" : "declared";
+
+      // Só mexe no valor quando o escolhido deixou de ser possível.
+      if (pyro !== (present.value === "none")) {
+        present.value = alvo;
+        // `requires` de config e ordem escuta `change`, que atribuir valor não dispara.
+        present.dispatchEvent(new Event("change"));
+      }
+    };
+
+    runCase.addEventListener("change", sync);
+    sync();
+  }
+
   function buildForm() {
     SCHEMA.factors.forEach(function (factor) {
       if (factor.subfields && factor.subfields.length > 0) {
@@ -114,6 +160,8 @@
         fieldsContainer.appendChild(buildSelect(factor.key, factor));
       }
     });
+
+    applyPyroEquivalence();
   }
 
   function collectInput() {

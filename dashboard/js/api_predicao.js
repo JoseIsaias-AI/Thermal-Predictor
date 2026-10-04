@@ -30,18 +30,26 @@ var API_PREDICAO = (function () {
 
   var TEMPO_LIMITE_MS = 15000;
 
-  /* Mesma regra de `js/chat.js`: a porta 8000 é a do README, `?api=8010` troca
-     sem editar arquivo, e o host é sempre 127.0.0.1 — assim um link recebido de
-     fora não consegue apontar o painel para outro servidor. */
+  /* Porta 8001, que é a da API de predição no README. Não é a 8000 de
+     `js/chat.js`: essa é a do Robertão, e o próprio README separa as duas para os
+     dois serviços rodarem juntos. Apontar para 8000 levaria a predição ao serviço
+     do chat, que não tem `POST /predicao`.
+
+     Por isso a chave da query também é outra, `?predicao=8010`: `?api=` move o
+     chat, e uma chave só moveria os dois para a mesma porta — o que não pode estar
+     certo para os dois ao mesmo tempo. O host é sempre 127.0.0.1, para um link
+     recebido de fora não conseguir apontar o painel a outro servidor. */
+  var PORTA_PADRAO = "8001";
+
   function baseDaApi(janela) {
     var w = janela || (typeof window !== "undefined" ? window : {});
 
     if (w.PREDICAO_API_BASE) return w.PREDICAO_API_BASE;
 
     var busca = (w.location && w.location.search) || "";
-    var porta = /[?&]api=(\d{2,5})(?:&|$)/.exec(busca);
+    var porta = /[?&]predicao=(\d{2,5})(?:&|$)/.exec(busca);
 
-    return "http://127.0.0.1:" + (porta ? porta[1] : "8000");
+    return "http://127.0.0.1:" + (porta ? porta[1] : PORTA_PADRAO);
   }
 
   /* Normaliza o que o formulário coletou para o contrato de `RequisicaoPredicao`.

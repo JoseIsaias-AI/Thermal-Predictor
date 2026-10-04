@@ -95,16 +95,23 @@ test("montarCorpo não acrescenta campo fora do contrato", function () {
 
 // ----------------------------------------------------------------- base da API
 
-test("baseDaApi usa a porta 8000 por padrão", function () {
-  assert.equal(API.baseDaApi({ location: { search: "" } }), "http://127.0.0.1:8000");
+test("baseDaApi usa a porta 8001 por padrão, a da API de predição", function () {
+  assert.equal(API.baseDaApi({ location: { search: "" } }), "http://127.0.0.1:8001");
 });
 
-test("baseDaApi aceita ?api= para trocar só a porta", function () {
-  assert.equal(API.baseDaApi({ location: { search: "?api=8010" } }), "http://127.0.0.1:8010");
+test("baseDaApi aceita ?predicao= para trocar só a porta", function () {
+  assert.equal(API.baseDaApi({ location: { search: "?predicao=8010" } }), "http://127.0.0.1:8010");
+});
+
+/* `?api=` é do Robertão (`js/chat.js`). Mover o chat não pode arrastar a
+   predição: as duas rodam ao mesmo tempo, em portas diferentes, e uma chave
+   compartilhada estaria errada para uma das duas. */
+test("baseDaApi não se move com o ?api= do chat", function () {
+  assert.equal(API.baseDaApi({ location: { search: "?api=8010" } }), "http://127.0.0.1:8001");
 });
 
 test("baseDaApi ignora host na query e nunca sai de 127.0.0.1", function () {
-  var base = API.baseDaApi({ location: { search: "?api=evil.com&api=99" } });
+  var base = API.baseDaApi({ location: { search: "?predicao=evil.com&predicao=99" } });
   assert.equal(base.indexOf("http://127.0.0.1:"), 0);
   assert.equal(base.indexOf("evil.com"), -1);
 });

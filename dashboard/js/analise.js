@@ -2,9 +2,10 @@
  *
  * O painel leva o mesmo modelo 3D que o formulário monta para o centro da
  * tela, abre o produto, varre os pontos de medição e devolve o resultado. Não
- * é enfeite: é o intervalo em que a previsão será calculada quando houver
- * endpoint, e é o que dá ao usuário a noção de que os 78 pontos foram olhados,
- * um a um, na configuração que ele acabou de escolher.
+ * é enfeite: é o intervalo em que a previsão é calculada — `js/app.js` dispara a
+ * chamada a `POST /predicao` junto com a coreografia —, e é o que dá ao usuário a
+ * noção de que os pontos do produto foram olhados, um a um, na configuração que
+ * ele acabou de escolher.
  *
  * `destino` aceita texto ou função. Com função, a navegação espera o que ela
  * resolver, e é assim que a chamada de previsão ocupa o intervalo: a coreografia
@@ -20,6 +21,9 @@
 var ANALISE = (function () {
   "use strict";
 
+  /* Os pontos do catálogo do produto, que é o que a varredura percorre. Não é a
+     contagem da triagem: o modelo prevê 77 dos 78, e a previsão ainda não chegou
+     enquanto esta animação roda. */
   var TOTAL_DE_PONTOS = 78;
 
   /* A coreografia, em etapas. `ate` é a fração do total já percorrida ao fim da

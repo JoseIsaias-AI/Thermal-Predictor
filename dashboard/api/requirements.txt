@@ -7,9 +7,16 @@ uvicorn==0.52.4
 pydantic==2.13.5
 
 # Compartilhadas com a camada de predição (mesmas versões dos notebooks de exportação).
-# Os artefatos hoje em `modelos/` foram serializados com scikit-learn 1.7.2 e carregam com
-# InconsistentVersionWarning nesta versão: reexportar ao fixar o modelo escolhido.
-scikit-learn==1.9.1
+# A versão do scikit-learn não é preferência: é a que serializou os pesos em
+# `modelos/modelo_final/`, e trocá-la quebra a desserialização. Com 1.9.x, os cinco
+# artefatos que são `VotingRegressor[RandomForest + GradientBoosting]` falham ao carregar
+# com `ModuleNotFoundError: No module named '_loss'`, porque o pickle referencia um módulo
+# interno que a 1.9 removeu. O registro não cai para outra família: marca o subsistema como
+# indisponível e `POST /predicao` responde 503 para toda configuração. Só IPC Comp (SVR) e
+# IPC Cooling (Extra Trees) sobrevivem, por não conterem Gradient Boosting.
+# Para subir desta versão, reexportar os artefatos antes, pelo notebook
+# `notebooks/5_implantacao/exportacao_modelo_final.ipynb`, que confere a reprodução do MAE.
+scikit-learn==1.7.2
 pandas==3.0.5
 numpy==2.5.3
 joblib==1.6.0

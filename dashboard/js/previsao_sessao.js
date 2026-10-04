@@ -24,6 +24,13 @@
  *
  * Quem decide o aviso da barra é o próprio dado: com a previsão real,
  * `preditor_e_stub` é falso e o rótulo de valores sintéticos some sozinho.
+ *
+ * Um campo a resposta tem e o stub não: `modelos`, a lista de qual modelo previu
+ * cada subsistema. O modelo final é uma mescla — um algoritmo escolhido por área,
+ * e dentro de cinco delas a média de dois —, e as áreas não têm todas a mesma
+ * qualidade: `AC Blower Inlet` não teve modelo validado. `modeloDoPonto` e
+ * `pontoAferido` dão às telas esse recorte por ponto. Nos dados de demonstração o
+ * bloco não existe, e a ausência é tratada como desconhecida, nunca como aprovada.
  */
 
 var PREVISAO_SESSAO = (function () {
@@ -40,13 +47,15 @@ var PREVISAO_SESSAO = (function () {
     "total_classificados",
     "total_monitoramento",
     "pontos",
-    "monitoramento"
+    "monitoramento",
+    "modelos"
   ];
 
   var CAMPOS_DO_PONTO = [
     "measurement_id",
     "TC_Name",
     "Key_Area",
+    "subsistema_modelo",
     "temperatura_prevista_c",
     "limit_c",
     "is_monitor_only",
@@ -174,6 +183,83 @@ var PREVISAO_SESSAO = (function () {
     return { dados: guardado.resposta, origem: "modelo" };
   }
 
+  /* Qual modelo previu este ponto. A busca é por `subsistema_modelo`, que a API
+     grava em cada ponto, e nunca por `Key_Area`: as duas coisas não coincidem.
+     A área `Main Vent Sys` é atendida por dois modelos — o dela e o de
+     `AC Blower Inlet` —, e o modelo de `HMI / Knobs / Console` cobre as áreas
+     `Oven HMI` e `CT Knobs`. Casar por área atribuiria os dois pontos do único
+     modelo não validado a um modelo validado, sem erro nenhum à vista.
+
+     Devolve `null` quando não há como saber: nos dados de demonstração, que não
+     têm bloco `modelos`, e em qualquer ponto cujo subsistema não esteja na lista. */
+  function modeloDoPonto(dados, ponto) {
+    if (!dados || !ponto || !Array.isArray(dados.modelos)) return null;
+
+    var achado = null;
+
+    dados.modelos.forEach(function (modelo) {
+      if (modelo && modelo.subsistema === ponto.subsistema_modelo) achado = modelo;
+    });
+
+    return achado;
+  }
+
+  /* Se o modelo que previu o ponto passou pela validação do grupo.
+
+     Falso só com evidência: `validado === false` nos metadados do artefato. Sem
+     bloco `modelos`, sem o ponto ou com `validado` ausente, devolve verdadeiro,
+     porque a marca na tela é uma afirmação sobre o modelo e não deve aparecer
+     por falta de informação. Hoje o único caso falso é `AC Blower Inlet`, que
+     não teve modelo aprovado e cujos dois pontos a RN-03 já acompanha sem
+     aprovar nem reprovar. */
+  function pontoAferido(dados, ponto) {
+    var modelo = modeloDoPonto(dados, ponto);
+    return !modelo || modelo.validado !== false;
+  }
+
+  /* Classe da marca de procedência, definida em `css/triagem.css`. Fica aqui, e não
+     repetida em cada tela, porque um erro de digitação nela não quebra nada: a marca
+     aparece sem estilo nenhum, e ninguém nota. */
+  var CLASSE_MARCA = "point__unvalidated";
+
+  var TEXTO_MARCA = "modelo não validado";
+
+  function marca(documento, titulo) {
+    var span = documento.createElement("span");
+
+    span.className = CLASSE_MARCA;
+    span.textContent = TEXTO_MARCA;
+    span.title = titulo;
+
+    return span;
+  }
+
+  /* Marca de um ponto previsto por modelo que o grupo não validou, ou `null` quando
+     não há o que marcar. Construída aqui porque triagem e conformidade mostram a
+     mesma marca, e manter duas cópias do texto e da classe é como elas divergem. */
+  function marcaDeModelo(documento, dados, ponto) {
+    if (!documento || !ponto || pontoAferido(dados, ponto)) return null;
+
+    return marca(
+      documento,
+      "Nenhum modelo foi validado para " + ponto.subsistema_modelo +
+        ". A temperatura é uma estimativa não aferida e não sustenta aprovação."
+    );
+  }
+
+  /* A mesma marca, no nível da área, para a tabela que resume por `Key_Area`: uma
+     área pode reunir pontos de mais de um modelo, e o texto nomeia quais não são
+     aferidos. `null` quando a lista vem vazia. */
+  function marcaDeSubsistemas(documento, subsistemas) {
+    if (!documento || !subsistemas || !subsistemas.length) return null;
+
+    return marca(
+      documento,
+      "Nesta área há ponto previsto sem modelo validado (" + subsistemas.join(", ") +
+        "). A área reúne pontos de mais de um modelo."
+    );
+  }
+
   /* A barra diz de onde vem o número, e quem decide é o próprio dado: com a
      previsão real o aviso de valores sintéticos some e o chip passa a mostrar a
      versão do modelo. A regra mora aqui, e não em cada tela, porque vale para as
@@ -239,6 +325,12 @@ var PREVISAO_SESSAO = (function () {
     configuracaoDaBusca: configuracaoDaBusca,
     mesmaConfiguracao: mesmaConfiguracao,
     respostaCompleta: respostaCompleta,
+    modeloDoPonto: modeloDoPonto,
+    pontoAferido: pontoAferido,
+    CLASSE_MARCA: CLASSE_MARCA,
+    TEXTO_MARCA: TEXTO_MARCA,
+    marcaDeModelo: marcaDeModelo,
+    marcaDeSubsistemas: marcaDeSubsistemas,
     refletirNaBarra: refletirNaBarra,
     resolver: resolver,
     aplicar: aplicar

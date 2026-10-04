@@ -56,6 +56,20 @@
     return td;
   }
 
+  /* Marca o ponto previsto por modelo que o grupo não validou.
+
+     O modelo final é uma mescla por área, e as áreas não têm a mesma qualidade:
+     `AC Blower Inlet` não teve modelo aprovado, e os seus dois pontos cairiam na
+     tabela com o mesmo peso visual dos validados. Quem casa ponto e modelo é
+     `PREVISAO_SESSAO`, por `subsistema_modelo` e nunca por `Key_Area` — a área
+     `Main Vent Sys` sai de dois modelos. Nos dados de demonstração, que não
+     trazem o bloco `modelos`, nada é marcado. */
+  function marcaDeModelo(ponto) {
+    if (typeof PREVISAO_SESSAO === "undefined") return null;
+
+    return PREVISAO_SESSAO.marcaDeModelo(document, DADOS, ponto);
+  }
+
   // Subsistema como segunda linha da célula, para a tabela ficar nas seis
   // colunas definidas sem perder a área do ponto.
   function celulaPonto(ponto) {
@@ -70,6 +84,9 @@
     area.className = "point__area";
     area.textContent = ponto.Key_Area;
     td.appendChild(area);
+
+    var marca = marcaDeModelo(ponto);
+    if (marca) td.appendChild(marca);
 
     return td;
   }
@@ -171,7 +188,11 @@
     montarResumo(dados.pontos);
     screeningPanel.hidden = false;
 
+    /* O total sai do dado, e não do HTML: o catálogo tem 78 pontos, mas o modelo
+       prevê 77 — `IPC Cooling P05` nunca foi medido e não tem modelo —,
+       e o de demonstração traz os 78. Número fixo aqui mentiria em um dos casos. */
     document.getElementById("monitoring-count").textContent = dados.total_monitoramento;
+    document.getElementById("monitoring-total").textContent = dados.total_pontos;
     dados.monitoramento.forEach(function (ponto) {
       var tr = linhaMonitorada(ponto);
       tr.addEventListener("click", function () { selecionar(ponto); });
