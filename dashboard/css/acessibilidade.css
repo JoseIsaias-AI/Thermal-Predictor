@@ -654,3 +654,45 @@ html[data-a11y-voz] :is(main, .masthead) *:not(canvas, .viewport__3d, .viewport_
   text-decoration-thickness: 2px !important;
   text-underline-offset: 4px !important;
 }
+
+/* ----- Guia e máscara de leitura -----
+ * Acima do conteúdo e do Robertão (60), abaixo da aba (65) e do painel (70):
+ * quem está escolhendo o recurso vê o painel sem véu. */
+.a11y-guia,
+.a11y-mascara {
+  position: fixed;
+  left: 0;
+  right: 0;
+  z-index: 64;
+  pointer-events: none;
+}
+
+.a11y-guia[hidden],
+.a11y-mascara[hidden] { display: none; }
+
+/* Linha: a régua fina embaixo da linha lida. */
+.a11y-guia {
+  top: 0;
+  height: 4px;
+  margin-top: 0.75rem;
+  background: var(--color-accent);
+  box-shadow: 0 0 0 1px var(--color-surface);
+  will-change: transform;
+}
+
+/* Faixa: a altura de uma linha de texto em destaque, com bordas firmes. */
+html[data-a11y-guia="2"] .a11y-guia {
+  height: 2.25rem;
+  margin-top: -1.125rem;
+  background: color-mix(in srgb, var(--color-highlight) 16%, transparent);
+  border-top: 2px solid var(--color-accent);
+  border-bottom: 2px solid var(--color-accent);
+  box-shadow: none;
+}
+
+.a11y-mascara {
+  background: rgba(10, 13, 20, 0.62);
+}
+
+.a11y-mascara--acima { top: 0; }
+.a11y-mascara--abaixo { bottom: 0; }

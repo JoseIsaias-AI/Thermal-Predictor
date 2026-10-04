@@ -453,6 +453,83 @@ var ACESSIBILIDADE = (function () {
     recarregar: function (antes, depois) { return (antes > 0) !== (depois > 0); }
   });
 
+  /* ----- Guia e máscara de leitura -----
+     Camadas fixas que seguem a linha do ponteiro (ou do foco, para quem
+     navega pelo teclado). Não capturam clique: tudo embaixo continua
+     clicável. Ficam abaixo do painel, para ele não ser escurecido. */
+  var camadas = null;
+  var linhaY = window.innerHeight / 2;
+  var quadro = 0;
+
+  function montarCamadas() {
+    if (camadas || !document.body) return;
+    camadas = {
+      guia: document.createElement("div"),
+      acima: document.createElement("div"),
+      abaixo: document.createElement("div")
+    };
+    camadas.guia.className = "a11y-guia";
+    camadas.acima.className = "a11y-mascara a11y-mascara--acima";
+    camadas.abaixo.className = "a11y-mascara a11y-mascara--abaixo";
+    Object.keys(camadas).forEach(function (k) {
+      camadas[k].setAttribute("aria-hidden", "true");
+      document.body.appendChild(camadas[k]);
+    });
+  }
+
+  function posicionarCamadas() {
+    quadro = 0;
+    if (!camadas) return;
+    var guia = nivel("guia"), mascara = nivel("mascara");
+    camadas.guia.hidden = !guia;
+    camadas.acima.hidden = camadas.abaixo.hidden = !mascara;
+    if (guia) camadas.guia.style.transform = "translateY(" + Math.round(linhaY) + "px)";
+    if (mascara) {
+      // Meia altura da janela em rem, para acompanhar a fonte escolhida.
+      var rem = parseFloat(window.getComputedStyle(raiz).fontSize) || 16;
+      var meia = [0, 2.25, 3.5, 5][mascara] * rem;
+      camadas.acima.style.height = Math.max(0, Math.round(linhaY - meia)) + "px";
+      camadas.abaixo.style.top = Math.round(linhaY + meia) + "px";
+    }
+  }
+
+  function pedirCamadas() {
+    if (!quadro) quadro = window.requestAnimationFrame(posicionarCamadas);
+  }
+
+  function aplicarCamadas() {
+    if (nivel("guia") || nivel("mascara")) montarCamadas();
+    if (camadas) posicionarCamadas();
+  }
+
+  document.addEventListener("pointermove", function (e) {
+    if (!camadas || (!nivel("guia") && !nivel("mascara"))) return;
+    linhaY = e.clientY;
+    pedirCamadas();
+  }, { passive: true });
+
+  document.addEventListener("focusin", function (e) {
+    if (!camadas || (!nivel("guia") && !nivel("mascara")) || !e.target.getBoundingClientRect) return;
+    if (e.target.closest && e.target.closest(".a11y-painel")) return;
+    var r = e.target.getBoundingClientRect();
+    linhaY = r.top + r.height / 2;
+    pedirCamadas();
+  });
+
+  registrar({
+    id: "guia", grupo: "leitura", rotulo: "Guia de leitura",
+    icone: SVG + '<path d="M4 7h16M4 17h16"></path><path d="M2.5 12h19" stroke-width="3"></path></svg>',
+    niveis: ["Linha", "Faixa"],
+    aoAplicar: aplicarCamadas
+  });
+
+  registrar({
+    id: "mascara", grupo: "leitura", rotulo: "Máscara de leitura",
+    icone: SVG + '<rect x="3" y="3" width="18" height="18" rx="2.5"></rect><path d="M3 9.5h18M3 14.5h18"></path><path d="M3.5 4h17v5h-17zM3.5 15h17v5h-17z" fill="currentColor" stroke="none" opacity=".35"></path></svg>',
+    niveis: ["Estreita", "Média", "Larga"],
+    aoAplicar: aplicarCamadas
+  });
+
   /* ----- Leitor de voz -----
      Síntese de fala do próprio navegador (Web Speech API): voz pt-BR, sem
      rede e sem serviço externo (RNF-02 e RNF-04). Ligado, clicar em qualquer
