@@ -376,3 +376,78 @@ html[data-a11y-letras] body :not(svg, svg *) {
   letter-spacing: var(--a11y-letras) !important;
   word-spacing: var(--a11y-palavras) !important;
 }
+
+/* ----- Pular para o conteúdo -----
+ * Fora da tela até receber foco: o primeiro Tab da página o mostra no canto,
+ * e o Enter leva direto ao <main>, sem atravessar as sete abas. */
+.pular-conteudo {
+  position: absolute;
+  left: var(--space-3);
+  top: -100px;
+  z-index: 80;
+  padding: var(--space-2) var(--space-4);
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-float);
+  font-family: var(--font-body);
+  font-weight: var(--weight-semibold);
+  font-size: var(--size-body);
+  text-decoration: none;
+}
+
+.pular-conteudo:focus {
+  top: var(--space-3);
+  outline: 3px solid var(--color-focus-ring);
+  outline-offset: 2px;
+}
+
+/* O <main> recebe o foco do salto (tabindex="-1") sem desenhar moldura. */
+main:focus { outline: none; }
+
+/* ----- Destaque de links e foco -----
+ * O que leva a outro lugar ou abre um texto ganha sublinhado; os botões de
+ * alternância, que só têm cara de texto, ficam como estão. O anel de foco
+ * engrossa em todos os controles, mantendo o afastamento que cada um já tem
+ * (alguns ficam dentro de um contêiner que recorta). */
+html[data-a11y-links] :is(
+  main a:not(.button, .btn),
+  .ver-tabela,
+  .viz__acao,
+  .link-btn,
+  .more > summary,
+  .ressalva__abrir,
+  .a11y-painel__nota a
+) {
+  text-decoration: underline !important;
+  text-decoration-thickness: 2px !important;
+  text-underline-offset: 3px;
+}
+
+html[data-a11y-links] :focus-visible {
+  outline-width: 3px !important;
+  outline-style: solid !important;
+  outline-color: var(--color-focus-ring) !important;
+}
+
+html[data-a11y-links="2"] :is(
+  main a:not(.button, .btn),
+  .ver-tabela,
+  .viz__acao,
+  .link-btn,
+  .more > summary,
+  .ressalva__abrir
+) {
+  background: var(--color-surface-accent);
+  color: var(--color-accent);
+  border-radius: 3px;
+  box-shadow: 0 0 0 2px var(--color-surface-accent);
+}
+
+/* A aba da tela atual já se distingue pela linha embaixo; no realce as outras
+   abas também ganham sublinhado, para a barra inteira ler como links. */
+html[data-a11y-links="2"] .nav__link:not([aria-current="page"]) {
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 4px;
+}

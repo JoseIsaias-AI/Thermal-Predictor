@@ -362,6 +362,12 @@ var ACESSIBILIDADE = (function () {
     niveis: ["Leve", "Médio", "Amplo"]
   });
 
+  registrar({
+    id: "links", grupo: "leitura", rotulo: "Destaque de links e foco",
+    icone: SVG + '<path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"></path></svg>',
+    niveis: ["Sublinhado", "Realçado"]
+  });
+
   /* As folhas antes deste script já estão prontas. As que carregarem depois
      (inclusive as recarregadas pelo Live Server) chegam com os limites
      originais e são escaladas quando terminam de carregar. */

@@ -21,6 +21,9 @@
 </head>
 <body>
 
+<!-- Primeiro item do Tab: pula cabeçalho e navegação (WCAG 2.4.1). -->
+<a class="pular-conteudo" href="#conteudo">Pular para o conteúdo</a>
+
 <header class="masthead">
   <div class="masthead__inner">
     <!-- O amarelo do anel é da marca e não se recolore. A proibição de
@@ -61,7 +64,7 @@
   </div>
 </header>
 
-<main class="page">
+<main class="page" id="conteudo" tabindex="-1">
 
   <div class="page-head">
     <div class="page-head__text">

@@ -22,6 +22,9 @@
 </head>
 <body>
 
+<!-- Primeiro item do Tab: pula cabeçalho e navegação (WCAG 2.4.1). -->
+<a class="pular-conteudo" href="#conteudo">Pular para o conteúdo</a>
+
 <header class="masthead">
   <div class="masthead__inner">
     <!-- O amarelo do anel é da marca e não se recolore. A proibição de
@@ -62,7 +65,7 @@
   </div>
 </header>
 
-<main class="page page--wide">
+<main class="page page--wide" id="conteudo" tabindex="-1">
 
   <!-- RF-15 e RN-07: fixo e visível nesta tela. A frase que enquadra a leitura
        fica sempre à vista; o desdobramento da regra vai para o expansível, em
