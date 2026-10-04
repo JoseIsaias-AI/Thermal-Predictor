@@ -596,3 +596,26 @@ html[data-a11y-animacoes] *::after {
   --shadow-card: none;
   --shadow-control: 0 0 0 1px #ffffff;
 }
+
+/* ----- Modo daltônico -----
+ * As rampas mudam em js/fogao.js. Aqui, o estado "acima do limite" acompanha
+ * a rampa de folga: o vermelho vira laranja-queimado, que não se confunde com
+ * o azul de "com folga" em nenhum tipo de daltonismo. O estado continua com
+ * forma e rótulo, como sempre. Depois do bloco de contraste e com o mesmo
+ * peso de seletor, para valer também com ele ligado. */
+:root:not([data-tema="escuro"])[data-a11y-daltonico] {
+  --wp-red:               #df8a3c;
+  --wp-red-deep:          #8a4206;
+  --wp-red-tint:          #fdf3ea;
+  --status-critical:      #8a4206;  /* 7,3:1 sobre o cartão */
+  --status-critical-bg:   #fdf3ea;
+  --status-critical-line: #f0cfae;
+  --color-critical-soft:  #b05f12;
+}
+
+:root[data-tema="escuro"][data-a11y-daltonico] {
+  --status-critical:      #ffb877;  /* 9,4:1 sobre o cartão */
+  --status-critical-bg:   #3a2a1c;
+  --status-critical-line: #6e4a29;
+  --color-critical-soft:  #df8a3c;
+}

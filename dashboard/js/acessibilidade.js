@@ -89,6 +89,18 @@ var ACESSIBILIDADE = (function () {
     if (r.aoAplicar) r.aoAplicar(nivel(id));
     sincronizarCartao(r);
     avisar(id);
+    if (r.recarregar) recarregar(id);
+  }
+
+  /* O que é pintado com as rampas (mapa, legenda, 3D, comparação) lê a paleta
+     uma vez, ao montar. Recarregar repinta tudo pelo mesmo caminho da
+     primeira carga; a configuração está na URL e o painel reabre no mesmo
+     cartão, com o foco nele. */
+  var CHAVE_REABRIR = "thermal-predictor.acessibilidade-reabrir";
+
+  function recarregar(id) {
+    try { window.sessionStorage.setItem(CHAVE_REABRIR, id); } catch (e) { /* reabre fechado */ }
+    window.location.reload();
   }
 
   // Um clique avança um nível; depois do último, desliga.
@@ -390,6 +402,13 @@ var ACESSIBILIDADE = (function () {
     niveis: ["Reforçado", "Máximo"]
   });
 
+  registrar({
+    id: "daltonico", grupo: "cor", rotulo: "Modo daltônico",
+    icone: SVG + '<path d="M2.5 12s3.5-6.5 9.5-6.5S21.5 12 21.5 12s-3.5 6.5-9.5 6.5S2.5 12 2.5 12z"></path><circle cx="12" cy="12" r="3"></circle><path d="M12 9v6" stroke-width="1.6"></path></svg>',
+    niveis: ["Paletas seguras"],
+    recarregar: true
+  });
+
   /* As folhas antes deste script já estão prontas. As que carregarem depois
      (inclusive as recarregadas pelo Live Server) chegam com os limites
      originais e são escaladas quando terminam de carregar. */
@@ -403,6 +422,18 @@ var ACESSIBILIDADE = (function () {
     montarPainel();
     lancador.setAttribute("aria-label", "Abrir recursos assistivos");
     recursos.forEach(function (r) { if (r.aoAplicar && nivel(r.id)) r.aoAplicar(nivel(r.id)); });
+
+    var reabrir = null;
+    try {
+      reabrir = window.sessionStorage.getItem(CHAVE_REABRIR);
+      window.sessionStorage.removeItem(CHAVE_REABRIR);
+    } catch (e) { /* sem armazenamento */ }
+    if (reabrir && cartoes[reabrir]) {
+      alternar();
+      cartoes[reabrir].focus();
+      var r = buscar(reabrir);
+      anunciar(r.rotulo + (nivel(reabrir) ? ": " + r.niveis[nivel(reabrir) - 1] : ": desligado"));
+    }
   }
 
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", iniciar);
