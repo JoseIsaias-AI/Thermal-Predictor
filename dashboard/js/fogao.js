@@ -66,7 +66,7 @@ var FOGAO = (function () {
   var DALTONICO = {
     RAMPA_A: ["#0b3c6e", "#2f6ea8", "#8fb3d6", "#d1d3d4", "#f2bd84", "#df8a3c", "#b05f12", "#6b3606"],
     CLARO: {
-      RAMPA_CAMPO: ["#00224e", "#1f3a6f", "#4a536b", "#6b6d70", "#8a8678", "#a89c6c", "#c7b356", "#d9c13a"],
+      RAMPA_CAMPO: ["#00224e", "#1f3a6f", "#4a536b", "#6b6d70", "#8a8678", "#a89c6c", "#c4b058", "#e6c62a"],
       RAMPA_DIFF: ["#2d004b", "#542788", "#8073ac", "#b2abd2", "#f7f7f7", "#fdb863", "#e08214", "#b35806", "#7f3b08"]
     },
     ESCURO: {

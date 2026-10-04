@@ -807,6 +807,7 @@ var ACESSIBILIDADE = (function () {
     atual: atual,
     nivel: nivel,
     definir: definir,
+    ciclar: ciclar,
     restaurar: restaurar,
     aoMudar: aoMudar,
     registrar: registrar,
