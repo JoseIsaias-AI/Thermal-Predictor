@@ -4,6 +4,9 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Conformidade — Thermal Predictor</title>
+  <!-- O símbolo da Whirlpool na aba do navegador, como nos sites da marca. -->
+  <link rel="icon" type="image/png" sizes="48x48" href="../assets/dashboard/favicon-whirlpool.png">
+  <link rel="apple-touch-icon" href="../assets/dashboard/favicon-whirlpool.png">
 
   <!-- triagem.css vem junto: .page-head, .config, .data-table, .state e .btn
        são os mesmos componentes das telas anteriores, e é o que impede esta
@@ -15,8 +18,14 @@
   <link rel="stylesheet" href="css/historico.css?v=3">
   <!-- Antes de pintar: a página já abre no tema da sessão. -->
   <script src="js/tema.js?v=1"></script>
+  <!-- Recursos assistivos: fonte, contraste e cor escolhidos já valem antes de pintar. -->
+  <link rel="stylesheet" href="css/acessibilidade.css?v=2">
+  <script src="js/acessibilidade.js?v=2"></script>
 </head>
 <body>
+
+<!-- Primeiro item do Tab: pula cabeçalho e navegação (WCAG 2.4.1). -->
+<a class="pular-conteudo" href="#conteudo">Pular para o conteúdo</a>
 
 <header class="masthead">
   <div class="masthead__inner">
@@ -58,7 +67,7 @@
   </div>
 </header>
 
-<main class="page">
+<main class="page" id="conteudo" tabindex="-1">
 
   <div class="page-head">
     <div class="page-head__text">

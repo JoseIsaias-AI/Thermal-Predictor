@@ -50,14 +50,49 @@ var FOGAO = (function () {
     RAMPA_DIFF: ["#a8ceff", "#70aff4", "#3999cf", "#437993", "#4d4d4d", "#9e5f48", "#d76a58", "#f68482", "#feb3b9"]
   };
   var CLARO = { RAMPA_CAMPO: RAMPA_CAMPO.slice(), RAMPA_DIFF: RAMPA_DIFF.slice() };
+  var RAMPA_A_ORIGINAL = RAMPA_A.slice();
+
+  /* Modo daltônico (recursos assistivos). Uma paleta para os três tipos, e não
+     um filtro por tipo: as escalas mudam de fato, e a ordem continua legível
+     em deuteranopia, protanopia e tritanopia (simulação de Machado et al.,
+     2009, severidade total; testes/acessibilidade.test.js).
+     - Folga: o azul segue "com folga" e o vermelho vira laranja-queimado; o
+       laranja não se confunde com o azul em nenhum dos três tipos.
+     - Campo: cividis, feita para daltonismo. O arco-íris sobe e desce de
+       luminosidade e, sem a matiz, duas temperaturas diferentes pareciam a
+       mesma; a cividis só sobe, e a ordem sobrevive à perda de cor.
+     - Diferença: PuOr do ColorBrewer no lugar do RdBu, roxo mais frio em B e
+       laranja mais quente em B. O escuro espelha a luminosidade como o RdBu. */
+  var DALTONICO = {
+    RAMPA_A: ["#0b3c6e", "#2f6ea8", "#8fb3d6", "#d1d3d4", "#f2bd84", "#df8a3c", "#b05f12", "#6b3606"],
+    CLARO: {
+      RAMPA_CAMPO: ["#00224e", "#1f3a6f", "#4a536b", "#6b6d70", "#8a8678", "#a89c6c", "#c4b058", "#e6c62a"],
+      RAMPA_DIFF: ["#2d004b", "#542788", "#8073ac", "#b2abd2", "#f7f7f7", "#fdb863", "#e08214", "#b35806", "#7f3b08"]
+    },
+    ESCURO: {
+      RAMPA_CAMPO: ["#4c7ad0", "#6582b8", "#7d8aa0", "#948f88", "#aa9a75", "#c3ad62", "#dcc54d", "#fee838"],
+      RAMPA_DIFF: ["#dccff5", "#b9a7e3", "#8f80c2", "#5e5784", "#4d4d4d", "#8a6339", "#c27a2c", "#eda152", "#ffd29a"]
+    }
+  };
+
+  function daltonico() {
+    return typeof ACESSIBILIDADE !== "undefined" && ACESSIBILIDADE.nivel("daltonico") > 0;
+  }
 
   /* Troca as paradas no próprio array: quem guardou a referência (o 3D
      compara `rampa === FOGAO.RAMPA_DIFF`) continua certo. */
+  function trocar(rampa, paradas) {
+    rampa.splice.apply(rampa, [0, rampa.length].concat(paradas));
+  }
+
   function usarTema(tema) {
-    var fonte = tema === "escuro" ? ESCURO : CLARO;
-    [[RAMPA_CAMPO, fonte.RAMPA_CAMPO], [RAMPA_DIFF, fonte.RAMPA_DIFF]].forEach(function (par) {
-      par[0].splice.apply(par[0], [0, par[0].length].concat(par[1]));
-    });
+    var d = daltonico();
+    var fonte = d
+      ? (tema === "escuro" ? DALTONICO.ESCURO : DALTONICO.CLARO)
+      : (tema === "escuro" ? ESCURO : CLARO);
+    trocar(RAMPA_CAMPO, fonte.RAMPA_CAMPO);
+    trocar(RAMPA_DIFF, fonte.RAMPA_DIFF);
+    trocar(RAMPA_A, d ? DALTONICO.RAMPA_A : RAMPA_A_ORIGINAL);
   }
 
   if (typeof TEMA !== "undefined") {
@@ -432,6 +467,7 @@ var FOGAO = (function () {
     RAMPA_B: RAMPA_B,
     RAMPA_CAMPO: RAMPA_CAMPO,
     RAMPAS_ESCURO: ESCURO,
+    RAMPAS_DALTONICO: DALTONICO,
     usarTema: usarTema,
     FAIXAS: FAIXAS
   };
