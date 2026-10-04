@@ -163,13 +163,18 @@ var API_PREDICAO = (function () {
         encerrar();
 
         if (!resposta.ok) {
-          // O corpo de erro traz `detalhe`; se vier vazio ou ilegível, a
-          // mensagem padrão do tipo cobre.
+          /* O corpo de erro da API tem a forma {"detail": {"erro", "mensagem"}}
+             (dashboard/api/controladores/predicao.py). A mensagem de lá explica o
+             caso ao usuário — por exemplo, que "sem perda declarada" só existe em
+             rodadas Pyro — e é melhor que o texto genérico daqui. Se vier vazia ou
+             ilegível, a mensagem padrão do tipo cobre. */
           return resposta
             .json()
             .catch(function () { return {}; })
             .then(function (dados) {
-              return erro(tipoDoStatus(resposta.status), resposta.status, dados && dados.detalhe);
+              var detalhe = dados && dados.detail;
+              return erro(tipoDoStatus(resposta.status), resposta.status,
+                          detalhe && detalhe.mensagem);
             });
         }
 

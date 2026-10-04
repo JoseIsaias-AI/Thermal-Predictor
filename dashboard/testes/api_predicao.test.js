@@ -134,7 +134,7 @@ test("prever devolve o que foi enviado, para a tela conferir o que pediu", async
 
 test("prever classifica 422 como erro de validação", async function () {
   var r = await API.prever(EXEMPLO, {
-    fetch: fetchFalso(respostaJson(422, { detalhe: "Nível fora do vocabulário." }))
+    fetch: fetchFalso(respostaJson(422, { detail: { erro: "configuracao_invalida", mensagem: "Nível fora do vocabulário." } }))
   });
 
   assert.equal(r.ok, false);
