@@ -285,15 +285,15 @@ html[data-a11y-fonte="3"] { font-size: 150%; }
    duas ou três linhas espremidas dentro da barra. O cabeçalho deixa de
    grudar no topo: com a fonte grande, cada linha de tela conta. Vale também
    para a fonte legível, mais larga: a barra já estava no limite em 1280px. */
-:root:is([data-a11y-fonte], [data-a11y-legivel]) .masthead { position: static; }
-:root:is([data-a11y-fonte], [data-a11y-legivel]) .masthead__inner { flex-wrap: wrap; row-gap: 0; }
-:root:is([data-a11y-fonte], [data-a11y-legivel]) .nav {
+:root:is([data-a11y-fonte], [data-a11y-legivel], [data-a11y-letras], [data-a11y-linhas]) .masthead { position: static; }
+:root:is([data-a11y-fonte], [data-a11y-legivel], [data-a11y-letras], [data-a11y-linhas]) .masthead__inner { flex-wrap: wrap; row-gap: 0; }
+:root:is([data-a11y-fonte], [data-a11y-legivel], [data-a11y-letras], [data-a11y-linhas]) .nav {
   order: 1;
   flex-basis: 100%;
   margin-left: 0;
   min-height: 2.75rem;
 }
-:root:is([data-a11y-fonte], [data-a11y-legivel]) .split__view { top: var(--space-4); }
+:root:is([data-a11y-fonte], [data-a11y-legivel], [data-a11y-letras], [data-a11y-linhas]) .split__view { top: var(--space-4); }
 
 /* No celular, teto de 115%: o mesmo limite de 600px do acessibilidade.js. */
 @media (max-width: 600px) {
@@ -305,20 +305,27 @@ html[data-a11y-fonte="3"] { font-size: 150%; }
  * Com qualquer recurso de texto ligado, o que hoje vira reticências quebra
  * linha: quem aumentou ou trocou a fonte é quem mais precisa do texto
  * inteiro. Cada recurso de texto entra na lista do :is(). */
-:root:is([data-a11y-fonte], [data-a11y-legivel]) :is(
+:root:is([data-a11y-fonte], [data-a11y-legivel], [data-a11y-letras], [data-a11y-linhas]) :is(
   .hint,
   .kpi__nota,
   .viewport__foot .viewport__disclaimer span,
   .cfg-item dt,
   .part__trio-cel dt,
-  .cmp-head__line > b
+  .cmp-head__line > b,
+  .data-table th
 ) {
   white-space: normal;
   overflow: visible;
   text-overflow: clip;
 }
 
-:root:is([data-a11y-fonte], [data-a11y-legivel]) .stage-hint {
+/* O chip de estado pode ocupar duas linhas; a pílula vira cartão arredondado. */
+:root:is([data-a11y-fonte], [data-a11y-legivel], [data-a11y-letras], [data-a11y-linhas]) .state {
+  white-space: normal;
+  border-radius: var(--radius-lg);
+}
+
+:root:is([data-a11y-fonte], [data-a11y-legivel], [data-a11y-letras], [data-a11y-linhas]) .stage-hint {
   white-space: normal;
   text-align: center;
   border-radius: var(--radius-lg);
@@ -339,3 +346,33 @@ html[data-a11y-legivel] button,
 html[data-a11y-legivel] input,
 html[data-a11y-legivel] select,
 html[data-a11y-legivel] textarea { font-family: var(--font-body); }
+
+/* ----- Espaço entre linhas -----
+ * Só nos blocos de texto corrido: parágrafo, item, célula, legenda. Botão,
+ * chip, alternador e barra do 3D têm altura desenhada para uma linha e ficam
+ * como estão. O nível 3 chega ao 2x da fonte (WCAG 1.4.12 pede ao menos
+ * 1,5 sem perda de conteúdo). */
+html[data-a11y-linhas="1"] { --a11y-entrelinha: 1.75; }
+html[data-a11y-linhas="2"] { --a11y-entrelinha: 2; }
+html[data-a11y-linhas="3"] { --a11y-entrelinha: 2.3; }
+
+html[data-a11y-linhas] body { --leading-body: var(--a11y-entrelinha); }
+
+html[data-a11y-linhas] :is(p, li, dd, dt, td, th, summary, figcaption, legend, .field__label, .field__help):not(
+  .masthead *, .model-chip, .model-chip *, .viewport__bar *, .toggle *, .chip, .chip *, .kpi__valor, .result__value
+) {
+  line-height: var(--a11y-entrelinha) !important;
+}
+
+/* ----- Espaço entre letras -----
+ * Letras e palavras afastam juntas, para a palavra não se desfazer. O texto
+ * dos gráficos fica de fora: cada rótulo do SVG tem posição calculada, e
+ * afastado ele invadiria o vizinho. */
+html[data-a11y-letras="1"] { --a11y-letras: 0.04em; --a11y-palavras: 0.08em; }
+html[data-a11y-letras="2"] { --a11y-letras: 0.08em; --a11y-palavras: 0.12em; }
+html[data-a11y-letras="3"] { --a11y-letras: 0.12em; --a11y-palavras: 0.16em; }
+
+html[data-a11y-letras] body :not(svg, svg *) {
+  letter-spacing: var(--a11y-letras) !important;
+  word-spacing: var(--a11y-palavras) !important;
+}

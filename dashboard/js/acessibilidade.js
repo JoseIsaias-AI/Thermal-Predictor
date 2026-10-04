@@ -350,6 +350,18 @@ var ACESSIBILIDADE = (function () {
     niveis: ["Atkinson Hyperlegible"]
   });
 
+  registrar({
+    id: "linhas", grupo: "texto", rotulo: "Espaço entre linhas",
+    icone: SVG + '<path d="M11 6h10M11 12h10M11 18h10M5 4v16M3 6.5L5 4l2 2.5M3 17.5L5 20l2-2.5"></path></svg>',
+    niveis: ["Leve", "Médio", "Amplo"]
+  });
+
+  registrar({
+    id: "letras", grupo: "texto", rotulo: "Espaço entre letras",
+    icone: SVG + '<path d="M4 13L7.5 4 11 13M5.3 10h4.4M14 13V4h3a2.25 2.25 0 0 1 0 4.5h-3h3.5a2.25 2.25 0 0 1 0 4.5H14M3 18h18M5.5 15.5L3 18l2.5 2.5M18.5 15.5L21 18l-2.5 2.5"></path></svg>',
+    niveis: ["Leve", "Médio", "Amplo"]
+  });
+
   /* As folhas antes deste script já estão prontas. As que carregarem depois
      (inclusive as recarregadas pelo Live Server) chegam com os limites
      originais e são escaladas quando terminam de carregar. */
