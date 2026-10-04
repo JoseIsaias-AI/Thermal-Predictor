@@ -253,6 +253,7 @@ var ACESSIBILIDADE = (function () {
       if (r.niveis) ciclar(r.id);
       else if (r.acao) r.acao(cartao);
     });
+    if (!r.niveis) cartao.setAttribute("aria-label", r.rotulo);
     secao.querySelector(".a11y-grupo__grade").appendChild(cartao);
     secao.hidden = false;
     cartoes[r.id] = cartao;
@@ -450,6 +451,133 @@ var ACESSIBILIDADE = (function () {
     niveis: ["Deuteranopia (verde)", "Protanopia (vermelho)", "Tritanopia (azul)"],
     // As rampas seguras servem aos três tipos: só ligar ou desligar repinta.
     recarregar: function (antes, depois) { return (antes > 0) !== (depois > 0); }
+  });
+
+  /* ----- Leitor de voz -----
+     Síntese de fala do próprio navegador (Web Speech API): voz pt-BR, sem
+     rede e sem serviço externo (RNF-02 e RNF-04). Ligado, clicar em qualquer
+     texto da tela lê esse texto e marca o bloco lido; Esc interrompe. */
+  var FALA = window.speechSynthesis || null;
+  var VELOCIDADES = [1, 1, 0.8, 1.3];
+  var lendoAgora = null;
+  var vozPt = null;
+
+  function escolherVoz() {
+    if (!FALA) return;
+    var vozes = FALA.getVoices();
+    vozPt = vozes.filter(function (v) { return /^pt[-_]BR/i.test(v.lang); })[0] ||
+      vozes.filter(function (v) { return /^pt/i.test(v.lang); })[0] || null;
+  }
+  if (FALA) {
+    escolherVoz();
+    if (FALA.addEventListener) FALA.addEventListener("voiceschanged", escolherVoz);
+  }
+
+  function limparTexto(t) { return (t || "").replace(/\s+/g, " ").trim().slice(0, 1800); }
+
+  function marcar(el) {
+    if (lendoAgora) lendoAgora.classList.remove("a11y-lendo");
+    lendoAgora = el || null;
+    if (lendoAgora) lendoAgora.classList.add("a11y-lendo");
+  }
+
+  function pararFala() {
+    if (FALA) FALA.cancel();
+    marcar(null);
+    sincronizarResumo(false);
+  }
+
+  function falar(texto, el, aoTerminar) {
+    if (!FALA) { anunciar("Este navegador não tem leitura em voz alta"); return; }
+    texto = limparTexto(texto);
+    if (!texto) return;
+    FALA.cancel();
+    var u = new window.SpeechSynthesisUtterance(texto);
+    u.lang = "pt-BR";
+    if (vozPt) u.voice = vozPt;
+    u.rate = VELOCIDADES[nivel("voz")] || 1;
+    u.onend = u.onerror = function () {
+      if (lendoAgora === el) marcar(null);
+      if (aoTerminar) aoTerminar();
+    };
+    marcar(el);
+    FALA.speak(u);
+  }
+
+  // O bloco de texto mais próximo do clique: lê a frase inteira, e não só a palavra.
+  var BLOCOS = "h1, h2, h3, h4, p, li, dt, dd, td, th, summary, label, legend, figcaption, button, a, .kpi, .state";
+
+  document.addEventListener("click", function (e) {
+    if (!nivel("voz") || !e.target.closest) return;
+    if (e.target.closest(".a11y-painel, .a11y-lancador, .chat-panel, .chat-launcher, canvas")) return;
+    var bloco = e.target.closest(BLOCOS);
+    if (!bloco || !bloco.closest("main, header, .masthead")) return;
+    falar(bloco.getAttribute("aria-label") || bloco.innerText || bloco.textContent, bloco);
+  }, true);
+
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape" && FALA && (FALA.speaking || FALA.pending)) pararFala();
+  });
+
+  registrar({
+    id: "voz", grupo: "libras", rotulo: "Leitor de voz",
+    icone: SVG + '<path d="M4 9.5v5h3.5L12 18.5v-13L7.5 9.5z"></path><path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11"></path></svg>',
+    niveis: ["Clique para ouvir", "Clique · fala lenta", "Clique · fala rápida"],
+    aoAplicar: function (n) {
+      if (!n) pararFala();
+      else if (!FALA) anunciar("Este navegador não tem leitura em voz alta");
+    }
+  });
+
+  /* Ouvir resumo: a leitura executiva da tela (título, próximo passo e texto
+     por extenso) quando a tela tem uma; senão, o título e a frase de
+     abertura. Funciona com ou sem o leitor de clique ligado. */
+  function textoDoResumo() {
+    var r = document.getElementById("resumo-exec");
+    var partes = [];
+    if (r && r.querySelector(".resumo-exec__titulo")) {
+      [".resumo-exec__titulo", ".resumo-exec__passo p", ".resumo-exec__texto"].forEach(function (sel) {
+        var el = r.querySelector(sel);
+        if (el) partes.push(el.textContent);
+      });
+      return { texto: partes.join(". "), el: r };
+    }
+    // Sobretítulo, título e subtítulo como frases separadas: a voz pausa entre eles.
+    var cabeca = document.querySelector(".page-head__text");
+    if (cabeca) {
+      Array.prototype.forEach.call(cabeca.querySelectorAll(".page-head__kicker, .page-head__title, .page-head__sub"), function (el) {
+        partes.push(el.textContent);
+      });
+      return { texto: partes.join(". "), el: cabeca };
+    }
+    var titulo = document.querySelector("main .panel__title");
+    var dica = document.querySelector("main .form-actions__hint");
+    partes.push(document.title);
+    if (titulo) partes.push(titulo.textContent);
+    if (dica) partes.push(dica.textContent);
+    return { texto: partes.join(". "), el: titulo ? titulo.closest(".panel") : null };
+  }
+
+  function sincronizarResumo(falando) {
+    var c = cartoes.resumo;
+    if (!c) return;
+    c.setAttribute("aria-pressed", falando ? "true" : "false");
+    c.querySelector(".a11y-cartao__rotulo").textContent = falando ? "Parar leitura" : "Ouvir resumo";
+    c.setAttribute("aria-label", falando ? "Parar a leitura do resumo" : "Ouvir o resumo desta tela");
+  }
+
+  registrar({
+    id: "resumo", grupo: "libras", rotulo: "Ouvir resumo",
+    icone: SVG + '<path d="M4 6h10M4 10h10M4 14h6"></path><path d="M15.5 13.5v5l4.5-2.5z" fill="currentColor"></path></svg>',
+    acao: function () {
+      if (FALA && (FALA.speaking || FALA.pending) && cartoes.resumo.getAttribute("aria-pressed") === "true") {
+        pararFala();
+        return;
+      }
+      var r = textoDoResumo();
+      sincronizarResumo(true);
+      falar(r.texto, r.el, function () { sincronizarResumo(false); });
+    }
   });
 
   /* As folhas antes deste script já estão prontas. As que carregarem depois

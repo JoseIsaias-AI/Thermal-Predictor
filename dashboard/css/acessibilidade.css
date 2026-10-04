@@ -629,3 +629,16 @@ html[data-a11y-filtros][data-a11y-daltonico="3"] { filter: url(#a11y-tritanopia)
   --status-critical-line: #6e4a29;
   --color-critical-soft:  #df8a3c;
 }
+
+/* ----- Leitor de voz -----
+ * O bloco sendo lido ganha o mesmo anel do foco e o fundo de destaque: quem
+ * ouve acompanha onde está. Com o leitor ligado, o cursor avisa que o texto
+ * pode ser clicado para ouvir. */
+.a11y-lendo {
+  outline: 3px solid var(--color-focus-ring) !important;
+  outline-offset: 3px;
+  background-color: var(--color-surface-accent) !important;
+  border-radius: 3px;
+}
+
+html[data-a11y-voz] main :is(h1, h2, h3, h4, p, li, dt, dd, td, th, figcaption, .kpi) { cursor: help; }
