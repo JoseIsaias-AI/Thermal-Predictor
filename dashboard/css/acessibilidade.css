@@ -451,3 +451,17 @@ html[data-a11y-links="2"] .nav__link:not([aria-current="page"]) {
   text-decoration-thickness: 1px;
   text-underline-offset: 4px;
 }
+
+/* ----- Pausar animações -----
+ * A mesma regra que app.css aplica a quem pede menos movimento no sistema:
+ * transição vira troca instantânea e nada fica em loop (o Robertão para de
+ * flutuar, a varredura da análise para). O 3D e a passagem para a triagem
+ * consultam ACESSIBILIDADE.movimentoReduzido e saltam direto ao fim. */
+html[data-a11y-animacoes] *,
+html[data-a11y-animacoes] *::before,
+html[data-a11y-animacoes] *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+  scroll-behavior: auto !important;
+}

@@ -1680,7 +1680,10 @@ var FOGAO3D = (function () {
       while (para.az - de.az < -Math.PI) para.az += Math.PI * 2;
       while (para.el - de.el > Math.PI) para.el -= Math.PI * 2;
       while (para.el - de.el < -Math.PI) para.el += Math.PI * 2;
-      var reduzido = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      // Consulta direta: a câmera pode se mover antes de `movimentoReduzido` existir.
+      var reduzido = typeof ACESSIBILIDADE !== "undefined"
+        ? ACESSIBILIDADE.movimentoReduzido.matches
+        : window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
       cam.alvo = copiaCam(para);
       cam.preset = nome || null;
       if (reduzido) { cam.atual = copiaCam(para); cam.transicao = null; }
@@ -2091,8 +2094,11 @@ var FOGAO3D = (function () {
       requestAnimationFrame(quadro);
     }
 
-    // Com movimento reduzido no sistema, explodir e montar saltam direto ao fim.
-    var movimentoReduzido = window.matchMedia ? window.matchMedia("(prefers-reduced-motion: reduce)") : { matches: false };
+    /* Com movimento reduzido (no sistema ou nos recursos assistivos), explodir e
+       montar saltam direto ao fim e o campo para de ondular. */
+    var movimentoReduzido = typeof ACESSIBILIDADE !== "undefined"
+      ? ACESSIBILIDADE.movimentoReduzido
+      : (window.matchMedia ? window.matchMedia("(prefers-reduced-motion: reduce)") : { matches: false });
 
     function aproximar(atual, alvo, taxa, dt) {
       if (movimentoReduzido.matches) return alvo;
@@ -2325,6 +2331,15 @@ var FOGAO3D = (function () {
       pedir();
     }
     if (typeof TEMA !== "undefined") TEMA.aoMudar(aplicarTema);
+
+    // Pausar ou retomar as animações vale já, sem esperar a próxima interação.
+    if (typeof ACESSIBILIDADE !== "undefined") {
+      ACESSIBILIDADE.aoMudar(function (m) {
+        if (m.id !== "animacoes") return;
+        UC.uOnda.value = movimentoReduzido.matches ? 0 : 1;
+        pedir();
+      });
+    }
 
     /* ----- Interface pública ----- */
 

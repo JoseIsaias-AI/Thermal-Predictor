@@ -368,6 +368,22 @@ var ACESSIBILIDADE = (function () {
     niveis: ["Sublinhado", "Realçado"]
   });
 
+  /* Menos movimento: vale o pedido do sistema ou o recurso ligado aqui. O 3D e
+     a passagem para a triagem já consultavam `prefers-reduced-motion`; agora
+     consultam este objeto, com a mesma forma de um MediaQueryList. */
+  var MOVIMENTO_SISTEMA = window.matchMedia
+    ? window.matchMedia("(prefers-reduced-motion: reduce)")
+    : { matches: false };
+  var movimentoReduzido = {
+    get matches() { return MOVIMENTO_SISTEMA.matches || nivel("animacoes") > 0; }
+  };
+
+  registrar({
+    id: "animacoes", grupo: "leitura", rotulo: "Pausar animações",
+    icone: SVG + '<circle cx="12" cy="12" r="9"></circle><path d="M10 9v6M14 9v6"></path></svg>',
+    niveis: ["Pausadas"]
+  });
+
   /* As folhas antes deste script já estão prontas. As que carregarem depois
      (inclusive as recarregadas pelo Live Server) chegam com os limites
      originais e são escaladas quando terminam de carregar. */
@@ -393,6 +409,7 @@ var ACESSIBILIDADE = (function () {
     restaurar: restaurar,
     aoMudar: aoMudar,
     registrar: registrar,
+    movimentoReduzido: movimentoReduzido,
     CHAVE: CHAVE
   };
 })();
