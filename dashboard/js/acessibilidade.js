@@ -508,10 +508,9 @@ var ACESSIBILIDADE = (function () {
   var BLOCOS = "h1, h2, h3, h4, p, li, dt, dd, td, th, summary, label, legend, figcaption, button, a, .kpi, .state";
 
   document.addEventListener("click", function (e) {
-    if (!nivel("voz") || !e.target.closest) return;
-    if (e.target.closest(".a11y-painel, .a11y-lancador, .chat-panel, .chat-launcher, canvas")) return;
-    var bloco = e.target.closest(BLOCOS);
-    if (!bloco || !bloco.closest("main, header, .masthead")) return;
+    if (!nivel("voz")) return;
+    var bloco = blocoParaLer(e.target);
+    if (!bloco) return;
     falar(bloco.getAttribute("aria-label") || bloco.innerText || bloco.textContent, bloco);
   }, true);
 
@@ -519,12 +518,35 @@ var ACESSIBILIDADE = (function () {
     if (e.key === "Escape" && FALA && (FALA.speaking || FALA.pending)) pararFala();
   });
 
+  /* Ao passar o mouse, o bloco que seria lido fica sublinhado: quem vai
+     clicar vê antes o que vai ouvir. */
+  var alvoVoz = null;
+
+  function blocoParaLer(el) {
+    if (!el || !el.closest) return null;
+    if (el.closest(".a11y-painel, .a11y-lancador, .chat-panel, .chat-launcher, canvas")) return null;
+    var bloco = el.closest(BLOCOS);
+    return bloco && bloco.closest("main, header, .masthead") ? bloco : null;
+  }
+
+  function sublinhar(bloco) {
+    if (alvoVoz === bloco) return;
+    if (alvoVoz) alvoVoz.classList.remove("a11y-alvo-voz");
+    alvoVoz = bloco;
+    if (alvoVoz) alvoVoz.classList.add("a11y-alvo-voz");
+  }
+
+  document.addEventListener("mouseover", function (e) {
+    sublinhar(nivel("voz") ? blocoParaLer(e.target) : null);
+  });
+  document.addEventListener("mouseleave", function () { sublinhar(null); });
+
   registrar({
     id: "voz", grupo: "libras", rotulo: "Leitor de voz",
     icone: SVG + '<path d="M4 9.5v5h3.5L12 18.5v-13L7.5 9.5z"></path><path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11"></path></svg>',
     niveis: ["Clique para ouvir", "Clique · fala lenta", "Clique · fala rápida"],
     aoAplicar: function (n) {
-      if (!n) pararFala();
+      if (!n) { pararFala(); sublinhar(null); }
       else if (!FALA) anunciar("Este navegador não tem leitura em voz alta");
     }
   });
