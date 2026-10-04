@@ -154,7 +154,19 @@ var ACESSIBILIDADE = (function () {
     window.setTimeout(function () { anuncio.textContent = texto; }, 30);
   }
 
+  var ICONE_LIBRAS =
+    '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" ' +
+    'stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+    '<path d="M7 12.5V5.8a1.3 1.3 0 0 1 2.6 0V10M9.6 9.6V4.3a1.3 1.3 0 0 1 2.6 0v5.3M12.2 9.6V5.5a1.3 1.3 0 0 1 2.6 0v6.3"></path>' +
+    '<path d="M14.8 11.8l1.4-1.6a1.3 1.3 0 0 1 2 1.6l-2.6 4.4a6 6 0 0 1-5.2 3H9.6A5.4 5.4 0 0 1 4.2 14v-2.2a1.4 1.4 0 0 1 2.8 0"></path>' +
+    '<path d="M19.5 15.5c.8.6 1.3 1.5 1.3 2.5M3 7.5c-.6.6-1 1.4-1 2.3"></path></svg>';
+
+  /* Duas abas empilhadas no meio da borda direita, como nos sites que usam
+     tradutor de Libras: a de cima abre o painel, a de baixo o tradutor. */
   function montarLancador() {
+    var abas = document.createElement("div");
+    abas.className = "a11y-abas";
+
     lancador = document.createElement("button");
     lancador.type = "button";
     lancador.className = "a11y-lancador";
@@ -162,7 +174,20 @@ var ACESSIBILIDADE = (function () {
     lancador.setAttribute("aria-controls", "a11y-painel");
     lancador.innerHTML = '<span class="a11y-lancador__rotulo">Recursos assistivos</span>' + ICONE_LANCADOR;
     lancador.addEventListener("click", function () { alternar(); });
-    document.body.appendChild(lancador);
+    abas.appendChild(lancador);
+
+    var libras = document.createElement("button");
+    libras.type = "button";
+    libras.className = "a11y-lancador a11y-lancador--libras";
+    libras.setAttribute("aria-label", "Acessível em Libras: abrir o tradutor (requer internet)");
+    libras.innerHTML = '<span class="a11y-lancador__rotulo">Acessível em Libras</span>' + ICONE_LIBRAS;
+    libras.addEventListener("click", function () {
+      alternar(true);
+      carregarLibras(false);
+    });
+    abas.appendChild(libras);
+
+    document.body.appendChild(abas);
   }
 
   function montarPainel() {
@@ -278,6 +303,7 @@ var ACESSIBILIDADE = (function () {
 
   function alternar(fechar) {
     if (!painel) return;
+    if (fechar === true && painel.hidden) return;
     var abrir = fechar === true ? false : painel.hidden;
     painel.hidden = !abrir;
     lancador.setAttribute("aria-expanded", abrir ? "true" : "false");

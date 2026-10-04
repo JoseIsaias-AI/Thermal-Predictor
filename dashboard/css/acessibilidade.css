@@ -9,13 +9,19 @@
 
 /* ----- Aba ----- */
 
-.a11y-lancador {
+.a11y-abas {
   position: fixed;
   right: 0;
   top: 50%;
   z-index: 65;
   transform: translateY(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+}
 
+.a11y-lancador {
   display: flex;
   align-items: center;
   gap: var(--space-2);
@@ -702,3 +708,6 @@ html[data-a11y-guia="2"] .a11y-guia {
  * direita, onde já está a aba dos recursos. O cartão do painel abre o
  * tradutor; a janela do avatar é a do próprio VLibras. */
 #vlibras-access-wrapper { display: none !important; }
+
+/* A aba do tradutor: mesma cor e mesmo desenho, logo abaixo da dos recursos. */
+.a11y-lancador--libras { min-height: 48px; }
