@@ -12,10 +12,31 @@
 .venv/
 __pycache__/
 
+# Cópia de trabalho com dados sintéticos, gerada por notebooks/gerar_dados_sinteticos.py.
+ambiente_sintetico/
+
 # Saída dos notebooks de modelagem (12 e 13): temperaturas previstas a partir dos dados de
 # ensaio do parceiro. Mesmo motivo que bloqueia os CSVs acima, e os notebooks regeneram os
 # arquivos em qualquer máquina.
 previsao_triagem*.json
+
+# Figuras que os notebooks de modelagem gravam em assets/ mas que a documentação não usa.
+# Continuam aparecendo dentro dos notebooks; só não são versionadas.
+assets/aumento_arf_fidelidade.png
+assets/aumento_confirmacao.png
+assets/aumento_piso_por_area.png
+assets/bootstrap_distribuicao_amostral.png
+assets/fem_lote_simulado.png
+assets/fem_malha_convergencia.png
+assets/fem_teste_sensibilidade.png
+assets/gb_curva_de_perda.png
+assets/gb_resultado_teste.png
+assets/logistica_curva_de_perda.png
+assets/logistica_regularizacao.png
+assets/logistica_resultado_teste.png
+assets/rede_ativacao_e_dropout.png
+assets/rede_curva_de_perda.png
+assets/rede_resultado_teste.png
 
 # Logs do servidor de desenvolvimento da API e do chatbot.
 *.stdout.log
