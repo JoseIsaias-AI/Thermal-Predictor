@@ -247,13 +247,13 @@ var ACESSIBILIDADE = (function () {
     cartao.innerHTML =
       '<span class="a11y-cartao__topo"><span class="a11y-cartao__icone" aria-hidden="true">' + r.icone + "</span>" + pontos + "</span>" +
       '<span class="a11y-cartao__rotulo">' + r.rotulo + "</span>" +
-      '<span class="a11y-cartao__nivel" aria-hidden="true"></span>';
+      '<span class="a11y-cartao__nivel" aria-hidden="true">' + (r.dica || "") + "</span>";
 
     cartao.addEventListener("click", function () {
       if (r.niveis) ciclar(r.id);
       else if (r.acao) r.acao(cartao);
     });
-    if (!r.niveis) cartao.setAttribute("aria-label", r.rotulo);
+    if (!r.niveis) cartao.setAttribute("aria-label", r.rotulo + (r.dica ? " (" + r.dica.toLowerCase() + ")" : ""));
     secao.querySelector(".a11y-grupo__grade").appendChild(cartao);
     secao.hidden = false;
     cartoes[r.id] = cartao;
@@ -530,6 +530,72 @@ var ACESSIBILIDADE = (function () {
     aoAplicar: aplicarCamadas
   });
 
+  /* ----- Tradutor de Libras -----
+     VLibras, o tradutor gratuito do governo federal (vlibras.gov.br). É o
+     único recurso que usa a rede, e por isso só carrega quando alguém pede:
+     o painel continua abrindo sem internet (exceção registrada no RNF-02).
+     O botão próprio do VLibras fica escondido, porque disputaria a borda
+     direita com a aba dos recursos; o cartão daqui o substitui. */
+  var VLIBRAS = "https://vlibras.gov.br/app/vlibras-plugin.js";
+  var librasEstado = "parado"; // parado → carregando → pronto | erro
+
+  function abrirLibras() {
+    if (window.VLibrasWidget && window.VLibrasWidget.open) {
+      window.VLibrasWidget.open();
+      return;
+    }
+    // O carregador monta o widget 50 ms depois de rodar; espera o open existir.
+    var tentativas = 0;
+    (function esperar() {
+      if (window.VLibrasWidget && window.VLibrasWidget.open) window.VLibrasWidget.open();
+      else if (++tentativas < 60) window.setTimeout(esperar, 100);
+    })();
+  }
+
+  function falhaLibras() {
+    librasEstado = "erro";
+    anunciar("O tradutor de Libras precisa de internet e não conseguiu carregar.");
+    var c = cartoes.libras;
+    if (c) c.querySelector(".a11y-cartao__nivel").textContent = "Sem conexão · tente de novo";
+  }
+
+  function carregarLibras(silencioso) {
+    if (librasEstado === "pronto") { abrirLibras(); return; }
+    if (librasEstado === "carregando") return;
+    if (navigator.onLine === false) { falhaLibras(); return; }
+    librasEstado = "carregando";
+    if (!silencioso) anunciar("Carregando o tradutor de Libras");
+    var c = cartoes.libras;
+    if (c) c.querySelector(".a11y-cartao__nivel").textContent = "Carregando…";
+    var script = document.createElement("script");
+    script.src = VLIBRAS;
+    script.async = true;
+    script.onload = function () {
+      librasEstado = "pronto";
+      if (c) c.querySelector(".a11y-cartao__nivel").textContent = "Requer internet";
+      abrirLibras();
+    };
+    script.onerror = function () { script.remove(); falhaLibras(); };
+    document.head.appendChild(script);
+  }
+
+  registrar({
+    id: "libras", grupo: "libras", rotulo: "Tradutor de Libras",
+    dica: "Requer internet",
+    icone: SVG + '<path d="M8 13V5.5a1.5 1.5 0 0 1 3 0V11M11 10.5V4a1.5 1.5 0 0 1 3 0v6.5M14 10.5V6a1.5 1.5 0 0 1 3 0v8a6 6 0 0 1-6 6h-.5a6 6 0 0 1-4.6-2.2L3.6 15a1.5 1.5 0 0 1 2.3-1.9L8 15"></path></svg>',
+    acao: function () {
+      alternar(true);
+      carregarLibras(false);
+    }
+  });
+
+  /* Quem deixou o tradutor aberto numa tela o encontra aberto na próxima, como
+     no próprio VLibras (que guarda isso em @vlibras-widget). */
+  function librasEstavaAberto() {
+    try { return (window.localStorage.getItem("@vlibras-widget") || "").indexOf('"isOpen":true') >= 0; }
+    catch (e) { return false; }
+  }
+
   /* ----- Leitor de voz -----
      Síntese de fala do próprio navegador (Web Speech API): voz pt-BR, sem
      rede e sem serviço externo (RNF-02 e RNF-04). Ligado, clicar em qualquer
@@ -692,6 +758,8 @@ var ACESSIBILIDADE = (function () {
     montarPainel();
     lancador.setAttribute("aria-label", "Abrir recursos assistivos");
     recursos.forEach(function (r) { if (r.aoAplicar && nivel(r.id)) r.aoAplicar(nivel(r.id)); });
+
+    if (librasEstavaAberto()) carregarLibras(true);
 
     var reabrir = null;
     try {

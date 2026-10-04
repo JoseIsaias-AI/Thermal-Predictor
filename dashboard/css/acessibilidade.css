@@ -696,3 +696,9 @@ html[data-a11y-guia="2"] .a11y-guia {
 
 .a11y-mascara--acima { top: 0; }
 .a11y-mascara--abaixo { bottom: 0; }
+
+/* ----- Tradutor de Libras -----
+ * O botão flutuante do VLibras fica escondido: ele ocuparia o meio da borda
+ * direita, onde já está a aba dos recursos. O cartão do painel abre o
+ * tradutor; a janela do avatar é a do próprio VLibras. */
+#vlibras-access-wrapper { display: none !important; }
