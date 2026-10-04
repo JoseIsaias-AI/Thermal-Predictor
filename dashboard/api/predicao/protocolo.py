@@ -30,6 +30,10 @@ class ConfiguracaoInvalida(ErroDePredicao):
     """Entrada fora do vocabulário declarado em /schema (RN-04)."""
 
 
+class CatalogoIndisponivel(ErroDePredicao):
+    """Sem o catálogo de pontos não há limite para classificar a previsão."""
+
+
 @dataclass(frozen=True)
 class Metricas:
     """Desempenho de validação já documentado do modelo."""

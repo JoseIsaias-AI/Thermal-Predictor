@@ -10,7 +10,12 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 from api.main import criar_app  # noqa: E402
 
-from .apoio import CAMINHO_SCHEMA_JS, montar_configuracao  # noqa: E402
+from .apoio import (  # noqa: E402
+    CAMINHO_SCHEMA_JS,
+    gravar_catalogo_pontos_sintetico,
+    gravar_catalogo_sem_familia,
+    montar_configuracao,
+)
 
 
 @pytest.fixture(scope="session")
@@ -19,11 +24,27 @@ def caminho_schema_js():
 
 
 @pytest.fixture(scope="session")
+def catalogo_sem_familia(tmp_path_factory):
+    return gravar_catalogo_sem_familia(tmp_path_factory.mktemp("catalogo"))
+
+
+@pytest.fixture(scope="session")
 def cliente():
-    """Serviço como ele sobe hoje: sem família de modelos escolhida."""
+    """Serviço como ele sobe hoje: com a família padrão do catálogo, o modelo final."""
     from fastapi.testclient import TestClient
 
     with TestClient(criar_app(montar_configuracao())) as cliente_http:
+        yield cliente_http
+
+
+@pytest.fixture(scope="session")
+def cliente_sem_familia(catalogo_sem_familia):
+    """Serviço antes da escolha da família: todos os subsistemas indisponíveis."""
+    from fastapi.testclient import TestClient
+
+    configuracao = montar_configuracao(caminho_catalogo=catalogo_sem_familia)
+
+    with TestClient(criar_app(configuracao)) as cliente_http:
         yield cliente_http
 
 
@@ -33,4 +54,20 @@ def cliente_com_modelo():
     from fastapi.testclient import TestClient
 
     with TestClient(criar_app(montar_configuracao("random_forest"))) as cliente_http:
+        yield cliente_http
+
+
+@pytest.fixture(scope="session")
+def catalogo_pontos_sintetico(tmp_path_factory):
+    return gravar_catalogo_pontos_sintetico(tmp_path_factory.mktemp("pontos"))
+
+
+@pytest.fixture(scope="session")
+def cliente_predicao(catalogo_pontos_sintetico):
+    """Serviço com o modelo final e limites fictícios, sem depender do dado do parceiro."""
+    from fastapi.testclient import TestClient
+
+    configuracao = montar_configuracao(caminho_catalogo_pontos=catalogo_pontos_sintetico)
+
+    with TestClient(criar_app(configuracao)) as cliente_http:
         yield cliente_http

@@ -14,3 +14,11 @@ def obter_configuracao(request: Request):
 
 def obter_esquema(request: Request):
     return request.app.state.esquema
+
+
+def obter_catalogo_pontos(request: Request):
+    return request.app.state.catalogo_pontos
+
+
+def obter_servico_de_predicao(request: Request):
+    return request.app.state.servico_de_predicao

@@ -24,12 +24,20 @@ def test_saude_responde_200_com_resumo_dos_modelos(cliente):
     assert all({"subsistema", "estado"} <= set(s) for s in corpo["subsistemas"])
 
 
-def test_saude_sem_familia_declara_o_motivo(cliente):
-    corpo = cliente.get("/saude").json()
+def test_saude_sem_familia_declara_o_motivo(cliente_sem_familia):
+    corpo = cliente_sem_familia.get("/saude").json()
 
     assert corpo["status"] == "sem_modelo"
     assert corpo["modelos"]["familia_ativa"] is None
     assert all(s["estado"] == "indisponivel" and s["motivo"] for s in corpo["subsistemas"])
+
+
+def test_saude_sobe_com_o_modelo_final_do_catalogo(cliente):
+    corpo = cliente.get("/saude").json()
+
+    assert corpo["status"] == "ok"
+    assert corpo["modelos"]["familia_ativa"] == "modelo_final"
+    assert all(s["versao"] == "final-1.0" for s in corpo["subsistemas"])
 
 
 def test_saude_com_familia_plugada_carrega_todos_os_subsistemas(cliente_com_modelo):

@@ -7,6 +7,9 @@ from pathlib import Path
 PASTA_API = Path(__file__).resolve().parent
 RAIZ_REPOSITORIO = PASTA_API.parent.parent
 
+# Dataset auditado de onde sai o limite de cada ponto. Não é versionado (dado do parceiro).
+NOME_CATALOGO_PONTOS = "dataset_completo_com_flags_de_auditoria.csv"
+
 
 @dataclass(frozen=True)
 class Configuracao:
@@ -16,6 +19,7 @@ class Configuracao:
     caminho_catalogo: Path
     caminho_esquema: Path
     familia_padrao: str | None
+    caminho_catalogo_pontos: Path | None = None
 
     @property
     def raiz_repositorio(self):
@@ -28,11 +32,21 @@ def _texto_ou_nulo(valor):
     return valor or None
 
 
+def catalogo_pontos_padrao():
+    """Onde os notebooks deixam o dataset auditado: na raiz do repositório ou em `notebooks/`."""
+    for pasta in (RAIZ_REPOSITORIO, RAIZ_REPOSITORIO / "notebooks"):
+        if (pasta / NOME_CATALOGO_PONTOS).is_file():
+            return pasta / NOME_CATALOGO_PONTOS
+
+    return RAIZ_REPOSITORIO / NOME_CATALOGO_PONTOS
+
+
 def carregar_configuracao():
     """Monta a configuração a partir das variáveis THERMAL_API_*."""
     pasta_modelos = _texto_ou_nulo(os.environ.get("THERMAL_API_PASTA_MODELOS"))
     caminho_catalogo = _texto_ou_nulo(os.environ.get("THERMAL_API_CATALOGO"))
     caminho_esquema = _texto_ou_nulo(os.environ.get("THERMAL_API_ESQUEMA"))
+    caminho_pontos = _texto_ou_nulo(os.environ.get("THERMAL_API_CATALOGO_PONTOS"))
 
     return Configuracao(
         pasta_modelos=Path(pasta_modelos) if pasta_modelos else RAIZ_REPOSITORIO / "modelos",
@@ -44,6 +58,7 @@ def carregar_configuracao():
             if caminho_esquema
             else PASTA_API / "dominio" / "esquema_features.json"
         ),
-        # Enquanto a família não for escolhida, o serviço sobe sem preditor carregado.
+        # Sobrepõe a família do catálogo; sem nenhuma das duas, o serviço sobe sem preditor.
         familia_padrao=_texto_ou_nulo(os.environ.get("THERMAL_API_FAMILIA_MODELO")),
+        caminho_catalogo_pontos=Path(caminho_pontos) if caminho_pontos else catalogo_pontos_padrao(),
     )
