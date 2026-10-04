@@ -384,6 +384,12 @@ var ACESSIBILIDADE = (function () {
     niveis: ["Pausadas"]
   });
 
+  registrar({
+    id: "contraste", grupo: "cor", rotulo: "Alto contraste",
+    icone: SVG + '<circle cx="12" cy="12" r="9"></circle><path d="M12 3a9 9 0 0 1 0 18z" fill="currentColor"></path></svg>',
+    niveis: ["Reforçado", "Máximo"]
+  });
+
   /* As folhas antes deste script já estão prontas. As que carregarem depois
      (inclusive as recarregadas pelo Live Server) chegam com os limites
      originais e são escaladas quando terminam de carregar. */

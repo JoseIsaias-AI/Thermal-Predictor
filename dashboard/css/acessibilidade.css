@@ -465,3 +465,134 @@ html[data-a11y-animacoes] *::after {
   transition-duration: 0.01ms !important;
   scroll-behavior: auto !important;
 }
+
+/* ----- Alto contraste -----
+ * Remapeia os mesmos papéis de cor de tokens.css, como o tema escuro faz:
+ * nenhum componente conhece o contraste. O seletor separa os dois temas
+ * (`:not([data-tema="escuro"])`) para o contraste do claro não vencer o
+ * escuro por ordem de carga.
+ *
+ * Reforçado: a paleta da marca, com todo texto a pelo menos 7:1 (WCAG AAA,
+ * 1.4.6) sobre cartão, tela e destaque, e borda a pelo menos 3:1 (1.4.11).
+ * Máximo: preto e branco puros, borda cheia, sem sombra. */
+
+:root:not([data-tema="escuro"])[data-a11y-contraste="1"] {
+  --color-text:          #10151f;  /* 18,3:1 sobre o cartão */
+  --color-text-strong:   #10151f;
+  --color-text-muted:    #2c3645;  /* 12,2:1 */
+  --color-text-subtle:   #3a4453;  /*  9,9:1 · 8,7:1 no fundo de destaque */
+  --color-border:        #7c8592;  /*  3,7:1 */
+  --color-border-subtle: #aeb5c0;
+  --color-border-strong: #4b5462;
+  --color-accent:        #0b4a77;  /*  9,3:1 */
+  --color-accent-hover:  #062f4d;
+  --color-accent-line:   #6d93b3;
+  --color-focus-ring:    #0b4a77;
+  --color-highlight:     #0b4a77;
+  --color-data:          #2f6690;  /*  6,1:1, série de gráfico (pede 3:1) */
+  --color-diff:          #174e86;  /*  8,5:1 com texto branco por cima */
+  --color-grid:          #d5dae1;
+  --status-critical:     #8f2419;  /*  8,6:1 */
+  --status-critical-line:#d99a90;
+  --status-attention:    #10151f;
+  --status-neutral:      #3a4453;
+  --status-neutral-bar:  #5d6675;
+  --color-swatch-ring:   rgba(16, 21, 31, 0.35);
+  --color-glyph-line:    #10151f;
+}
+
+:root[data-tema="escuro"][data-a11y-contraste="1"] {
+  --color-text:          #ffffff;  /* 15,9:1 sobre o cartão */
+  --color-text-strong:   #ffffff;
+  --color-text-muted:    #d5dbe3;  /* 11,4:1 */
+  --color-text-subtle:   #c3cad4;  /*  9,7:1 */
+  --color-border:        #7d8796;  /*  4,4:1 */
+  --color-border-subtle: #46505f;
+  --color-border-strong: #b8c0cc;
+  --color-accent:        #a8d1f2;  /*  9,9:1 */
+  --color-accent-hover:  #cfe5f7;
+  --color-focus-ring:    #a8d1f2;
+  --color-highlight:     #a8d1f2;
+  --color-data:          #9cc6e8;
+  --color-grid:          #343e4e;
+  --status-critical:     #ffb4a8;  /*  9,4:1 */
+  --status-attention:    #ffffff;
+  --status-neutral:      #c3cad4;
+  --status-neutral-bar:  #8c95a3;
+  --color-swatch-ring:   rgba(255, 255, 255, 0.55);
+  --color-glyph-line:    #e8ecf1;
+}
+
+:root:not([data-tema="escuro"])[data-a11y-contraste="2"] {
+  --color-canvas:         #ffffff;
+  --color-surface:        #ffffff;
+  --color-surface-sunken: #ffffff;
+  --color-surface-muted:  #f0f0f0;
+  --color-surface-accent: #e3effa;
+  --color-surface-raised: #ffffff;
+  --color-text:           #000000;  /* 21:1 */
+  --color-text-strong:    #000000;
+  --color-text-muted:     #1b1b1b;  /* 17,2:1 */
+  --color-text-subtle:    #1b1b1b;
+  --color-border:         #000000;
+  --color-border-subtle:  #767676;
+  --color-border-strong:  #000000;
+  --color-accent:         #00365e;  /* 12,4:1 */
+  --color-accent-hover:   #001f38;
+  --color-accent-line:    #00365e;
+  --color-focus-ring:     #000000;
+  --color-highlight:      #00365e;
+  --color-data:           #00365e;
+  --color-diff:           #00365e;
+  --color-grid:           #b0b0b0;
+  --color-tooltip:        #000000;
+  --color-surface-glass:  #ffffff;
+  --status-critical:      #7a1408;  /* 10,9:1 */
+  --status-critical-line: #7a1408;
+  --status-attention:     #000000;
+  --status-neutral:       #1b1b1b;
+  --status-neutral-bar:   #4d4d4d;
+  --color-swatch-ring:    #000000;
+  --color-glyph-line:     #000000;
+  --shadow-card: none;
+  --shadow-control: 0 0 0 1px #000000;
+}
+
+:root[data-tema="escuro"][data-a11y-contraste="2"] {
+  --color-canvas:         #000000;
+  --color-surface:        #000000;
+  --color-surface-sunken: #000000;
+  --color-surface-muted:  #1a1a1a;
+  --color-surface-accent: #08243a;
+  --color-surface-raised: #000000;
+  --color-text:           #ffffff;  /* 21:1 */
+  --color-text-strong:    #ffffff;
+  --color-text-muted:     #f2f2f2;  /* 18,8:1 */
+  --color-text-subtle:    #f2f2f2;
+  --color-border:         #ffffff;
+  --color-border-subtle:  #8a8a8a;
+  --color-border-strong:  #ffffff;
+  --color-accent:         #9fd3ff;  /* 13,2:1 */
+  --color-accent-hover:   #cfe9ff;
+  --color-accent-line:    #9fd3ff;
+  --color-on-accent:      #000000;
+  --color-focus-ring:     #ffffff;
+  --color-highlight:      #9fd3ff;
+  --color-data:           #9fd3ff;
+  --color-grid:           #555555;
+  --color-tooltip:        #000000;
+  --color-tooltip-line:   #ffffff;
+  --color-surface-glass:  #000000;
+  --color-stage-3d:       #1a1a1a;
+  --status-critical:      #ffb4a8;  /* 12,3:1 */
+  --status-critical-bg:   #2a0d09;
+  --status-critical-line: #ffb4a8;
+  --status-attention:     #ffffff;
+  --status-attention-bg:  #1a1a1a;
+  --status-neutral:       #f2f2f2;
+  --status-neutral-bar:   #b0b0b0;
+  --color-swatch-ring:    #ffffff;
+  --color-glyph-line:     #ffffff;
+  --shadow-card: none;
+  --shadow-control: 0 0 0 1px #ffffff;
+}
