@@ -15,7 +15,7 @@ pydantic==2.13.5
 # indisponível e `POST /predicao` responde 503 para toda configuração. Só IPC Comp (SVR) e
 # IPC Cooling (Extra Trees) sobrevivem, por não conterem Gradient Boosting.
 # Para subir desta versão, reexportar os artefatos antes, pelo notebook
-# `notebooks/5_implantacao/exportacao_modelo_final.ipynb`, que confere a reprodução do MAE.
+# `notebooks/5_implantacao/5.1_modelo_final.ipynb`, que confere a reprodução do MAE.
 scikit-learn==1.7.2
 pandas==3.0.5
 numpy==2.5.3

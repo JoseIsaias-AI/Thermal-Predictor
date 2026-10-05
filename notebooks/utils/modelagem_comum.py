@@ -1,4 +1,4 @@
-"""Definições comuns aos notebooks de modelagem (12 a 16).
+"""Definições comuns aos notebooks de modelagem, avaliação e implantação (3.1 em diante).
 
 A comparação entre algoritmos só é justa se todos usarem a mesma base, a mesma divisão entre treino
 e teste, as mesmas métricas e os mesmos modelos. Este módulo concentra essas definições; cada
@@ -6,6 +6,7 @@ notebook importa daqui e fica apenas com o que é próprio do algoritmo que apre
 """
 import copy
 import os
+from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -58,6 +59,16 @@ PARTICOES_VALIDACAO = 5
 FRACAO_TOLERANCIA = 0.10
 PISO_APROVACAO = 0.90
 
+# Tolerâncias para conferir um modelo reconstruído contra o erro registrado. Até 0,005 °C, a
+# reprodução é exata (o registro guarda o MAE com dez casas, e a documentação o publica com duas).
+# Os registros e os modelos versionados foram gerados em processador x86-64; em outra arquitetura,
+# como a ARM dos Macs com Apple Silicon, a ordem das operações de ponto flutuante muda e pode
+# desfazer de outro jeito um empate entre cortes de uma árvore. Medido nos seis modelos finais, o
+# efeito chega a 0,04 °C no MAE de teste, sem mudar nenhuma contagem do critério do parceiro; até
+# 0,05 °C, a diferença é tratada como alerta de plataforma, e não como erro.
+TOLERANCIA_EXATA_C = 0.005
+TOLERANCIA_PLATAFORMA_C = 0.05
+
 
 def configurar_graficos():
     plt.rcParams.update({
@@ -66,35 +77,50 @@ def configurar_graficos():
     })
 
 
-def caminho_dado(nome):
-    """Procura um arquivo perto do diretório de trabalho e da pasta `notebooks/`.
+def raiz_do_projeto():
+    """Pasta do projeto: a mais próxima, subindo a partir do diretório de trabalho, com `notebooks/utils/`.
 
-    Os notebooks ficam em subpastas por fase do CRISP-DM, e os CSVs de dados ficam em
-    `notebooks/`. As raízes cobrem execução a partir da subpasta, de `notebooks/` ou da raiz do
-    repositório, além da própria pasta deste módulo, que é o caso do Colab.
+    Vale para a execução a partir de qualquer subpasta de `notebooks/`, da própria `notebooks/` ou
+    da raiz, e também para a cópia `ambiente_sintetico/`, que tem a sua própria `notebooks/utils/` e
+    por isso é encontrada antes do repositório. Fora do projeto, como no Colab, devolve `None`.
     """
-    aqui = os.path.dirname(os.path.abspath(__file__))
+    for pasta in (Path.cwd(), *Path.cwd().parents):
+        if (pasta / "notebooks" / "utils").is_dir():
+            return pasta
 
-    for raiz in (".", "..", os.path.join("..", ".."), "notebooks", aqui):
-        destino = os.path.join(raiz, nome)
+    return None
 
-        if os.path.isfile(destino):
-            return destino
 
-    raise FileNotFoundError(f"Arquivo não encontrado: {nome}")
+def caminho_projeto(*partes):
+    """Caminho de um arquivo do projeto (modelos, resultados, documentação) a partir da raiz."""
+    raiz = raiz_do_projeto()
+    return os.path.join(raiz if raiz is not None else ".", *partes)
+
+
+def caminho_dado(nome):
+    """Procura um arquivo de dados no diretório de trabalho e na pasta `notebooks/` do projeto.
+
+    A planilha do parceiro e os CSVs gerados a partir dela ficam em `notebooks/`, fora do Git. No
+    Colab, os arquivos enviados ficam no diretório de trabalho ou ao lado deste módulo.
+    """
+    raiz = raiz_do_projeto()
+    aqui = Path(__file__).resolve().parent
+    pastas = [Path.cwd()] + ([raiz / "notebooks"] if raiz is not None else []) + [aqui, aqui.parent]
+
+    for pasta in pastas:
+        if (pasta / nome).is_file():
+            return str(pasta / nome)
+
+    raise FileNotFoundError(f"Arquivo não encontrado: {nome}. Veja em notebooks/README.md como "
+                            "fornecer a base de dados.")
 
 
 def salvar_figura(fig, nome):
-    """Grava a figura na pasta de imagens da documentação."""
-    for raiz in (".", "..", os.path.join("..", ".."), os.path.join("..", "..", "..")):
-        destino = os.path.join(raiz, "assets")
-
-        if os.path.isdir(destino):
-            fig.savefig(os.path.join(destino, nome), dpi=150, bbox_inches="tight")
-            return
-
-    os.makedirs("figuras", exist_ok=True)
-    fig.savefig(os.path.join("figuras", nome), dpi=150, bbox_inches="tight")
+    """Grava a figura em `assets/`, a pasta de imagens da documentação, ou em `figuras/` no Colab."""
+    raiz = raiz_do_projeto()
+    destino = raiz / "assets" if raiz is not None and (raiz / "assets").is_dir() else Path("figuras")
+    destino.mkdir(parents=True, exist_ok=True)
+    fig.savefig(destino / nome, dpi=150, bbox_inches="tight")
 
 
 # ------------------------------------------------------------------------------------------------
@@ -111,8 +137,7 @@ def carregar_base(incluir_simulacao=False, caminho_simulacao="simulacao_fem.csv"
     Com `incluir_simulacao`, as linhas simuladas por `fem_termico.py` são acrescentadas às medidas, e
     a tabela ganha as colunas `origem` e `peso`, conforme o contrato de
     `documents/extras/projeto-integracao-fem.md`. O padrão é desligado, e nesse caso a tabela
-    devolvida é exatamente a mesma de antes desta extensão, o que mantém intactos os notebooks 12 a
-    20.
+    devolvida é exatamente a mesma de antes desta extensão, o que mantém intactos os notebooks de modelagem e de aumento de dados.
     """
     catalogo = (
         pd.read_csv(caminho_dado("dataset_completo_com_flags_de_auditoria.csv"))
@@ -251,18 +276,82 @@ def resumo_divisao(base, treino, teste):
     return pd.DataFrame(linhas).set_index("Conjunto")
 
 
+def _ordem_quicksort_classico(valores):
+    """Ordem crescente de `valores` pelo quicksort clássico do numpy, com o mesmo desempate.
+
+    É uma transcrição da introsort de `numpy/_core/src/npysort/quicksort.cpp` (mediana de três,
+    inserção abaixo de 17 elementos), sem as versões vetorizadas por SIMD. O numpy 2 usa essas
+    versões em processadores x86 com AVX2 ou AVX-512, e elas desempatam valores iguais em outra
+    ordem; a transcrição devolve sempre a ordem do algoritmo clássico, a mesma do numpy 1 e do
+    numpy 2 em processadores ARM, com que os registros da Seção 4.4 foram gerados.
+    """
+    v = [int(x) for x in valores]
+    ordem = list(range(len(v)))
+    pilha, inicio, fim = [], 0, len(v) - 1
+    profundidade = 2 * (len(v).bit_length() - 1)
+
+    while True:
+        if profundidade < 0:
+            raise RuntimeError("Ordenação degenerada: aumente a profundidade ou use heapsort.")
+
+        while fim - inicio > 15:
+            meio = inicio + ((fim - inicio) >> 1)
+            if v[ordem[meio]] < v[ordem[inicio]]:
+                ordem[meio], ordem[inicio] = ordem[inicio], ordem[meio]
+            if v[ordem[fim]] < v[ordem[meio]]:
+                ordem[fim], ordem[meio] = ordem[meio], ordem[fim]
+            if v[ordem[meio]] < v[ordem[inicio]]:
+                ordem[meio], ordem[inicio] = ordem[inicio], ordem[meio]
+            pivo = v[ordem[meio]]
+            i, j = inicio, fim - 1
+            ordem[meio], ordem[j] = ordem[j], ordem[meio]
+
+            while True:
+                i += 1
+                while v[ordem[i]] < pivo:
+                    i += 1
+                j -= 1
+                while pivo < v[ordem[j]]:
+                    j -= 1
+                if i >= j:
+                    break
+                ordem[i], ordem[j] = ordem[j], ordem[i]
+
+            ordem[i], ordem[fim - 1] = ordem[fim - 1], ordem[i]
+            profundidade -= 1
+
+            if i - inicio < fim - i:
+                pilha.append((i + 1, fim, profundidade))
+                fim = i - 1
+            else:
+                pilha.append((inicio, i - 1, profundidade))
+                inicio = i + 1
+
+        for i in range(inicio + 1, fim + 1):
+            atual, j = ordem[i], i
+            while j > inicio and v[atual] < v[ordem[j - 1]]:
+                ordem[j] = ordem[j - 1]
+                j -= 1
+            ordem[j] = atual
+
+        if not pilha:
+            return np.array(ordem, dtype=np.intp)
+
+        inicio, fim, profundidade = pilha.pop()
+
+
 def particoes_de_validacao(base, indices, n_particoes=PARTICOES_VALIDACAO):
     """Validação cruzada dentro de `indices`, agrupada por configuração, em índices globais.
 
     Segue a regra do `GroupKFold` do scikit-learn: as configurações entram da maior para a menor, e
-    cada uma vai para a partição com menos medições até ali. A regra fica escrita aqui porque as
-    versões recentes do scikit-learn trocaram a ordem de desempate entre configurações com o mesmo
-    número de medições, que são comuns nesta base, e passaram a montar outras partições, com outras
-    métricas de validação. O desempate abaixo é o da versão em que os notebooks foram executados, e
-    mantém as partições iguais em qualquer versão instalada. Com as mesmas partições, Ridge e média do
-    termopar reproduzem as métricas publicadas; Random Forest e Gradient Boosting, que sorteiam
-    amostras internamente, ainda podem variar em milésimos a centésimos de grau entre versões do
-    scikit-learn.
+    cada uma vai para a partição com menos medições até ali. Configurações com o mesmo número de
+    medições são comuns nesta base, e a ordem entre elas muda a composição das partições. Por isso
+    o desempate é explícito, pelo quicksort clássico do numpy (`_ordem_quicksort_classico`), e não
+    depende da versão do numpy, do scikit-learn nem do processador: as partições são as mesmas em
+    qualquer máquina, e Ridge e média do termopar reproduzem as métricas registradas. Random Forest e
+    Gradient Boosting, que sorteiam amostras internamente, ainda podem variar em milésimos a
+    centésimos de grau entre versões do scikit-learn, por isso a versão é fixada no
+    `requirements.txt`.
     """
     grupos = base["configuracao"].to_numpy()[indices]
     configuracoes, grupo_de = np.unique(grupos, return_inverse=True)
@@ -270,7 +359,7 @@ def particoes_de_validacao(base, indices, n_particoes=PARTICOES_VALIDACAO):
     carga = np.zeros(n_particoes)
     particao_da_configuracao = np.zeros(len(configuracoes), dtype=int)
 
-    for configuracao in np.argsort(tamanhos, kind="quicksort")[::-1]:
+    for configuracao in _ordem_quicksort_classico(tamanhos)[::-1]:
         destino = int(np.argmin(carga))
         carga[destino] += tamanhos[configuracao]
         particao_da_configuracao[configuracao] = destino
@@ -427,7 +516,7 @@ def _prever_area(algoritmo, hiperparametros, base, area, treino, alvo):
 
 
 def prever_por_area(algoritmo, hiperparametros, base, treino, alvo):
-    """Um modelo por área, como nos notebooks 12 e 13; devolve a previsão na ordem de `alvo`."""
+    """Um modelo por área, como nos notebooks 3.1 e 3.2; devolve a previsão na ordem de `alvo`."""
     saidas = Parallel(n_jobs=-1)(
         delayed(_prever_area)(algoritmo, hiperparametros, base, area, treino, alvo)
         for area in CONJUNTOS
@@ -501,7 +590,7 @@ def treinar_rede(base, treino, alvo, c, semente, registrar_curva=False, adiciona
     quando `registrar_curva` pede o erro nele para desenhar a curva, e nunca decide nada.
 
     `adicionais` recebe linhas sintéticas, um DataFrame com as colunas de configuração,
-    `indice_termopar` e `Value`, usado em `17_estudo_aumento_de_dados.ipynb`. Elas entram só nos
+    `indice_termopar` e `Value`, usado em `1_aumento_de_dados_sinteticos.ipynb`. Elas entram só nos
     lotes de ajuste dos pesos, sorteadas a cada época: a parada antecipada, a padronização e a média
     de referência de cada termopar continuam estimadas apenas nas leituras reais.
     """

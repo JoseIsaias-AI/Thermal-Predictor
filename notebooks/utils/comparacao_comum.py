@@ -1,6 +1,6 @@
 """Comparação de modelos por dataset (Seção 4.4 da documentação).
 
-Os notebooks de `4_avaliacao/comparacao_de_modelos/` repetem o mesmo roteiro em cada subsistema:
+Os notebooks de `4_avaliacao/4.1_comparacao_de_modelos/` repetem o mesmo roteiro em cada subsistema:
 busca de hiperparâmetros, comparação no teste e em 40 divisões e explicação do modelo final. Este
 módulo concentra esse roteiro para que os sete notebooks usem exatamente o mesmo procedimento. A
 base, a divisão, as partições e as métricas vêm de `modelagem_comum.py`, como nas Seções 4.3 e 4.4.
@@ -19,7 +19,7 @@ from sklearn.compose import ColumnTransformer
 from sklearn.ensemble import (ExtraTreesRegressor, GradientBoostingRegressor,
                               RandomForestRegressor, VotingRegressor)
 from sklearn.linear_model import Ridge
-from sklearn.model_selection import GridSearchCV, RandomizedSearchCV
+from sklearn.model_selection import GridSearchCV, ParameterGrid, ParameterSampler, RandomizedSearchCV
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
 from sklearn.svm import SVR
@@ -35,7 +35,7 @@ ITERACOES_RANDOM_SEARCH = 20
 ALFA = 0.05
 
 # Hiperparâmetros do modelo final adotado na Seção 4.3(d), comuns às seis áreas: os escolhidos pela
-# grade de `modelagem_comum.GRADES` na divisão fixa, nos notebooks 12 e 13.
+# grade de `modelagem_comum.GRADES` na divisão fixa, nos notebooks 3.1 e 3.2.
 ADOTADOS = {
     "Random Forest": {"n_estimators": 300, "min_samples_leaf": 1, "max_features": 1.0},
     "Gradient Boosting": {"n_estimators": 600, "learning_rate": 0.015, "max_depth": 6,
@@ -570,6 +570,65 @@ def modelo_final(nome, otimizados):
     return clone(otimizados[nome])
 
 
+def _descrever(parametros):
+    """O texto com que `resumo_das_buscas` registra uma combinação de hiperparâmetros."""
+    return ", ".join(f"{chave.replace('modelo__', '')} = {_texto(valor)}"
+                     for chave, valor in sorted(parametros.items()))
+
+
+def _combinacao_vencedora(candidato, busca, texto_registrado):
+    """Valores exatos da combinação registrada como texto de três algarismos.
+
+    As combinações avaliadas são determinísticas, porque a grade é fixa e o Random Search sorteia
+    com a semente do projeto. Regeradas, a vencedora é a única cujo texto coincide com o registrado,
+    e o modelo usa os valores avaliados, e não um arredondamento deles.
+    """
+    if busca == "Grid Search":
+        combinacoes = list(ParameterGrid(candidato["grade"]))
+    else:
+        combinacoes = list(ParameterSampler(candidato["espaco"], n_iter=ITERACOES_RANDOM_SEARCH,
+                                            random_state=SEMENTE))
+
+    iguais = [c for c in combinacoes if _descrever(c) == texto_registrado]
+
+    if len(iguais) != 1:
+        raise RuntimeError(f"{busca}: {len(iguais)} combinações com o texto {texto_registrado!r}.")
+
+    return {chave: valor.item() if hasattr(valor, "item") else valor
+            for chave, valor in iguais[0].items()}
+
+
+def _otimizado(nome, registro):
+    candidato = candidatos()[nome]
+    busca = next(b for b in registro["buscas"] if b["Algoritmo"] == nome and b["Vencedora"] == "sim")
+    parametros = _combinacao_vencedora(candidato, busca["Busca"], busca["Hiperparâmetros escolhidos"])
+
+    return clone(candidato["estimador"]).set_params(**parametros), busca["Busca"], parametros
+
+
+def reconstruir_modelo_final(registro):
+    """Estimador do modelo final gravado no registro de uma área, sem treino.
+
+    Devolve o estimador, a origem dos hiperparâmetros (Seção 4.3(d) ou a busca vencedora) e os
+    hiperparâmetros. É a mesma reconstrução usada na exportação (notebook 5.1) e na verificação
+    das hipóteses (notebook 4.2), para que os dois usem exatamente o modelo avaliado.
+    """
+    final = registro["final"]
+
+    if final == ADOTADO:
+        return media_adotada(), "Seção 4.3(d)", {nome: dict(hp) for nome, hp in ADOTADOS.items()}
+
+    if final == OTIMIZADA:
+        rf, busca_rf, parametros_rf = _otimizado("Random Forest", registro)
+        gb, busca_gb, parametros_gb = _otimizado("Gradient Boosting", registro)
+        return (media_rf_gb(rf, gb), f"{busca_rf} e {busca_gb}",
+                {"Random Forest": parametros_rf, "Gradient Boosting": parametros_gb})
+
+    estimador, busca, parametros = _otimizado(final, registro)
+
+    return estimador, busca, {chave.replace("modelo__", ""): v for chave, v in parametros.items()}
+
+
 def _contagens(exp, indices_locais, previsto):
     """Somas que permitem agregar as métricas das áreas sem guardar nenhuma medição."""
     y = exp.y[indices_locais]
@@ -589,6 +648,9 @@ def salvar_resultados(caminho, exp, resumo_buscas, teste, previsoes_teste, por_d
     """Grava em JSON só métricas agregadas da área; nenhuma temperatura medida ou prevista."""
     import json
     import os
+    import platform
+
+    import sklearn
 
     def limpar(tabela):
         return json.loads(tabela.reset_index().to_json(orient="records", force_ascii=False))
@@ -600,6 +662,8 @@ def salvar_resultados(caminho, exp, resumo_buscas, teste, previsoes_teste, por_d
         "contagens_teste": {n: _contagens(exp, exp.teste, p) for n, p in previsoes_teste.items()},
         "divisoes": limpar(por_divisao.drop(columns=["Aprovação"])),
         "importancia": limpar(importancia), "shap_por_fator": shap_fator.to_dict(),
+        "ambiente": {"numpy": np.__version__, "scikit-learn": sklearn.__version__,
+                     "processador": platform.machine()},
     }
     os.makedirs(os.path.dirname(caminho), exist_ok=True)
 

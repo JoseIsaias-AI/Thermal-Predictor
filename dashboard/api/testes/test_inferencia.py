@@ -26,8 +26,12 @@ from .apoio import (
     montar_configuracao,
 )
 
-PASTA_EXPORTACAO = RAIZ_REPOSITORIO / "notebooks" / "5_implantacao"
-PASTA_RESULTADOS = RAIZ_REPOSITORIO / "notebooks" / "4_avaliacao" / "comparacao_de_modelos" / "resultados"
+PASTA_EXPORTACAO = RAIZ_REPOSITORIO / "notebooks" / "5_implantacao" / "familias_alternativas"
+NOTEBOOK_DE_EXPORTACAO = {
+    "random_forest": "1_exportacao_random_forest.ipynb",
+    "gradient_boosting": "2_exportacao_gradient_boosting.ipynb",
+}
+PASTA_RESULTADOS = RAIZ_REPOSITORIO / "notebooks" / "4_avaliacao" / "4.1_comparacao_de_modelos" / "resultados"
 CAMINHO_PONTOS_REAL = catalogo_pontos_padrao()
 
 exige_catalogo_real = pytest.mark.skipif(
@@ -54,7 +58,7 @@ CONFIGURACAO = {
 def referencia_do_notebook(familia):
     """Configuração de exemplo e resultados impressos pelo notebook de exportação da família."""
     caderno = json.loads(
-        (PASTA_EXPORTACAO / f"exportacao_{familia}.ipynb").read_text(encoding="utf-8")
+        (PASTA_EXPORTACAO / NOTEBOOK_DE_EXPORTACAO[familia]).read_text(encoding="utf-8")
     )
     celulas = [c for c in caderno["cells"] if c["cell_type"] == "code"]
     codigo = "\n".join("".join(c["source"]) for c in celulas)
@@ -71,6 +75,11 @@ def referencia_do_notebook(familia):
 
     def total(rotulo):
         return int(re.search(rf"{rotulo}: (\d+)", impresso).group(1))
+
+    # O repositório guarda os notebooks sem saídas (critérios de publicação e NDA): a referência só
+    # existe depois de o notebook ser executado com a base real.
+    if "Maior previsão:" not in impresso:
+        pytest.skip("notebook de exportação salvo sem saídas; execute-o com a base real para comparar")
 
     estados = re.findall(
         r"^(acima_do_limite|banda_de_incerteza|dentro_do_limite)\s+(\d+)$", impresso, re.MULTILINE
@@ -200,7 +209,8 @@ def test_lista_principal_vem_ordenada_por_estado_e_folga(registro_final, catalog
 def test_cada_subsistema_usa_o_modelo_final_decidido_na_secao_4_4(registro_final):
     decididos = {}
 
-    for caminho in PASTA_RESULTADOS.glob("*.json"):
+    # Os registros 01 a 06 são os seis datasets validados; o 07, de AC Blower Inlet, não tem decisão.
+    for caminho in PASTA_RESULTADOS.glob("0[1-6]_*.json"):
         registro = json.loads(caminho.read_text(encoding="utf-8"))
         decididos[registro["area"]] = registro["final"]
 
