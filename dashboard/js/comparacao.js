@@ -1,10 +1,9 @@
 /* Comparação lado a lado de configurações candidatas (RF-11).
  *
  * A tela não calcula estado de risco: `estado`, folga e severidade já vêm
- * prontos em js/dados_comparacao.js, no mesmo arranjo em que js/triagem.js
- * recebe os seus de js/dados_triagem.js. RN-01 e RN-02 moram no dado, e é
- * por isso que as duas telas não podem divergir — não há duas implementações
- * da regra para sair de sincronia.
+ * prontos no catálogo do modelo (`GET /catalogo`, em CATALOGO_MODELO), pela
+ * mesma inferência que dá à triagem a previsão dela. RN-01 e RN-02 moram no
+ * dado, e por isso as duas telas não divergem.
  *
  * O que existe aqui é leitura: escolher configurações, justapor colunas,
  * medir a distância entre elas e ordenar por essa distância.
@@ -43,6 +42,14 @@
 
   var POR_ID = {};
   CFGS.forEach(function (c) { POR_ID[c.id] = c; });
+
+  // A configuração consultada, quando ela é uma das históricas: abre a comparação.
+  var DA_CONSULTA = null;
+  if (typeof DADOS_TRIAGEM !== "undefined" && typeof PREVISAO_SESSAO !== "undefined") {
+    CFGS.forEach(function (c) {
+      if (!DA_CONSULTA && PREVISAO_SESSAO.mesmaConfiguracao(c.fatores, DADOS_TRIAGEM.configuracao)) DA_CONSULTA = c.id;
+    });
+  }
 
   // RN-03 separa os dois universos já na carga: o resto da tela nunca precisa
   // reencontrar quem tem limite declarado.
@@ -1922,8 +1929,9 @@
     // RNF-06: toda previsão exibida acompanhada do identificador de versão.
     document.getElementById("trace-note").textContent =
       estado.sel.join(" · ") + " · referência " + estado.ref +
-      " · modelo " + D.versao_modelo + ". " + D.config_referencia_triagem +
-      " é a mesma configuração da tela de triagem, e reproduz aquele resultado ponto a ponto.";
+      " · modelo " + D.versao_modelo + "." + (DA_CONSULTA
+        ? " " + DA_CONSULTA + " é a configuração consultada, e reproduz a tela de triagem ponto a ponto."
+        : "");
   }
 
 
@@ -2002,7 +2010,7 @@
 
   var inicial = lerUrl();
   if (inicial.length < 2) {
-    inicial = [D.config_referencia_triagem, promissora.id];
+    inicial = [DA_CONSULTA || CFGS[0].id, promissora.id];
     if (inicial[0] === inicial[1]) inicial[1] = CFGS[0].id;
   }
   estado.sel = inicial;

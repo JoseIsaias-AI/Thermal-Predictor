@@ -266,11 +266,16 @@ var API_PREDICAO = (function () {
      engenharia exibe (`js/desempenho_modelo.js`). */
   function desempenho(opcoes) { return obter("/desempenho", opcoes); }
 
+  /* `GET /catalogo`: as configurações históricas com a previsão do modelo para
+     cada uma (`js/catalogo_modelo.js`). */
+  function catalogo(opcoes) { return obter("/catalogo", opcoes); }
+
   return {
     baseDaApi: baseDaApi,
     saude: saude,
     modelos: modelos,
     desempenho: desempenho,
+    catalogo: catalogo,
     versaoDaSaude: versaoDaSaude,
     montarCorpo: montarCorpo,
     prever: prever,
