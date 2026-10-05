@@ -10,6 +10,11 @@
 
   var MODEL_VERSION = "stub";
   var TELA_RESULTADO = "triagem.html";
+  /* A previsão não cabe em query string, então viaja por sessionStorage. A
+     tela de resultado confere a configuração guardada contra a que veio na
+     URL antes de usar: assim um link antigo não mostra a previsão de outra
+     consulta. */
+  var CHAVE_PREVISAO = "thermal_predictor.previsao";
 
   var form = document.getElementById("prediction-form");
   var fieldsContainer = document.getElementById("factor-fields");
@@ -101,6 +106,52 @@
     });
   }
 
+  /* `Pyro` e "sem perda declarada" são a mesma condição na base: nas rodadas da base, as de
+     Pyro são exatamente as rodadas sem perda, e a codificação descartou `losses_present_none`
+     por ser idêntica a `Run_Case_Pyro` (Seção 4.2.2d). A API recusa a combinação que não
+     existe, dos dois lados, e oferecer na tela um caminho que termina em erro é pior que
+     não oferecer: aqui o formulário fica impedido de expressá-la.
+
+     O que se desabilita é a *opção*, nunca o `select`: `collectInput` deixa de fora todo
+     campo desabilitado, e um `losses.present` ausente bloquearia o envio em vez de
+     corrigi-lo. */
+  function applyPyroEquivalence() {
+    var runCase = form.elements.run_case;
+    var present = form.elements["losses.present"];
+
+    if (!runCase || !present) return;
+
+    function opcao(valor) {
+      return Array.prototype.filter.call(present.options, function (o) {
+        return o.value === valor;
+      })[0];
+    }
+
+    var semPerda = opcao("none");
+    var comPerda = opcao("declared");
+    var semDado = opcao("missing");
+
+    var sync = function () {
+      var pyro = runCase.value === "Pyro";
+
+      if (semPerda) semPerda.disabled = !pyro;
+      if (comPerda) comPerda.disabled = pyro;
+      if (semDado) semDado.disabled = pyro;
+
+      var alvo = pyro ? "none" : "declared";
+
+      // Só mexe no valor quando o escolhido deixou de ser possível.
+      if (pyro !== (present.value === "none")) {
+        present.value = alvo;
+        // `requires` de config e ordem escuta `change`, que atribuir valor não dispara.
+        present.dispatchEvent(new Event("change"));
+      }
+    };
+
+    runCase.addEventListener("change", sync);
+    sync();
+  }
+
   function buildForm() {
     SCHEMA.factors.forEach(function (factor) {
       if (factor.subfields && factor.subfields.length > 0) {
@@ -109,6 +160,8 @@
         fieldsContainer.appendChild(buildSelect(factor.key, factor));
       }
     });
+
+    applyPyroEquivalence();
   }
 
   function collectInput() {
@@ -135,6 +188,20 @@
   function showError(message) {
     document.getElementById("error-message").textContent = message;
     errorSection.hidden = false;
+  }
+
+  /* Guardar é melhor esforço: por `file://` o navegador pode recusar o
+     armazenamento, e nesse caso a tela de resultado refaz a consulta. Por isso
+     a falha aqui não interrompe a navegação nem vira erro na tela. */
+  function guardarPrevisao(resultado) {
+    try {
+      window.sessionStorage.setItem(CHAVE_PREVISAO, JSON.stringify({
+        configuracao: resultado.enviado,
+        resposta: resultado.dados
+      }));
+    } catch (semArmazenamento) {
+      // segue sem guardar
+    }
   }
 
   // Campo ausente de `input` foi desabilitado por `requires` e não se
@@ -360,12 +427,38 @@
       return;
     }
 
+    var url = TELA_RESULTADO + "?" + paraQueryString(input);
+
+    /* A previsão sai agora e corre junto com a coreografia, em vez de somar-se
+       a ela: `destino` só resolve quando a resposta volta. É o que o cabeçalho
+       de js/analise.js antecipava — o intervalo da animação vira tempo de
+       cálculo. */
+    var previsao = API_PREDICAO.prever(input);
+
     /* A passagem leva o mesmo modelo que o formulário montou para o centro da
-       tela e navega ao terminar. O destino já sai calculado daqui: o que a
-       animação faz é ocupar o intervalo, não escolher para onde ir. */
+       tela e navega ao terminar. */
     ANALISE.executar({
       palco: palco,
-      destino: TELA_RESULTADO + "?" + paraQueryString(input),
+      destino: function () {
+        return previsao.then(function (resultado) {
+          if (resultado.ok) {
+            guardarPrevisao(resultado);
+            return url;
+          }
+
+          /* Configuração fora do contrato ou falha do servidor param aqui:
+             seguir mostraria número de demonstração como se fosse resposta do
+             modelo. Já API fora do ar é o caso normal de abrir o painel por
+             `file://`, e aí a consulta segue com os valores sintéticos e o
+             aviso que a barra já exibe. */
+          if (resultado.erro.tipo === "validacao" || resultado.erro.tipo === "falha") {
+            showError(resultado.erro.mensagem);
+            return null;
+          }
+
+          return url;
+        });
+      },
       aoExplodir: function (valor) {
         explodido = valor;
         redesenhar({ arrastando: true });

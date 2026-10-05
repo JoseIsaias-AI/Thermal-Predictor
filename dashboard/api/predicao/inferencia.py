@@ -67,11 +67,20 @@ def prever_temperaturas(configuracao, registro):
     return temperaturas
 
 
-def _ponto(termopar, temperatura, ponto_catalogo, tolerancia_fracao):
+def _ponto(termopar, subsistema, temperatura, ponto_catalogo, tolerancia_fracao):
+    """Registro de um ponto, na forma que as telas consomem.
+
+    `subsistema` vem de quem previu, e não do catálogo, porque área e modelo não são a
+    mesma coisa: `Main Vent Sys` é atendida por dois modelos — o dela e o de
+    `AC Blower Inlet`, que é o único não validado — e o modelo de `HMI / Knobs / Console`
+    cobre `Oven HMI` e `CT Knobs`. Casar ponto e modelo por `Key_Area` atribuiria os dois
+    pontos não validados a um modelo validado, em silêncio.
+    """
     registro = {
         "measurement_id": ponto_catalogo.measurement_id,
         "TC_Name": termopar,
         "Key_Area": ponto_catalogo.area,
+        "subsistema_modelo": subsistema,
         "temperatura_prevista_c": round(temperatura, 2),
         "limit_c": ponto_catalogo.limite_c,
         "is_monitor_only": ponto_catalogo.so_monitoramento,
@@ -129,8 +138,10 @@ def inferir(configuracao, registro, catalogo_pontos, tolerancia_fracao=TOLERANCI
     temperaturas = prever_temperaturas(configuracao, registro)
     pontos, monitoramento = [], []
 
-    for termopar, (_, temperatura) in temperaturas.items():
-        ponto = _ponto(termopar, temperatura, catalogo_pontos.ponto(termopar), tolerancia_fracao)
+    for termopar, (subsistema, temperatura) in temperaturas.items():
+        ponto = _ponto(
+            termopar, subsistema, temperatura, catalogo_pontos.ponto(termopar), tolerancia_fracao
+        )
         (monitoramento if ponto["estado"] == "monitoramento" else pontos).append(ponto)
 
     pontos.sort(key=lambda p: (ORDEM_ESTADOS.index(p["estado"]), p["margem_c"]))

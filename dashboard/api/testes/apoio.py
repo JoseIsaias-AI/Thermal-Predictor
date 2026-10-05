@@ -15,6 +15,34 @@ CAMINHO_CATALOGO = PASTA_API / "catalogo_modelos.json"
 PASTA_MODELO_FINAL = RAIZ_REPOSITORIO / "modelos" / "modelo_final"
 
 
+# Onde a área do ponto não é o nome do modelo que o prevê. São as duas assimetrias
+# do modelo final, que é uma mescla por área: `AC Blower Inlet` tem modelo próprio
+# mas os seus pontos ficam na área `Main Vent Sys`, e o modelo de
+# `HMI / Knobs / Console` cobre duas áreas. O catálogo real é dado do parceiro e não
+# é versionado; o que fica aqui é só o recorte estrutural, sem nenhuma medição, para
+# o catálogo sintético não apagar a assimetria e com ela a chance de pegar o erro de
+# casar ponto e modelo por `Key_Area`.
+AREA_REAL_DO_TERMOPAR = {
+    "Entrada do soprador P01": "Main Vent Sys",
+    "Entrada do soprador P02": "Main Vent Sys",
+    "HMI P01": "Oven HMI",
+    "HMI P02": "Oven HMI",
+    "HMI P03": "Oven HMI",
+    "HMI P04": "Oven HMI",
+    "Knobs P05": "CT Knobs",
+    "Knobs P06": "CT Knobs",
+    "Knobs P02": "CT Knobs",
+    "Knobs P01": "CT Knobs",
+    "Knobs P03": "CT Knobs",
+    "Knobs P04": "CT Knobs",
+}
+
+
+def area_do_termopar(termopar, subsistema):
+    """Área do ponto no catálogo: a do modelo, menos onde a base real discorda."""
+    return AREA_REAL_DO_TERMOPAR.get(termopar, subsistema)
+
+
 def ler_stub_do_painel():
     """`DADOS_TRIAGEM` de `dashboard/js/dados_triagem.js`: o formato que as telas consomem."""
     texto = CAMINHO_STUB.read_text(encoding="utf-8")
@@ -43,7 +71,13 @@ def gravar_catalogo_sem_familia(pasta):
 
 def gravar_catalogo_pontos_sintetico(pasta, limite_c=150.0):
     """Catálogo de pontos fictício, sem dado do parceiro: todo termopar modelado com o mesmo
-    limite, e os de AC Blower Inlet sem limite, como na base."""
+    limite, e os de AC Blower Inlet sem limite, como na base.
+
+    A `Key_Area` não é inventada igual ao nome do modelo: segue `area_do_termopar`, que
+    reproduz as duas assimetrias da base real. Um catálogo em que área e modelo coincidem
+    deixaria passar o erro de casar os dois por área — justamente nos pontos sem modelo
+    validado, que são os de `AC Blower Inlet`.
+    """
     caminho = Path(pasta) / "catalogo_pontos.csv"
 
     with open(caminho, "w", encoding="utf-8", newline="") as arquivo:
@@ -52,10 +86,13 @@ def gravar_catalogo_pontos_sintetico(pasta, limite_c=150.0):
 
         for metadados in sorted(PASTA_MODELO_FINAL.glob("*.json")):
             modelo = json.loads(metadados.read_text(encoding="utf-8"))
-            area = modelo["conjunto"]
-            sem_limite = area == "AC Blower Inlet"
+            subsistema = modelo["conjunto"]
+            # O limite segue o modelo, e não a área: quem não tem limite declarado é
+            # AC Blower Inlet, cujos pontos moram na área Main Vent Sys.
+            sem_limite = subsistema == "AC Blower Inlet"
 
             for termopar in modelo["codigo_por_termopar"]:
+                area = area_do_termopar(termopar, subsistema)
                 escritor.writerow([
                     termopar, area, f"{termopar} | {area}", "" if sem_limite else limite_c, sem_limite,
                 ])

@@ -46,10 +46,17 @@ def _codificar_perdas(configuracao, vetor):
     if presenca == "missing" and "losses_present_missing" in vetor:
         vetor["losses_present_missing"] = 1.0
 
-    if presenca == "none" and configuracao.get("run_case") != "Pyro":
+    # As duas condições são equivalentes na base, e a equivalência vale nos dois sentidos: na
+    # base, todas as rodadas `Pyro` são exatamente as rodadas sem perda declarada, e `losses_present_none`
+    # foi descartada na codificação por ser idêntica a `Run_Case_Pyro` (Seção 4.2.2d). Recusar
+    # só um dos lados deixava passar `Pyro` com perda declarada: combinação representável nas
+    # colunas, mas que nenhuma rodada mediu, e o modelo responderia extrapolando sem aviso.
+    if (presenca == "none") != (configuracao.get("run_case") == "Pyro"):
         raise ConfiguracaoInvalida(
-            "Combinação sem representação na base: 'sem perda declarada' só ocorre em rodadas "
-            "Pyro, e as duas condições são a mesma coluna na codificação."
+            "Combinação sem representação na base: as rodadas Pyro são exatamente as rodadas "
+            "sem perda declarada, e as duas condições são a mesma coluna na codificação. "
+            f"Recebido run_case={configuracao.get('run_case')!r} com "
+            f"losses.present={presenca!r}."
         )
 
     if presenca != "declared":

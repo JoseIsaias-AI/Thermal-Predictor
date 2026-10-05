@@ -37,3 +37,7 @@ assets/logistica_resultado_teste.png
 assets/rede_ativacao_e_dropout.png
 assets/rede_curva_de_perda.png
 assets/rede_resultado_teste.png
+
+# Logs do servidor de desenvolvimento da API e do chatbot.
+*.stdout.log
+*.stderr.log

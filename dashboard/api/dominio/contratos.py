@@ -175,6 +175,14 @@ class PontoPrevisto(BaseModel):
     measurement_id: str
     TC_Name: str = Field(description="Termopar.")
     Key_Area: str = Field(description="Área do produto em que o termopar fica.")
+    subsistema_modelo: str = Field(
+        description=(
+            "Subsistema cujo modelo previu este ponto, como em `modelos[].subsistema`. "
+            "Não se deduz de `Key_Area`: a área `Main Vent Sys` é atendida por dois "
+            "modelos (`Main Vent Sys` e `AC Blower Inlet`) e o modelo de "
+            "`HMI / Knobs / Console` cobre duas áreas."
+        )
+    )
     temperatura_prevista_c: float
     limit_c: float | None = Field(description="Limite admissível; nulo sem limite declarado (RN-03).")
     is_monitor_only: bool

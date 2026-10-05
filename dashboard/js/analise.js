@@ -2,22 +2,28 @@
  *
  * O painel leva o mesmo modelo 3D que o formulário monta para o centro da
  * tela, abre o produto, varre os pontos de medição e devolve o resultado. Não
- * é enfeite: é o intervalo em que a previsão será calculada quando houver
- * endpoint, e é o que dá ao usuário a noção de que os 78 pontos foram olhados,
- * um a um, na configuração que ele acabou de escolher.
+ * é enfeite: é o intervalo em que a previsão é calculada — `js/app.js` dispara a
+ * chamada a `POST /predicao` junto com a coreografia —, e é o que dá ao usuário a
+ * noção de que os pontos do produto foram olhados, um a um, na configuração que
+ * ele acabou de escolher.
  *
- * Enquanto o preditor for o stub, nada é calculado nesse intervalo. Por isso o
- * rodapé do painel diz, durante a animação, que os valores são de demonstração.
- * Quando a chamada real existir, ela roda aqui dentro e o tempo da coreografia
- * passa a ser tempo de cálculo.
+ * `destino` aceita texto ou função. Com função, a navegação espera o que ela
+ * resolver, e é assim que a chamada de previsão ocupa o intervalo: a coreografia
+ * deixa de ser só espera e passa a ser tempo de cálculo. Resolver `null` cancela
+ * a navegação e devolve o palco ao formulário — o caminho de quem recebeu erro
+ * da API e precisa corrigir a configuração sem perder o que preencheu.
  *
  * Uso, a partir de js/app.js:
  *   ANALISE.executar({ palco, destino, aoExplodir, aoMudarCamera });
+ *   ANALISE.executar({ palco, destino: function () { return promessaDeUrl; }, ... });
  */
 
 var ANALISE = (function () {
   "use strict";
 
+  /* Os pontos do catálogo do produto, que é o que a varredura percorre. Não é a
+     contagem da triagem: o modelo prevê 77 dos 78, e a previsão ainda não chegou
+     enquanto esta animação roda. */
   var TOTAL_DE_PONTOS = 78;
 
   /* A coreografia, em etapas. `ate` é a fração do total já percorrida ao fim da
@@ -75,8 +81,28 @@ var ANALISE = (function () {
     var berco = palco.parentNode;
     var irrelevante = document.querySelector(".page");
 
+    /* Desfaz o véu e devolve o palco ao formulário. Serve ao botão voltar e ao
+       destino que resolve `null`: nos dois casos a pessoa continua na consulta. */
+    function restaurar() {
+      berco.appendChild(palco);
+      painel.hidden = true;
+      painel.setAttribute("aria-hidden", "true");
+      document.body.classList.remove("analisando");
+      if (irrelevante) irrelevante.removeAttribute("aria-hidden");
+    }
+
     function concluir() {
-      window.location.href = opcoes.destino;
+      if (typeof opcoes.destino !== "function") {
+        window.location.href = opcoes.destino;
+        return;
+      }
+
+      // `Promise.resolve` cobre função que devolve texto e função que devolve
+      // promessa, sem o chamador precisar saber qual das duas usou.
+      Promise.resolve(opcoes.destino()).then(function (url) {
+        if (url) window.location.href = url;
+        else restaurar();
+      });
     }
 
     // Abre o véu antes de mover o palco: sem isso o modelo salta pela tela.
@@ -153,10 +179,7 @@ var ANALISE = (function () {
 
     // Devolve o palco ao lugar se a navegação for cancelada pelo botão voltar.
     window.addEventListener("pageshow", function (evento) {
-      if (!evento.persisted) return;
-      berco.appendChild(palco);
-      painel.hidden = true;
-      document.body.classList.remove("analisando");
+      if (evento.persisted) restaurar();
     });
   }
 

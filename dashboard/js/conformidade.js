@@ -15,6 +15,9 @@
   var loading = document.getElementById("loading");
   var errorSection = document.getElementById("error");
 
+  // {Key_Area: [subsistemas sem modelo validado]}, montado na carga.
+  var naoAferidasPorArea = {};
+
   function el(tag, classe, texto) {
     var n = document.createElement(tag);
     if (classe) n.className = classe;
@@ -58,11 +61,53 @@
     document.getElementById("page-title").textContent = texto;
   }
 
+  /* Marca o ponto previsto por modelo que o grupo não validou.
+
+     Existe porque o modelo final é uma mescla por área e as áreas não têm a
+     mesma qualidade: `AC Blower Inlet` não teve modelo aprovado. Sem a marca, os
+     seus pontos apareceriam com o mesmo peso visual dos validados. A pergunta é
+     feita a `PREVISAO_SESSAO`, que casa ponto e modelo por `subsistema_modelo`;
+     nos dados de demonstração, que não trazem o bloco `modelos`, nada é marcado. */
+  function marcaDeModelo(ponto) {
+    if (typeof PREVISAO_SESSAO === "undefined") return null;
+
+    return PREVISAO_SESSAO.marcaDeModelo(document, dados, ponto);
+  }
+
+  function marcaDaArea(subsistemas) {
+    if (typeof PREVISAO_SESSAO === "undefined") return null;
+
+    return PREVISAO_SESSAO.marcaDeSubsistemas(document, subsistemas);
+  }
+
+  /* Quais áreas têm ponto previsto por modelo não validado, e por qual modelo.
+     Percorre os pontos uma vez, antes de desenhar. */
+  function indexarNaoAferidas(dados, pontos) {
+    var porArea = {};
+
+    if (typeof PREVISAO_SESSAO === "undefined") return porArea;
+
+    pontos.forEach(function (p) {
+      if (PREVISAO_SESSAO.pontoAferido(dados, p)) return;
+
+      if (!porArea[p.Key_Area]) porArea[p.Key_Area] = [];
+      if (porArea[p.Key_Area].indexOf(p.subsistema_modelo) < 0) {
+        porArea[p.Key_Area].push(p.subsistema_modelo);
+      }
+    });
+
+    return porArea;
+  }
+
   // Subsistema na segunda linha da célula, como na tabela da triagem.
   function celulaComponente(ponto) {
     var td = document.createElement("td");
     td.appendChild(el("span", "point__name", ponto.TC_Name));
     td.appendChild(el("span", "point__area", ponto.Key_Area));
+
+    var marca = marcaDeModelo(ponto);
+    if (marca) td.appendChild(marca);
+
     return td;
   }
 
@@ -178,7 +223,19 @@
       var tr = document.createElement("tr");
       tr.className = "row--" + r.estado;
 
-      tr.appendChild(celula(r.area));
+      var tdArea = celula(r.area);
+
+      /* A marca sobe para a área porque o recorte do painel é por `Key_Area` e
+         uma área pode ser atendida por mais de um modelo: `Main Vent Sys` reúne
+         pontos do modelo dela, validado, e do de `AC Blower Inlet`, que não é. */
+      var marcaArea = marcaDaArea(naoAferidasPorArea[r.area]);
+
+      if (marcaArea) {
+        tdArea.appendChild(document.createTextNode(" "));
+        tdArea.appendChild(marcaArea);
+      }
+
+      tr.appendChild(tdArea);
       tr.appendChild(celulaEstado(r.estado));
 
       // Sem o componente que sustenta a severidade, o subsistema crítico
@@ -207,6 +264,16 @@
   var COLUNAS_DA_LEITURA = [
     { titulo: "Componente", tipo: "texto", valor: function (p) { return p.TC_Name; } },
     { titulo: "Subsistema", tipo: "texto", valor: function (p) { return p.Key_Area; } },
+    /* Rastreabilidade do modelo final, que é uma mescla: a planilha diz qual
+       modelo previu a linha e se ele foi validado. `Subsistema` não responde
+       isso — a área `Main Vent Sys` sai de dois modelos diferentes. */
+    { titulo: "Modelo", tipo: "texto", valor: function (p) { return p.subsistema_modelo || "—"; } },
+    { titulo: "Modelo validado", tipo: "texto", valor: function (p) {
+      if (typeof PREVISAO_SESSAO === "undefined") return "—";
+      var modelo = PREVISAO_SESSAO.modeloDoPonto(dados, p);
+      if (!modelo || modelo.validado === null || modelo.validado === undefined) return "—";
+      return modelo.validado ? "Sim" : "Não";
+    } },
     { titulo: "Prevista (°C)", tipo: "numero", valor: function (p) { return p.temperatura_prevista_c; } },
     { titulo: "Limite (°C)", tipo: "numero", valor: function (p) { return p.limit_c; } },
     { titulo: "Folga (°C)", tipo: "numero", valor: function (p) { return p.margem_c; } },
@@ -253,6 +320,8 @@
   var mat = LP.maturidade(dados, null, configAtiva);
   var reprovados = LP.reprovados(pontos);
   var contagem = LP.contarEstados(pontos);
+
+  naoAferidasPorArea = indexarNaoAferidas(dados, pontos);
 
   loading.hidden = true;
 
