@@ -199,8 +199,51 @@ var API_PREDICAO = (function () {
       });
   }
 
+  /* Versão do modelo que o serviço carregou, lida de `GET /saude`: a de todos os
+     subsistemas carregados, que saem do mesmo artefato. `null` quando nenhum
+     carregou ou quando discordam — o chip não escolhe uma por conta própria. */
+  function versaoDaSaude(saude) {
+    var lista = (saude && saude.subsistemas) || [];
+    var versoes = {};
+
+    lista.forEach(function (s) {
+      if (s && s.estado === "carregado" && s.versao) versoes[s.versao] = true;
+    });
+
+    var nomes = Object.keys(versoes);
+
+    return nomes.length === 1 ? nomes[0] : null;
+  }
+
+  /* `GET /saude`, com o mesmo contrato de `prever`: a promessa sempre resolve,
+     com `{ok: true, dados}` ou `{ok: false, erro}`. Serviço no ar sem modelo
+     carregado conta como indisponível: ele não tem como prever. */
+  function saude(opcoes) {
+    opcoes = opcoes || {};
+
+    var buscar = opcoes.fetch || (typeof fetch !== "undefined" ? fetch : null);
+    var base = opcoes.base || baseDaApi(opcoes.janela);
+
+    if (!buscar) return Promise.resolve(erro("rede", null, "Este navegador não suporta requisições."));
+
+    return buscar(base + "/saude")
+      .then(function (resposta) {
+        if (!resposta.ok) return erro(tipoDoStatus(resposta.status), resposta.status);
+
+        return resposta.json().then(function (dados) {
+          if (!dados || dados.status === "sem_modelo" || !versaoDaSaude(dados)) {
+            return erro("indisponivel", null);
+          }
+          return { ok: true, dados: dados, versao: versaoDaSaude(dados) };
+        });
+      })
+      .catch(function () { return erro("rede"); });
+  }
+
   return {
     baseDaApi: baseDaApi,
+    saude: saude,
+    versaoDaSaude: versaoDaSaude,
     montarCorpo: montarCorpo,
     prever: prever,
     CAMPOS_OBRIGATORIOS: CAMPOS_OBRIGATORIOS,

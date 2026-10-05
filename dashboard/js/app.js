@@ -8,7 +8,6 @@
 (function () {
   "use strict";
 
-  var MODEL_VERSION = "stub";
   var TELA_RESULTADO = "triagem.html";
   /* A previsão não cabe em query string, então viaja por sessionStorage. A
      tela de resultado confere a configuração guardada contra a que veio na
@@ -470,6 +469,12 @@
        de js/analise.js antecipava — o intervalo da animação vira tempo de
        cálculo. */
     var previsao = API_PREDICAO.prever(input);
+    var totalPrevisto = null;
+
+    // O contador da animação conta até o total de pontos que o modelo previu.
+    previsao.then(function (resultado) {
+      if (resultado.ok) totalPrevisto = resultado.dados.total_pontos;
+    });
 
     /* A passagem leva o mesmo modelo que o formulário montou para o centro da
        tela e navega ao terminar. */
@@ -495,6 +500,7 @@
           return url;
         });
       },
+      totalDePontos: function () { return totalPrevisto; },
       aoExplodir: function (valor) {
         explodido = valor;
         redesenhar({ arrastando: true });
@@ -521,5 +527,12 @@
   });
 
   redesenhar();
-  document.getElementById("model-version").textContent = MODEL_VERSION;
+
+  /* O chip mostra a versão do modelo que o serviço carregou, e só ela: sem
+     resposta de `GET /saude`, ele continua oculto. */
+  API_PREDICAO.saude().then(function (resultado) {
+    if (!resultado.ok) return;
+    document.getElementById("model-version").textContent = resultado.versao;
+    document.getElementById("model-chip").hidden = false;
+  });
 })();

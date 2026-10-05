@@ -15,16 +15,25 @@
  *
  * Uso, a partir de js/app.js:
  *   ANALISE.executar({ palco, destino, aoExplodir, aoMudarCamera });
- *   ANALISE.executar({ palco, destino: function () { return promessaDeUrl; }, ... });
+ *   ANALISE.executar({ palco, destino: function () { return promessaDeUrl; },
+ *                      totalDePontos: function () { return totalDaResposta; }, ... });
  */
 
 var ANALISE = (function () {
   "use strict";
 
-  /* Os pontos do catálogo do produto, que é o que a varredura percorre. Não é a
-     contagem da triagem: o modelo prevê 77 dos 78, e a previsão ainda não chegou
-     enquanto esta animação roda. */
-  var TOTAL_DE_PONTOS = 78;
+  /* Quantos pontos a varredura percorre é o que o modelo previu: `total_pontos`
+     da resposta de `POST /predicao`, que chega durante a animação. Até chegar, o
+     contador espera em zero, sem um total fixo que pudesse divergir do modelo. */
+  function totalValido(total) {
+    return typeof total === "number" && total > 0 ? total : null;
+  }
+
+  // Pontos já percorridos numa fração da passagem, ou zero sem o total.
+  function pontosPercorridos(fracao, total) {
+    var t = totalValido(total);
+    return t ? Math.round(Math.max(0, Math.min(1, fracao)) * t) : 0;
+  }
 
   /* A coreografia, em etapas. `ate` é a fração do total já percorrida ao fim da
      etapa, o que mantém barra, contador e texto no mesmo relógio. */
@@ -74,12 +83,25 @@ var ANALISE = (function () {
     var etapaTexto = elemento("analise-etapa");
     var preenche = elemento("analise-preenche");
     var contador = elemento("analise-pontos");
+    var totalTexto = elemento("analise-total");
     var fim = elemento("analise-fim");
     var varredura = elemento("analise-varredura");
 
     var palco = opcoes.palco;
     var berco = palco.parentNode;
     var irrelevante = document.querySelector(".page");
+
+    function totalAtual() {
+      return totalValido(typeof opcoes.totalDePontos === "function"
+        ? opcoes.totalDePontos()
+        : opcoes.totalDePontos);
+    }
+
+    function mostrarContagem(fracao) {
+      var total = totalAtual();
+      contador.textContent = pontosPercorridos(fracao, total);
+      if (totalTexto) totalTexto.textContent = total || "…";
+    }
 
     /* Desfaz o véu e devolve o palco ao formulário. Serve ao botão voltar e ao
        destino que resolve `null`: nos dois casos a pessoa continua na consulta. */
@@ -120,8 +142,9 @@ var ANALISE = (function () {
     if (movimentoReduzido.matches) {
       etapaTexto.textContent = "Analisando a configuração";
       preenche.style.width = "100%";
-      contador.textContent = TOTAL_DE_PONTOS;
+      mostrarContagem(0);
       setTimeout(function () {
+        mostrarContagem(1);
         fim.hidden = false;
         setTimeout(concluir, ESPERA_NO_FIM);
       }, 600);
@@ -167,7 +190,7 @@ var ANALISE = (function () {
       }
 
       preenche.style.width = (fracao * 100).toFixed(1) + "%";
-      contador.textContent = Math.round(fracao * TOTAL_DE_PONTOS);
+      mostrarContagem(fracao);
 
       if (fracao < 1) { requestAnimationFrame(quadro); return; }
 
@@ -184,7 +207,7 @@ var ANALISE = (function () {
   }
 
   return {
-    TOTAL_DE_PONTOS: TOTAL_DE_PONTOS,
+    pontosPercorridos: pontosPercorridos,
     ETAPAS: ETAPAS,
     DURACAO: DURACAO,
     etapaEm: etapaEm,

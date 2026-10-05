@@ -171,10 +171,6 @@ body.analisando { overflow: hidden; }
   color: var(--color-text-inverse);
 }
 
-/* O aviso de demonstração acompanha a animação: enquanto o preditor for o
-   stub, nada é calculado nesse intervalo e a tela não pode sugerir o contrário. */
-.analise__rodape { color: rgba(255, 255, 255, 0.5); }
-
 /* ----- Conclusão ----- */
 
 .analise__fim {
