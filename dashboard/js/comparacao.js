@@ -218,8 +218,12 @@
      navegadores recusam replaceState — a comparação não depende dele. */
   function gravarUrl() {
     try {
-      var busca = estado.sel.length ? "?cfg=" + estado.sel.join(",") : "";
-      window.history.replaceState(null, "", window.location.pathname + busca);
+      // A configuração consultada continua na URL ao lado da seleção: é dela
+      // que os links do menu partem (js/navegacao.js).
+      var partes = [NAVEGACAO.buscaQueViaja(window.location.search)];
+      if (estado.sel.length) partes.push("cfg=" + estado.sel.join(","));
+      var busca = partes.filter(Boolean).join("&");
+      window.history.replaceState(null, "", window.location.pathname + (busca ? "?" + busca : ""));
     } catch (e) { /* sem histórico: a seleção continua valendo em memória */ }
   }
 
@@ -1981,8 +1985,10 @@
   document.getElementById("lead-over").textContent = promissora.resumo[0];
   document.getElementById("lead-band").textContent = promissora.resumo[1];
   document.getElementById("lead-in").textContent = promissora.resumo[2];
-  document.getElementById("lead-link").href =
-    "triagem.html?" + parametrosDaConfig(promissora);
+  // Este link leva a outra configuração, a do catálogo, e não a consultada.
+  var linkPromissora = document.getElementById("lead-link");
+  linkPromissora.removeAttribute("data-leva-configuracao");
+  linkPromissora.href = "triagem.html?" + parametrosDaConfig(promissora);
   document.getElementById("lead-card").hidden = false;
 
   var inicial = lerUrl();

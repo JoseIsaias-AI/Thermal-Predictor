@@ -152,6 +152,42 @@
     sync();
   }
 
+  /* "Alterar configuração" volta para cá com a configuração na URL: o formulário
+     abre preenchido com ela, e a pessoa muda só o que quer. Os campos seguem a
+     ordem do formulário, que é a das dependências — `run_case` antes de
+     `losses.present`, e este antes de `config` e `order` —, e cada um dispara
+     `change` para as regras de `requires` e de Pyro valerem como no clique. O
+     evento não sobe ao formulário: o selo de peça é para a escolha feita à mão,
+     e o desenho final sai do `redesenhar` da carga. */
+  function preencherDaUrl(busca) {
+    var texto = (busca || "").replace(/^\?/, "");
+
+    if (!texto) return;
+
+    var valores = {};
+
+    texto.split("&").forEach(function (par) {
+      var corte = par.indexOf("=");
+      if (corte < 0) return;
+      valores[decodeURIComponent(par.slice(0, corte))] =
+        decodeURIComponent(par.slice(corte + 1).replace(/\+/g, " "));
+    });
+
+    Array.prototype.forEach.call(form.elements, function (campo) {
+      if (!campo.name || !(campo.name in valores) || !campo.options) return;
+
+      // Valor fora do vocabulário, ou impedido pela regra de Pyro, fica em branco.
+      var possivel = Array.prototype.some.call(campo.options, function (o) {
+        return o.value === valores[campo.name] && !o.disabled;
+      });
+
+      if (!possivel) return;
+
+      campo.value = valores[campo.name];
+      campo.dispatchEvent(new Event("change"));
+    });
+  }
+
   function buildForm() {
     SCHEMA.factors.forEach(function (factor) {
       if (factor.subfields && factor.subfields.length > 0) {
@@ -468,6 +504,7 @@
   });
 
   buildForm();
+  preencherDaUrl(window.location.search);
 
   // Arrasto, roda, pinça, teclado e presets passam todos pela câmera do modelo 3D.
   var presets = document.getElementById("view-preset");

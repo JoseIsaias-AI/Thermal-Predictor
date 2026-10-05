@@ -90,7 +90,7 @@
 
     <span class="push"></span>
 
-    <a class="button" id="lead-link" href="triagem.html">
+    <a class="button" id="lead-link" href="triagem.html" data-leva-configuracao>
       Abrir triagem completa
       <svg width="15" height="12" viewBox="0 0 15 12" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M1 6h12"></path><path d="M9 2l4 4-4 4"></path></svg>
     </a>
@@ -485,6 +485,8 @@
 <!-- schema.js traduz os fatores em rótulos legíveis; fogao.js dá a escala de
      folga; dados_comparacao.js precisa vir antes de comparacao.js. -->
 <script src="js/schema.js?v=3"></script>
+<!-- Repassa a configuração da URL aos links do menu. -->
+<script src="js/navegacao.js?v=1"></script>
 <script src="js/dados_comparacao.js?v=3"></script>
 <script src="js/fogao.js?v=8"></script>
 <script src="js/grafico.js?v=4"></script>

@@ -115,7 +115,7 @@
           <button class="btn btn--ghost" type="button" data-exportar-pdf disabled title="Registro desta análise em PDF, com o resumo e as tabelas das telas de triagem, conformidade e marketing">Exportar PDF</button>
         </div>
       </details>
-      <a class="btn btn--ghost" href="index.html">Alterar configuração</a>
+      <a class="btn btn--ghost" href="index.html" data-leva-configuracao>Alterar configuração</a>
     </div>
   </div>
 
@@ -211,6 +211,8 @@
 <!-- schema.js traduz a configuração em rótulos legíveis; dados_comparacao.js
      é o histórico que RN-05 consulta. Ambos antes de leitura_publicos.js. -->
 <script src="js/schema.js?v=3"></script>
+<!-- Repassa a configuração da URL aos links do menu. -->
+<script src="js/navegacao.js?v=1"></script>
 <script src="js/dados_triagem.js?v=3"></script>
 <!-- Troca o stub pela previsão do modelo, quando houver uma para esta
      configuração. Tem de vir logo aqui: todos os consumidores de
