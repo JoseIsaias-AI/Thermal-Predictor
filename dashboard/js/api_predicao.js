@@ -240,9 +240,9 @@ var API_PREDICAO = (function () {
       .catch(function () { return erro("rede"); });
   }
 
-  /* `GET /modelos`, com o mesmo contrato: os metadados e as métricas de teste de
-     cada subsistema, de onde sai a confiança da previsão (`js/confianca.js`). */
-  function modelos(opcoes) {
+  /* Leitura de um endpoint `GET`, com o mesmo contrato de `prever`: a promessa
+     sempre resolve, com `{ok: true, dados}` ou `{ok: false, erro}`. */
+  function obter(caminho, opcoes) {
     opcoes = opcoes || {};
 
     var buscar = opcoes.fetch || (typeof fetch !== "undefined" ? fetch : null);
@@ -250,7 +250,7 @@ var API_PREDICAO = (function () {
 
     if (!buscar) return Promise.resolve(erro("rede", null, "Este navegador não suporta requisições."));
 
-    return buscar(base + "/modelos")
+    return buscar(base + caminho)
       .then(function (resposta) {
         if (!resposta.ok) return erro(tipoDoStatus(resposta.status), resposta.status);
         return resposta.json().then(function (dados) { return { ok: true, dados: dados }; });
@@ -258,10 +258,19 @@ var API_PREDICAO = (function () {
       .catch(function () { return erro("rede"); });
   }
 
+  /* `GET /modelos`: os metadados e as métricas de teste de cada subsistema, de
+     onde sai a confiança da previsão (`js/confianca.js`). */
+  function modelos(opcoes) { return obter("/modelos", opcoes); }
+
+  /* `GET /desempenho`: as métricas agregadas do modelo final, que a tela de
+     engenharia exibe (`js/desempenho_modelo.js`). */
+  function desempenho(opcoes) { return obter("/desempenho", opcoes); }
+
   return {
     baseDaApi: baseDaApi,
     saude: saude,
     modelos: modelos,
+    desempenho: desempenho,
     versaoDaSaude: versaoDaSaude,
     montarCorpo: montarCorpo,
     prever: prever,

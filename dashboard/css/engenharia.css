@@ -212,42 +212,80 @@
 
 .hyp .table-scroll { margin-bottom: var(--space-3); }
 
-/* ----- Painéis que aguardam o modelo ----- */
+/* ----- Desempenho do modelo final -----
+ *
+ * Um cartão por métrica, no mesmo vocabulário dos números de destaque: filete
+ * em cima, valor grande, e a situação do alvo escrita por extenso. A cor só
+ * marca o alvo não atingido, o número que trava a entrega; atingido não ganha
+ * verde, que seria lido como aprovação (RN-07). */
 
-/* Contorno tracejado: o mesmo recurso que a tela de triagem usa para o bloco
-   de monitoramento, e que aqui diz que o conteúdo ainda não existe. Por
-   dentro, sem caixas: o filete tracejado de cada métrica repete o recado. */
-.panel--pending { border-style: dashed; }
-
-.pending-grid {
+.metric-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
   gap: var(--space-5) var(--space-4);
-  margin-bottom: var(--space-4);
+  margin-bottom: var(--space-5);
 }
 
-.pending {
-  border-top: 2px dashed var(--color-border-strong);
+.metric {
+  border-top: 2px solid var(--color-border-strong);
   padding: var(--space-3) 0 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
-.pending__title {
+.metric--nao_atingido { border-top-color: var(--status-critical); }
+.metric--sem_alvo { border-top-style: dashed; }
+
+.metric__title {
   font-family: var(--font-body);
   font-weight: var(--weight-semibold);
   font-size: var(--size-small);
-  color: var(--color-text);
+  color: var(--color-text-muted);
   margin: 0;
 }
 
-/* O travessão ocupa o lugar do número e mantém a altura do cartão, para a
-   grade não pular quando os valores chegarem. */
-.pending__value {
+.metric__value {
   font-family: var(--font-display);
-  font-weight: var(--weight-light);
+  font-weight: 600;
   font-size: var(--size-metric);
   line-height: 1.1;
-  color: var(--color-text-subtle);
-  margin: var(--space-2) 0;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text);
+  margin: var(--space-2) 0 var(--space-1);
+}
+
+.metric--nao_atingido .metric__value { color: var(--status-critical); }
+
+.metric__value span {
+  font-size: var(--size-subhead);
+  color: var(--color-text-muted);
+  margin-left: var(--space-1);
+}
+
+.metric__detail,
+.metric__target {
+  margin: 0 0 var(--space-1);
+  font-size: var(--size-kicker);
+  line-height: 1.45;
+  color: var(--color-text-muted);
+}
+
+.metric__target { color: var(--color-text-strong); }
+
+.metric__status {
+  display: inline-block;
+  margin: var(--space-1) 0 0;
+  padding: 1px 8px;
+  border: var(--border-width) solid var(--color-border-strong);
+  border-radius: 999px;
+  font-size: var(--size-kicker);
+  font-weight: var(--weight-semibold);
+  color: var(--color-text-strong);
+}
+
+.metric--nao_atingido .metric__status {
+  border-color: var(--status-critical);
+  color: var(--status-critical);
 }
 
 .pending-defs {
@@ -262,19 +300,7 @@
 .pending-defs dt { font-weight: var(--weight-semibold); }
 .pending-defs dd { margin: 0; color: var(--color-text-muted); }
 
-.pending__def {
-  margin: 0 0 var(--space-2);
-  font-size: var(--size-kicker);
-  color: var(--color-text-muted);
-  line-height: 1.5;
-}
-
-.pending__target {
-  margin: 0;
-  font-size: var(--size-kicker);
-  font-weight: var(--weight-semibold);
-  color: var(--color-text-strong);
-}
+.metric-grid + .table-scroll { margin-bottom: var(--space-3); }
 
 /* ----- Gráficos -----
  *
