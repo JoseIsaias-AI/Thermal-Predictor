@@ -8,8 +8,9 @@
 *.db
 *.sql
 
-# Ambiente Python local (não versionar).
+# Ambiente Python local (não versionar), incluindo o da API do painel (README, Passo 6).
 .venv/
+.venv-api/
 __pycache__/
 
 # Cópia de trabalho com dados sintéticos, gerada por notebooks/utils/gerar_dados_sinteticos.py.
