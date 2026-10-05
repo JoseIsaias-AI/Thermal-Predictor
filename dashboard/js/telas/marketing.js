@@ -112,7 +112,7 @@
     if (podem) {
       texto = podem + " de " + total + (podem === 1 ? " tema pode entrar no planejamento de campanha" : " temas podem entrar no planejamento de campanha");
     } else if (aguardam) {
-      texto = "Nenhum tema pronto para planejar; " + aguardam + " aguardam verificação";
+      texto = "Nenhum tema pronto para planejar; " + aguardam + (aguardam === 1 ? " aguarda verificação" : " aguardam verificação");
     } else {
       texto = "Nenhum dos " + total + " temas dá para comunicar agora";
     }
