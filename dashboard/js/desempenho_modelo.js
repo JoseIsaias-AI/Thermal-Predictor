@@ -151,7 +151,7 @@ var DESEMPENHO_MODELO = (function () {
       tr.appendChild(nome);
 
       if (!ds.validado) {
-        var aviso = td("Nenhum modelo validado: " + (ds.motivo || "sem métrica de teste") +
+        var aviso = td((ds.motivo || "Nenhum modelo validado.") +
           " A previsão desta área não apoia decisão.", "is-empty");
         aviso.setAttribute("colspan", "8");
         tr.appendChild(aviso);
@@ -171,6 +171,146 @@ var DESEMPENHO_MODELO = (function () {
     });
   }
 
+  /* ----- Gráficos -----
+     SVG gerado aqui, como os outros da tela (js/engenharia.js), com os mesmos
+     tokens de cor. O valor de cada barra vem escrito ao lado dela: o gráfico
+     mostra a comparação, e o número não depende de ler a escala. */
+
+  var NS = "http://www.w3.org/2000/svg";
+
+  function svgEl(tag, attrs) {
+    var n = document.createElementNS(NS, tag);
+    Object.keys(attrs || {}).forEach(function (k) {
+      if (attrs[k] !== null && attrs[k] !== undefined) n.setAttribute(k, attrs[k]);
+    });
+    return n;
+  }
+
+  function svgTexto(x, y, conteudo, classe, extra) {
+    var t = svgEl("text", extra || {});
+    t.setAttribute("x", x);
+    t.setAttribute("y", y);
+    if (classe) t.setAttribute("class", classe);
+    t.textContent = conteudo;
+    return t;
+  }
+
+  function figura(id, largura, altura, rotulo) {
+    var alvo = document.getElementById(id);
+    if (!alvo) return null;
+    alvo.replaceChildren();
+    var svg = svgEl("svg", { class: "chart chart--desempenho", viewBox: "0 0 " + largura + " " + altura,
+      role: "img", "aria-label": rotulo });
+    alvo.appendChild(svg);
+    return svg;
+  }
+
+  /* Erro do modelo contra a média do ponto, por dataset, no teste isolado. */
+  function graficoPorDataset(d) {
+    var linhas = d.por_dataset.filter(function (ds) { return ds.validado; });
+    var g = d.global;
+    linhas = linhas.concat([{ dataset: "Seis áreas juntas", mae_teste_c: g.mae_teste_c,
+      referencia_mae_teste_c: g.referencia.mae_teste_c, juntas: true }]);
+
+    var ROTULO = 150, X0 = 158, X1 = 470, PASSO = 38, TOPO = 28;
+    var altura = TOPO + linhas.length * PASSO + 8;
+    var maximo = 0;
+    linhas.forEach(function (l) { maximo = Math.max(maximo, l.mae_teste_c, l.referencia_mae_teste_c); });
+
+    var svg = figura("chart-desempenho-dataset", 520, altura,
+      "Erro absoluto médio no teste isolado, modelo final contra a média do ponto: " +
+      linhas.map(function (l) {
+        return l.dataset + ", " + fmt(l.mae_teste_c, 2) + " contra " + fmt(l.referencia_mae_teste_c, 2) + " graus";
+      }).join("; ") + ".");
+    if (!svg) return;
+
+    function px(v) { return X0 + (X1 - X0) * (v / maximo); }
+
+    // Legenda no topo: barra cheia é o modelo, barra clara é a referência.
+    svg.appendChild(svgEl("rect", { x: X0, y: 6, width: 12, height: 8, fill: "var(--color-data)" }));
+    svg.appendChild(svgTexto(X0 + 16, 14, "modelo final", "chart__label"));
+    svg.appendChild(svgEl("rect", { x: X0 + 110, y: 6, width: 12, height: 8, fill: "var(--color-data-band)",
+      stroke: "var(--color-border-strong)", "stroke-width": 1 }));
+    svg.appendChild(svgTexto(X0 + 126, 14, "média do ponto (sem modelo)", "chart__label"));
+
+    linhas.forEach(function (l, i) {
+      var y = TOPO + i * PASSO;
+      if (l.juntas) {
+        svg.appendChild(svgEl("line", { x1: 0, y1: y - 4, x2: 520, y2: y - 4,
+          stroke: "var(--color-border)", "stroke-width": 1 }));
+      }
+      svg.appendChild(svgTexto(ROTULO, y + 14, l.dataset, "chart__label" + (l.juntas ? " chart__label--forte" : ""),
+        { "text-anchor": "end" }));
+      svg.appendChild(svgEl("rect", { x: X0, y: y + 3, width: Math.max(1, px(l.mae_teste_c) - X0), height: 13,
+        fill: "var(--color-data)" }));
+      svg.appendChild(svgTexto(px(l.mae_teste_c) + 4, y + 14, fmt(l.mae_teste_c, 2), "chart__valor"));
+      svg.appendChild(svgEl("rect", { x: X0, y: y + 18, width: Math.max(1, px(l.referencia_mae_teste_c) - X0),
+        height: 9, fill: "var(--color-data-band)", stroke: "var(--color-border-strong)", "stroke-width": 1 }));
+      svg.appendChild(svgTexto(px(l.referencia_mae_teste_c) + 4, y + 27, fmt(l.referencia_mae_teste_c, 2),
+        "chart__label"));
+    });
+  }
+
+  /* Aprovação no critério do parceiro por faixa de limite, com o piso. */
+  function graficoPorFaixa(d) {
+    var faixas = d.por_faixa_de_limite;
+    var piso = d.piso_aprovacao_pct;
+    var X0 = 44, X1 = 500, Y0 = 22, Y1 = 170, ALTURA = 222;
+    var passo = (X1 - X0) / faixas.length;
+    var larg = passo * 0.56;
+
+    var svg = figura("chart-desempenho-faixa", 520, ALTURA,
+      "Pontos aprovados no teste isolado por faixa de limite: " + faixas.map(function (f) {
+        return f.faixa + ", " + fmt(f.aprovacao_pct, 1) + " por cento de " + f.pontos + " pontos";
+      }).join("; ") + ". O piso exigido é " + fmt(piso, 0) + " por cento.");
+    if (!svg) return;
+
+    function py(p) { return Y1 - (Y1 - Y0) * (p / 100); }
+
+    [0, 50, 100].forEach(function (p) {
+      svg.appendChild(svgEl("line", { x1: X0, y1: py(p), x2: X1, y2: py(p),
+        stroke: "var(--color-grid)", "stroke-width": 1 }));
+      svg.appendChild(svgTexto(X0 - 6, py(p) + 4, p + "%", "chart__eixo", { "text-anchor": "end" }));
+    });
+
+    faixas.forEach(function (f, i) {
+      var cx = X0 + passo * i + passo / 2;
+      var abaixo = f.aprovacao_pct !== null && f.aprovacao_pct < piso;
+      if (f.aprovacao_pct !== null) {
+        svg.appendChild(svgEl("rect", { x: cx - larg / 2, y: py(f.aprovacao_pct), width: larg,
+          height: Math.max(1, Y1 - py(f.aprovacao_pct)),
+          fill: abaixo ? "var(--status-critical)" : "var(--color-data)" }));
+        svg.appendChild(svgTexto(cx, py(f.aprovacao_pct) - 5, fmt(f.aprovacao_pct, 1) + "%", "chart__valor",
+          { "text-anchor": "middle" }));
+      }
+      svg.appendChild(svgTexto(cx, Y1 + 16, f.faixa, "chart__label chart__label--forte", { "text-anchor": "middle" }));
+      svg.appendChild(svgTexto(cx, Y1 + 32, f.aprovados + " de " + f.pontos + " pontos", "chart__label",
+        { "text-anchor": "middle" }));
+      svg.appendChild(svgTexto(cx, Y1 + 48, "MAE " + fmt(f.mae_medio_c, 2) + " °C", "chart__label",
+        { "text-anchor": "middle" }));
+    });
+
+    // Piso do parceiro: linha cheia, porque é limiar contratado.
+    svg.appendChild(svgEl("line", { x1: X0, y1: py(piso), x2: X1, y2: py(piso),
+      stroke: "var(--color-text)", "stroke-width": 1.5, "stroke-dasharray": "5 3" }));
+    // Rótulo à esquerda, sobre a primeira faixa: à direita ele batia no valor de 100%.
+    svg.appendChild(svgTexto(X0 + 4, py(piso) - 4, "piso de " + fmt(piso, 0) + "%", "chart__label chart__label--forte"));
+  }
+
+  function tabelaPorFaixa(d) {
+    var corpo = document.getElementById("desempenho-faixas-corpo");
+    if (!corpo) return;
+    corpo.replaceChildren();
+    d.por_faixa_de_limite.forEach(function (f) {
+      var tr = el("tr");
+      tr.appendChild(td(f.faixa));
+      tr.appendChild(td(f.aprovados + " de " + f.pontos, "num"));
+      tr.appendChild(td(fmt(f.aprovacao_pct, 1) + "%", "num"));
+      tr.appendChild(td(fmt(f.mae_medio_c, 2), "num"));
+      corpo.appendChild(tr);
+    });
+  }
+
   /* Desenha o painel. `ao_montar` recebe os dados, para a tela preencher o que
      mais depende deles (título, situação dos critérios, gráfico). */
   function montar(d, modelos, opcoes) {
@@ -185,6 +325,9 @@ var DESEMPENHO_MODELO = (function () {
       avaliar(d).forEach(function (m) { grade.appendChild(cartao(m)); });
     }
     if (corpo) tabelaPorDataset(corpo, d, modelos);
+    graficoPorDataset(d);
+    graficoPorFaixa(d);
+    tabelaPorFaixa(d);
     if (origem) {
       origem.textContent = "Modelo " + d.versao_modelo + " · métricas de GET /desempenho, gravadas por " +
         d.origem + ". " + d.observacao;

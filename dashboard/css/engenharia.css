@@ -302,6 +302,17 @@
 
 .metric-grid + .table-scroll { margin-bottom: var(--space-3); }
 
+/* Os dois gráficos do desempenho lado a lado quando cabem; um abaixo do
+   outro em tela estreita ou com fonte ampliada. */
+.chart-pair {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 26rem), 1fr));
+  gap: var(--space-5);
+  margin-bottom: var(--space-4);
+}
+
+.chart-pair .chart-figure { margin: 0; min-width: 0; }
+
 /* ----- Gráficos -----
  *
  * Desenhados em SVG por js/engenharia.js. Sem preenchimento decorativo, sem
