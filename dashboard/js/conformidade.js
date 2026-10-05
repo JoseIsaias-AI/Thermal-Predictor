@@ -127,7 +127,7 @@
 
   /* ----- Cabeçalho de rastreabilidade (RF-23) ----- */
 
-  function renderConfiguracao(config, mat, veioDaUrl) {
+  function renderConfiguracao(config, mat) {
     var lista = document.getElementById("config-list");
 
     function item(rotulo, valor) {
@@ -168,8 +168,6 @@
     // Sem o catálogo das rodadas não há como dizer se a combinação é nova: sem selo.
     selo.hidden = mat.no_historico === null;
 
-    var nota = document.getElementById("config-default-note");
-    nota.hidden = veioDaUrl;
 
     // A versão acompanha toda previsão exibida.
     document.getElementById("model-version").textContent = mat.versao_modelo || "—";
@@ -323,7 +321,7 @@
 
   loading.hidden = true;
 
-  renderConfiguracao(configAtiva, mat, configDaUrl !== null);
+  renderConfiguracao(configAtiva, mat);
   renderTitulo(contagem, pontos.length - contagem.monitoramento);
   renderTally(contagem);
   renderReprovados(reprovados, pontos.length - contagem.monitoramento);

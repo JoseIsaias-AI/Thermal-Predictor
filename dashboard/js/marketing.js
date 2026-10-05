@@ -127,7 +127,7 @@
 
   /* ----- Configuração consultada ----- */
 
-  function renderConfiguracao(config, mat, veioDaUrl) {
+  function renderConfiguracao(config, mat) {
     var lista = document.getElementById("config-list");
 
     LP.linhasDaConfiguracao(config).forEach(function (linha) {
@@ -147,7 +147,6 @@
       : "Nenhuma rodada anterior combina estas escolhas. A leitura é uma projeção, e tende a mudar mais que a de uma configuração já simulada.";
     selo.hidden = mat.no_historico === null;
 
-    document.getElementById("config-default-note").hidden = veioDaUrl;
     document.getElementById("config-panel").hidden = false;
   }
 
@@ -275,7 +274,7 @@
   MODO_LEITURA.iniciar();
 
   document.getElementById("model-version").textContent = mat.versao_modelo || "—";
-  renderConfiguracao(configAtiva, mat, configDaUrl !== null);
+  renderConfiguracao(configAtiva, mat);
   renderTitulo(leituras);
   renderTemas(leituras);
   renderMaturidade(mat);

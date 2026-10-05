@@ -77,7 +77,7 @@
 
   /* ----- Configuração avaliada ----- */
 
-  function renderConfiguracao(config, veioDaUrl) {
+  function renderConfiguracao(config) {
     var lista = document.getElementById("config-list");
 
     LP.linhasDaConfiguracao(config).forEach(function (linha) {
@@ -89,7 +89,6 @@
       lista.appendChild(bloco);
     });
 
-    document.getElementById("config-default-note").hidden = veioDaUrl;
     document.getElementById("config-panel").hidden = false;
   }
 
@@ -440,7 +439,7 @@
   loading.hidden = true;
 
   document.getElementById("model-version").textContent = dados.versao_modelo || "—";
-  renderConfiguracao(configAtiva, configDaUrl !== null);
+  renderConfiguracao(configAtiva);
   renderContato(pecas);
   /* Efeito dos fatores e alternativas comparam configurações do catálogo
      histórico com a previsão do modelo para cada uma. Sem o catálogo, os dois

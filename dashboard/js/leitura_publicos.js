@@ -568,7 +568,7 @@ var LEITURA_PUBLICOS = (function () {
      traço, não uma data inventada (RF-18, RNF-06). */
   function maturidade(dados, catalogo, configuracao) {
     // A configuração avaliada pode vir da querystring e ser outra que a do
-    // payload; é ela que RN-05 localiza, não a do dado de exemplo.
+    // payload; é ela que RN-05 localiza.
     var cfg = configuracao || (dados && dados.configuracao);
     var cat = catalogo || catalogoDoModelo();
     var lista = (cat && cat.configuracoes) || null;

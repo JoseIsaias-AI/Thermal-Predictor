@@ -1472,7 +1472,7 @@
 
   // A configuração chega na query string, montada pela tela de consulta.
 
-  function renderConfiguracao(config, veioDaUrl) {
+  function renderConfiguracao(config) {
     var lista = document.getElementById("config-list");
 
     // Cada fator num bloco próprio: a lista é grade, e não nove linhas
@@ -1493,7 +1493,6 @@
       lista.appendChild(item);
     });
 
-    document.getElementById("config-default-note").hidden = veioDaUrl;
     document.getElementById("config-panel").hidden = false;
   }
 
@@ -1507,7 +1506,7 @@
   var configAtiva = configDaUrl || DADOS_TRIAGEM.configuracao;
   DADOS = LEITURA_PUBLICOS.fonte();
   geometria = geometriaDaConfig(configAtiva);
-  renderConfiguracao(configAtiva, configDaUrl !== null);
+  renderConfiguracao(configAtiva);
 
   // Mesmo payload da tabela: o resumo não tem outra fonte de número.
   RESUMO_EXECUTIVO.montar(document.getElementById("resumo-exec"), DADOS,
