@@ -1,6 +1,6 @@
 """A documentação gerada pelo FastAPI descreve os três endpoints."""
 
-CAMINHOS = ("/saude", "/schema", "/modelos")
+CAMINHOS = ("/saude", "/schema", "/modelos", "/desempenho")
 
 
 def test_openapi_descreve_os_tres_endpoints(cliente):
