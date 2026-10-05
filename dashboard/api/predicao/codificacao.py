@@ -18,7 +18,7 @@ REFERENCIAS = {
     "Material_Coil_Support": "Aluminium",
 }
 
-# "Open - Updated" foi tratado como "Open" na construção das tabelas (notebooks 06 a 11).
+# "Open - Updated" foi tratado como "Open" na construção das tabelas (notebooks 2.4.1 a 2.4.6).
 SINONIMOS = {"Open - Updated": "Open"}
 
 COLUNA_TERMOPAR = "codigo_termopar"

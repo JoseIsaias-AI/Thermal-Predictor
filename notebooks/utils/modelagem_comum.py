@@ -1,4 +1,4 @@
-"""Definições comuns aos notebooks de modelagem (12 a 16).
+"""Definições comuns aos notebooks de modelagem, avaliação e implantação (3.1 em diante).
 
 A comparação entre algoritmos só é justa se todos usarem a mesma base, a mesma divisão entre treino
 e teste, as mesmas métricas e os mesmos modelos. Este módulo concentra essas definições; cada
@@ -6,6 +6,7 @@ notebook importa daqui e fica apenas com o que é próprio do algoritmo que apre
 """
 import copy
 import os
+from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -58,6 +59,16 @@ PARTICOES_VALIDACAO = 5
 FRACAO_TOLERANCIA = 0.10
 PISO_APROVACAO = 0.90
 
+# Tolerâncias para conferir um modelo reconstruído contra o erro registrado. Até 0,005 °C, a
+# reprodução é exata (o registro guarda o MAE com dez casas, e a documentação o publica com duas).
+# Os registros e os modelos versionados foram gerados em processador x86-64; em outra arquitetura,
+# como a ARM dos Macs com Apple Silicon, a ordem das operações de ponto flutuante muda e pode
+# desfazer de outro jeito um empate entre cortes de uma árvore. Medido nos seis modelos finais, o
+# efeito chega a 0,04 °C no MAE de teste, sem mudar nenhuma contagem do critério do parceiro; até
+# 0,05 °C, a diferença é tratada como alerta de plataforma, e não como erro.
+TOLERANCIA_EXATA_C = 0.005
+TOLERANCIA_PLATAFORMA_C = 0.05
+
 
 def configurar_graficos():
     plt.rcParams.update({
@@ -66,35 +77,50 @@ def configurar_graficos():
     })
 
 
-def caminho_dado(nome):
-    """Procura um arquivo perto do diretório de trabalho e da pasta `notebooks/`.
+def raiz_do_projeto():
+    """Pasta do projeto: a mais próxima, subindo a partir do diretório de trabalho, com `notebooks/utils/`.
 
-    Os notebooks ficam em subpastas por fase do CRISP-DM, e os CSVs de dados ficam em
-    `notebooks/`. As raízes cobrem execução a partir da subpasta, de `notebooks/` ou da raiz do
-    repositório, além da própria pasta deste módulo, que é o caso do Colab.
+    Vale para a execução a partir de qualquer subpasta de `notebooks/`, da própria `notebooks/` ou
+    da raiz, e também para a cópia `ambiente_sintetico/`, que tem a sua própria `notebooks/utils/` e
+    por isso é encontrada antes do repositório. Fora do projeto, como no Colab, devolve `None`.
     """
-    aqui = os.path.dirname(os.path.abspath(__file__))
+    for pasta in (Path.cwd(), *Path.cwd().parents):
+        if (pasta / "notebooks" / "utils").is_dir():
+            return pasta
 
-    for raiz in (".", "..", os.path.join("..", ".."), "notebooks", aqui):
-        destino = os.path.join(raiz, nome)
+    return None
 
-        if os.path.isfile(destino):
-            return destino
 
-    raise FileNotFoundError(f"Arquivo não encontrado: {nome}")
+def caminho_projeto(*partes):
+    """Caminho de um arquivo do projeto (modelos, resultados, documentação) a partir da raiz."""
+    raiz = raiz_do_projeto()
+    return os.path.join(raiz if raiz is not None else ".", *partes)
+
+
+def caminho_dado(nome):
+    """Procura um arquivo de dados no diretório de trabalho e na pasta `notebooks/` do projeto.
+
+    A planilha do parceiro e os CSVs gerados a partir dela ficam em `notebooks/`, fora do Git. No
+    Colab, os arquivos enviados ficam no diretório de trabalho ou ao lado deste módulo.
+    """
+    raiz = raiz_do_projeto()
+    aqui = Path(__file__).resolve().parent
+    pastas = [Path.cwd()] + ([raiz / "notebooks"] if raiz is not None else []) + [aqui, aqui.parent]
+
+    for pasta in pastas:
+        if (pasta / nome).is_file():
+            return str(pasta / nome)
+
+    raise FileNotFoundError(f"Arquivo não encontrado: {nome}. Veja em notebooks/README.md como "
+                            "fornecer a base de dados.")
 
 
 def salvar_figura(fig, nome):
-    """Grava a figura na pasta de imagens da documentação."""
-    for raiz in (".", "..", os.path.join("..", ".."), os.path.join("..", "..", "..")):
-        destino = os.path.join(raiz, "assets")
-
-        if os.path.isdir(destino):
-            fig.savefig(os.path.join(destino, nome), dpi=150, bbox_inches="tight")
-            return
-
-    os.makedirs("figuras", exist_ok=True)
-    fig.savefig(os.path.join("figuras", nome), dpi=150, bbox_inches="tight")
+    """Grava a figura em `assets/`, a pasta de imagens da documentação, ou em `figuras/` no Colab."""
+    raiz = raiz_do_projeto()
+    destino = raiz / "assets" if raiz is not None and (raiz / "assets").is_dir() else Path("figuras")
+    destino.mkdir(parents=True, exist_ok=True)
+    fig.savefig(destino / nome, dpi=150, bbox_inches="tight")
 
 
 # ------------------------------------------------------------------------------------------------
@@ -111,8 +137,7 @@ def carregar_base(incluir_simulacao=False, caminho_simulacao="simulacao_fem.csv"
     Com `incluir_simulacao`, as linhas simuladas por `fem_termico.py` são acrescentadas às medidas, e
     a tabela ganha as colunas `origem` e `peso`, conforme o contrato de
     `documents/extras/projeto-integracao-fem.md`. O padrão é desligado, e nesse caso a tabela
-    devolvida é exatamente a mesma de antes desta extensão, o que mantém intactos os notebooks 12 a
-    20.
+    devolvida é exatamente a mesma de antes desta extensão, o que mantém intactos os notebooks de modelagem e de aumento de dados.
     """
     catalogo = (
         pd.read_csv(caminho_dado("dataset_completo_com_flags_de_auditoria.csv"))
@@ -427,7 +452,7 @@ def _prever_area(algoritmo, hiperparametros, base, area, treino, alvo):
 
 
 def prever_por_area(algoritmo, hiperparametros, base, treino, alvo):
-    """Um modelo por área, como nos notebooks 12 e 13; devolve a previsão na ordem de `alvo`."""
+    """Um modelo por área, como nos notebooks 3.1 e 3.2; devolve a previsão na ordem de `alvo`."""
     saidas = Parallel(n_jobs=-1)(
         delayed(_prever_area)(algoritmo, hiperparametros, base, area, treino, alvo)
         for area in CONJUNTOS
@@ -501,7 +526,7 @@ def treinar_rede(base, treino, alvo, c, semente, registrar_curva=False, adiciona
     quando `registrar_curva` pede o erro nele para desenhar a curva, e nunca decide nada.
 
     `adicionais` recebe linhas sintéticas, um DataFrame com as colunas de configuração,
-    `indice_termopar` e `Value`, usado em `17_estudo_aumento_de_dados.ipynb`. Elas entram só nos
+    `indice_termopar` e `Value`, usado em `1_aumento_de_dados_sinteticos.ipynb`. Elas entram só nos
     lotes de ajuste dos pesos, sorteadas a cada época: a parada antecipada, a padronização e a média
     de referência de cada termopar continuam estimadas apenas nas leituras reais.
     """

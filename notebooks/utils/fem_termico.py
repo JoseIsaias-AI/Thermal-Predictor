@@ -90,7 +90,7 @@ class ErroDeSimulacao(RuntimeError):
 # ------------------------------------------------------------------------------------------------
 
 def malha_retangular(largura, altura, elementos_x, elementos_y):
-    """Nós em grade e dois triângulos por célula, como no estudo do notebook 21."""
+    """Nós em grade e dois triângulos por célula, como no estudo do notebook `estudos_complementares/fem/1_estudo_fem.ipynb`."""
     if min(elementos_x, elementos_y) < 1:
         raise ErroDeSimulacao("malha: são necessários ao menos um elemento em cada direção.")
 
