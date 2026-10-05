@@ -6,7 +6,7 @@ from api.main import criar_app
 from api.predicao.catalogo_pontos import carregar_catalogo_pontos
 from api.predicao.inferencia import inferir
 
-from .apoio import ler_stub_do_painel, montar_configuracao
+from .apoio import ler_fixture_do_painel, montar_configuracao
 
 EXEMPLO = {
     "blower_direction": "To Front",
@@ -47,14 +47,14 @@ def test_exemplo_publicado_no_contrato_e_aceito(cliente_predicao):
 
 
 def test_resposta_tem_o_formato_que_o_painel_consome(cliente_predicao):
-    stub = ler_stub_do_painel()
-    corpo = cliente_predicao.post("/predicao", json=stub["configuracao"]).json()
+    fixture = ler_fixture_do_painel()
+    corpo = cliente_predicao.post("/predicao", json=fixture["configuracao"]).json()
 
-    # Contém o que o stub tem, e pode conter mais: `subsistema_modelo` é da
-    # resposta, e não do dado de demonstração. Ver test_inferencia.py.
-    assert set(stub) <= set(corpo)
-    assert set(stub["pontos"][0]) <= set(corpo["pontos"][0])
-    assert set(stub["monitoramento"][0]) <= set(corpo["monitoramento"][0])
+    # Contém tudo o que a fixture dos testes do painel tem, e pode conter mais.
+    # Ver test_inferencia.py.
+    assert set(fixture) <= set(corpo)
+    assert set(fixture["pontos"][0]) <= set(corpo["pontos"][0])
+    assert set(fixture["monitoramento"][0]) <= set(corpo["monitoramento"][0])
 
 
 def test_endpoint_devolve_o_mesmo_que_a_funcao_de_inferencia(cliente_predicao):

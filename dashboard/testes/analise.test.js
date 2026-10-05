@@ -102,12 +102,21 @@ test("a suavização preserva as pontas e é monótona", function () {
 
 test("o contador de pontos não passa do total nem fica negativo", function () {
   for (var i = 0; i <= 100; i++) {
-    var lidos = Math.round((i / 100) * ANALISE.TOTAL_DE_PONTOS);
-    assert.ok(lidos >= 0 && lidos <= ANALISE.TOTAL_DE_PONTOS, lidos);
+    var lidos = ANALISE.pontosPercorridos(i / 100, 77);
+    assert.ok(lidos >= 0 && lidos <= 77, lidos);
   }
 
-  assert.equal(Math.round(1 * ANALISE.TOTAL_DE_PONTOS), 78,
-    "o total tem de bater com os 78 pontos de medição do catálogo");
+  assert.equal(ANALISE.pontosPercorridos(1, 77), 77,
+    "o total é o da resposta do modelo, os 77 pontos previstos");
+  assert.equal(ANALISE.pontosPercorridos(1.5, 77), 77);
+  assert.equal(ANALISE.pontosPercorridos(-1, 77), 0);
+});
+
+test("sem a resposta do modelo o contador espera em zero, sem total fixo", function () {
+  [null, undefined, 0, -3, "77"].forEach(function (total) {
+    assert.equal(ANALISE.pontosPercorridos(0.5, total), 0, String(total));
+  });
+  assert.equal(ANALISE.TOTAL_DE_PONTOS, undefined, "o total não pode ser constante do painel");
 });
 
 test("a passagem cabe em poucos segundos", function () {

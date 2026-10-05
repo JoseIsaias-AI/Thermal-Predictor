@@ -199,7 +199,9 @@ test("prever nunca rejeita a promessa", async function () {
   var casos = [
     { fetch: fetchFalso(new Error("rede")) },
     { fetch: fetchFalso(respostaJson(500, {})) },
-    { fetch: null }
+    // Sem `fetch` próprio vale o global do Node; a porta fechada garante a falha
+    // mesmo com a API de verdade no ar na máquina de quem roda o teste.
+    { fetch: null, base: "http://127.0.0.1:9" }
   ];
 
   for (var i = 0; i < casos.length; i += 1) {

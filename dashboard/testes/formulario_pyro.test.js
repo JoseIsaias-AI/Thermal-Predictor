@@ -28,11 +28,12 @@ var vm = require("node:vm");
 var D = require("./dom_duble.js");
 
 var JS = path.join(__dirname, "..", "js");
+var caminho = require("./fonte_painel.js").caminho;
 
+// Os scripts da consulta, na ordem de `index.html`.
 var MODULOS = [
-  "tema.js", "schema.js", "dados_triagem.js", "previsao_sessao.js",
-  "dados_comparacao.js", "fogao.js", "api_predicao.js", "analise.js",
-  "historico_sessao.js"
+  "tema.js", "schema.js", "navegacao.js", "fogao.js", "api_predicao.js",
+  "estado_servico.js", "analise.js", "historico_sessao.js"
 ];
 
 /* Carrega a tela de consulta sobre o DOM dublê e devolve o que o teste precisa
@@ -58,7 +59,7 @@ function montarConsulta() {
 
   MODULOS.forEach(function (arquivo) {
     vm.runInContext(
-      fs.readFileSync(path.join(JS, arquivo), "utf8"), ctx, { filename: arquivo }
+      fs.readFileSync(caminho(arquivo), "utf8"), ctx, { filename: arquivo }
     );
   });
 
@@ -70,7 +71,8 @@ function montarConsulta() {
     "  ENVIADO = entrada;" +
     "  return Promise.resolve({ ok: true, dados: {}, enviado: entrada });" +
     "};" +
-    "ANALISE.executar = function () {};",
+    "ANALISE.executar = function () {};" +
+    "API_PREDICAO.saude = function () { return Promise.resolve({ ok: true, versao: 'final-1.0' }); };",
     ctx
   );
 

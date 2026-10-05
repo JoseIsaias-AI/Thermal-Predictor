@@ -33,6 +33,7 @@ var vm = require("node:vm");
 var D = require("./dom_duble.js");
 
 var JS = path.join(__dirname, "..", "js");
+var caminho = require("./fonte_painel.js").caminho;
 var CSS = path.join(__dirname, "..", "css");
 
 // ------------------------------------------------------------------- payloads
@@ -96,14 +97,13 @@ function resposta() {
   };
 }
 
-/* O dado de demonstração não sai de modelo nenhum: sem bloco `modelos` e sem
-   `subsistema_modelo` nos pontos. Nada pode ser marcado a partir dele. */
-function stub() {
+/* Resposta sem a informação de procedência: sem bloco `modelos` e sem
+   `subsistema_modelo` nos pontos. Nada pode ser marcado a partir dela —
+   ausência de informação não vira marca. */
+function semProcedencia() {
   var r = resposta();
 
   delete r.modelos;
-  r.preditor_e_stub = true;
-  r.versao_modelo = "stub";
   r.pontos.concat(r.monitoramento).forEach(function (p) { delete p.subsistema_modelo; });
 
   return r;
@@ -148,8 +148,8 @@ test("o título da marca nomeia o modelo, não a área do ponto", function () {
   assert.match(marca.title, /não sustenta aprovação/);
 });
 
-test("marcaDeModelo não marca nada a partir do dado de demonstração", function () {
-  var s = stub();
+test("marcaDeModelo não marca nada a partir de resposta sem procedência", function () {
+  var s = semProcedencia();
 
   assert.equal(PS.marcaDeModelo(D.criarDocumento(), s, s.monitoramento[0]), null);
   assert.equal(PS.marcaDeModelo(D.criarDocumento(), s, s.pontos[0]), null);
@@ -188,7 +188,7 @@ test("a classe da marca está definida em css/triagem.css", function () {
 
 test("as telas não repetem a classe por conta própria", function () {
   ["triagem.js", "conformidade.js"].forEach(function (arquivo) {
-    var fonte = fs.readFileSync(path.join(JS, arquivo), "utf8");
+    var fonte = fs.readFileSync(caminho(arquivo), "utf8");
 
     assert.doesNotMatch(
       fonte, new RegExp('"' + PS.CLASSE_MARCA + '"'),
@@ -215,7 +215,7 @@ function renderizar(modulos, tela, dados, extras) {
 
   modulos.concat([tela]).forEach(function (arquivo) {
     vm.runInContext(
-      fs.readFileSync(path.join(JS, arquivo), "utf8"), ctx, { filename: arquivo }
+      fs.readFileSync(caminho(arquivo), "utf8"), ctx, { filename: arquivo }
     );
   });
 
@@ -279,8 +279,8 @@ test("triagem: nenhum ponto de modelo validado é marcado na tabela principal", 
   assert.equal(linhasMarcadas(doc, "screening-body").length, 0);
 });
 
-test("triagem: com o dado de demonstração nenhuma linha é marcada", function () {
-  var doc = renderizarTriagem(stub());
+test("triagem: sem procedência nenhuma linha é marcada", function () {
+  var doc = renderizarTriagem(semProcedencia());
 
   ["screening-body", "monitoring-body"].forEach(function (id) {
     assert.equal(
@@ -312,8 +312,8 @@ test("conformidade: a marca de área não aparece onde todo modelo é validado",
   assert.equal(D.comClasse(mainback, PS.CLASSE_MARCA).length, 0);
 });
 
-test("conformidade: com o dado de demonstração nenhuma marca é montada", function () {
-  var doc = renderizarConformidade(stub());
+test("conformidade: sem procedência nenhuma marca é montada", function () {
+  var doc = renderizarConformidade(semProcedencia());
 
   ["reprovados-body", "subsistemas-body"].forEach(function (id) {
     assert.equal(

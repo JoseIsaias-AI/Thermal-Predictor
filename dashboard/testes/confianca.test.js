@@ -1,9 +1,11 @@
-/* Testes do stub de confiança da previsão.
+/* Testes da confiança da previsão, calculada pelo MAE de teste da área.
  *
  * Rodar da raiz do repositório:  node --test dashboard/testes/confianca.test.js
  *
- * Sem DOM: confianca.js não desenha. O que se verifica é o contrato que o
- * cartão e o halo consomem, e que o stub não encosta no estado de risco.
+ * Sem DOM: confianca.js não desenha. O que se verifica é a regra — faixa
+ * provável = previsto ± MAE; nível alto com |folga| ≥ 2 MAE, médio com ≥ 1 MAE,
+ * baixo abaixo disso —, o caso do subsistema sem modelo validado e que a
+ * confiança não encosta no estado de risco.
  */
 
 "use strict";
@@ -15,75 +17,137 @@ var path = require("node:path");
 var vm = require("node:vm");
 
 var JS = path.join(__dirname, "..", "js");
+var caminho = require("./fonte_painel.js").caminho;
 
-function carregar() {
-  var ctx = vm.createContext({ window: {} });
+/* `GET /modelos` falso, no formato da API: métricas de teste por subsistema, e
+   `AC Blower Inlet` sem modelo validado e sem métrica, como no modelo final. */
+var MODELOS = {
+  modelos: [
+    { subsistema: "Mainback", validado: true, metricas: { mae_c: 6, rmse_c: 12, r2: 0.9 } },
+    { subsistema: "Coil Temps", validado: true, metricas: { mae_c: 7, rmse_c: 10, r2: 0.95 } },
+    { subsistema: "IPC Comp", validado: true, metricas: { mae_c: 14, rmse_c: 18, r2: -0.4 } },
+    { subsistema: "IPC Cooling", validado: true, metricas: { mae_c: 9.7, rmse_c: 17, r2: -0.1 } },
+    { subsistema: "Main Vent Sys", validado: true, metricas: { mae_c: 6.2, rmse_c: 10.5, r2: 0.8 } },
+    { subsistema: "HMI / Knobs / Console", validado: true, metricas: { mae_c: 4.4, rmse_c: 7.9, r2: 0.1 } },
+    { subsistema: "AC Blower Inlet", validado: false, metricas: null }
+  ]
+};
+
+function carregar(janela) {
+  var ctx = vm.createContext({ window: janela || {} });
   ["dados_triagem.js", "confianca.js"].forEach(function (f) {
-    vm.runInContext(fs.readFileSync(path.join(JS, f), "utf8"), ctx, { filename: f });
+    vm.runInContext(fs.readFileSync(caminho(f), "utf8"), ctx, { filename: f });
   });
   return { DADOS: vm.runInContext("DADOS_TRIAGEM", ctx), CONFIANCA: vm.runInContext("CONFIANCA", ctx) };
 }
 
 var M = carregar();
+var C = M.CONFIANCA;
 var TODOS = M.DADOS.pontos.concat(M.DADOS.monitoramento);
 
-test("todo ponto recebe o contrato completo, congelado e marcado como stub", function () {
-  assert.equal(TODOS.length, 78);
+function ponto(folga, extra) {
+  return Object.assign({
+    measurement_id: "Mainback P09 | Mainback",
+    Key_Area: "Mainback",
+    subsistema_modelo: "Mainback",
+    temperatura_prevista_c: 100,
+    limit_c: 100 + folga,
+    margem_c: folga,
+    is_monitor_only: false,
+    estado: "dentro_do_limite"
+  }, extra || {});
+}
+
+test("faixa provável é o previsto mais e menos o MAE da área", function () {
+  var c = C.doPonto(ponto(30), MODELOS);
+  assert.equal(c.mae_c, 6);
+  assert.deepEqual(Array.from(c.faixa_c), [94, 106]);
+});
+
+test("nível pela folga em MAE: alto a partir de 2, médio a partir de 1, baixo abaixo", function () {
+  [[12, "alta"], [20, "alta"], [11.99, "media"], [6, "media"], [5.99, "baixa"], [0, "baixa"]].forEach(function (caso) {
+    assert.equal(C.doPonto(ponto(caso[0]), MODELOS).nivel, caso[1], "folga " + caso[0]);
+  });
+});
+
+test("a folga conta em módulo: acima do limite também pode ter confiança alta", function () {
+  var c = C.doPonto(ponto(-30, { estado: "acima_do_limite" }), MODELOS);
+  assert.equal(c.nivel, "alta");
+  assert.equal(c.folga_em_mae, 5);
+});
+
+test("o MAE é o do modelo que previu o ponto, não o da área", function () {
+  // Mesma área, modelos diferentes: o de Main Vent Sys e o de AC Blower Inlet.
+  var doDuto = ponto(10, { Key_Area: "Main Vent Sys", subsistema_modelo: "Main Vent Sys" });
+  var doInlet = ponto(10, { Key_Area: "Main Vent Sys", subsistema_modelo: "AC Blower Inlet" });
+  assert.equal(C.doPonto(doDuto, MODELOS).mae_c, 6.2);
+  assert.equal(C.doPonto(doInlet, MODELOS).nivel, "sem_modelo");
+});
+
+test("AC Blower Inlet aparece como sem modelo validado, sem faixa nem nível", function () {
+  var inlet = TODOS.filter(function (p) { return p.subsistema_modelo === "AC Blower Inlet"; });
+  assert.equal(inlet.length, 2);
+  inlet.forEach(function (p) {
+    var c = C.doPonto(p, MODELOS);
+    assert.equal(c.nivel, "sem_modelo");
+    assert.equal(c.rotulo, "Sem modelo validado");
+    assert.equal(c.faixa_c, null);
+    assert.equal(c.folga_em_mae, null);
+  });
+});
+
+test("ponto sem limite declarado tem faixa, mas não tem nível", function () {
+  var mono = ponto(0, { limit_c: null, margem_c: null, is_monitor_only: true, estado: "monitoramento" });
+  var c = C.doPonto(mono, MODELOS);
+  assert.equal(c.nivel, "sem_limite");
+  assert.deepEqual(Array.from(c.faixa_c), [94, 106]);
+  assert.equal(C.raioHalo(c), 0, "sem nível, sem halo");
+});
+
+test("sem as métricas do modelo, nenhum nível é inventado", function () {
+  var c = C.doPonto(ponto(30));
+  assert.equal(c.nivel, "desconhecida");
+  assert.equal(c.faixa_c, null);
+  assert.equal(C.raioHalo(c), 0);
+});
+
+test("lê as métricas que a sessão guardou em MODELOS_API", function () {
+  var comSessao = carregar({ MODELOS_API: MODELOS }).CONFIANCA;
+  assert.equal(comSessao.doPonto(ponto(30)).nivel, "alta");
+});
+
+test("todo ponto da resposta recebe o contrato completo e congelado", function () {
   TODOS.forEach(function (p) {
-    var c = M.CONFIANCA.doPonto(p);
-    assert.deepEqual(Object.keys(c).sort(), ["ilustrativo", "incerteza", "nivel", "origem", "rotulo", "valor"]);
-    assert.ok(M.CONFIANCA.ORDEM.indexOf(c.nivel) >= 0, p.measurement_id);
-    assert.equal(c.rotulo, M.CONFIANCA.NIVEIS[c.nivel].rotulo);
-    assert.ok(c.valor >= 0 && c.valor <= 1);
-    assert.ok(Math.abs(c.incerteza - (1 - c.valor)) < 1e-12);
-    assert.equal(c.origem, "stub");
-    assert.equal(c.ilustrativo, true, "stub nunca pode sair sem o aviso de ilustrativo");
+    var c = C.doPonto(p, MODELOS);
+    assert.deepEqual(Object.keys(c).sort(), ["faixa_c", "folga_em_mae", "incerteza", "mae_c", "nivel", "rotulo"]);
+    assert.equal(c.rotulo, C.NIVEIS[c.nivel].rotulo);
     assert.ok(Object.isFrozen(c));
-  });
-});
-
-test("o nível é estável: mesmo ponto, mesmo valor, entre cargas do script", function () {
-  var outra = carregar();
-  TODOS.forEach(function (p) {
-    // JSON: cada contexto vm tem o próprio Object.prototype, e deepEqual estrito compara protótipos.
-    assert.equal(JSON.stringify(M.CONFIANCA.doPonto(p)), JSON.stringify(outra.CONFIANCA.doPonto(p)));
-  });
-});
-
-test("os três níveis aparecem no conjunto, com valores distintos", function () {
-  var vistos = {};
-  TODOS.forEach(function (p) { vistos[M.CONFIANCA.doPonto(p).nivel] = true; });
-  assert.deepEqual(Object.keys(vistos).sort(), ["alta", "baixa", "media"]);
-  var valores = M.CONFIANCA.ORDEM.map(function (n) { return M.CONFIANCA.NIVEIS[n].valor; });
-  assert.ok(valores[0] > valores[1] && valores[1] > valores[2], "alta > média > baixa");
-});
-
-test("o stub lê só o id: estado, temperatura e folga não mudam o nível", function () {
-  TODOS.forEach(function (p) {
-    var disfarce = { measurement_id: p.measurement_id, estado: "acima_do_limite", temperatura_prevista_c: 999, margem_c: -999, margem_percentual: -9, limit_c: 1 };
-    assert.deepEqual(M.CONFIANCA.doPonto(disfarce), M.CONFIANCA.doPonto(p), p.measurement_id);
   });
 });
 
 test("consultar a confiança não altera o dado nem o estado de risco", function () {
   var antes = JSON.stringify(M.DADOS);
-  // Congela cada ponto: em modo estrito, qualquer escrita do stub lançaria.
+  // Congela cada ponto: em modo estrito, qualquer escrita lançaria.
   TODOS.forEach(function (p) { Object.freeze(p); });
-  TODOS.forEach(function (p) { M.CONFIANCA.doPonto(p); });
+  TODOS.forEach(function (p) { C.doPonto(p, MODELOS); });
   assert.equal(JSON.stringify(M.DADOS), antes);
 });
 
 test("raio do halo cresce com a incerteza e parte de fora do anel de seleção", function () {
-  var raios = M.CONFIANCA.ORDEM.map(function (n) {
-    return M.CONFIANCA.raioHalo({ incerteza: 1 - M.CONFIANCA.NIVEIS[n].valor });
-  });
+  var raios = C.ORDEM.map(function (n) { return C.raioHalo({ incerteza: C.NIVEIS[n].incerteza }); });
   assert.ok(raios[0] < raios[1] && raios[1] < raios[2], "alta < média < baixa: " + raios);
   // Anel de seleção do 3D vai até 1,95 unidades de marcador.
-  assert.ok(M.CONFIANCA.raioHalo({ incerteza: 0 }) > 1.95);
+  assert.ok(raios[0] > 1.95);
+  assert.ok(C.raioHalo({ incerteza: C.NIVEIS.sem_modelo.incerteza }) > raios[2], "sem modelo, o maior halo");
   // Proporcional: incremento de raio igual a incremento de incerteza vezes a mesma constante.
-  var a = M.CONFIANCA.raioHalo({ incerteza: 0.2 }), b = M.CONFIANCA.raioHalo({ incerteza: 0.4 }), c = M.CONFIANCA.raioHalo({ incerteza: 0.6 });
+  var a = C.raioHalo({ incerteza: 0.2 }), b = C.raioHalo({ incerteza: 0.4 }), c = C.raioHalo({ incerteza: 0.6 });
   assert.ok(Math.abs((b - a) - (c - b)) < 1e-12);
   // Fora de [0, 1] não explode o desenho.
-  assert.equal(M.CONFIANCA.raioHalo({ incerteza: 5 }), M.CONFIANCA.raioHalo({ incerteza: 1 }));
-  assert.equal(M.CONFIANCA.raioHalo({ incerteza: -1 }), M.CONFIANCA.raioHalo({ incerteza: 0 }));
+  assert.equal(C.raioHalo({ incerteza: 5 }), C.raioHalo({ incerteza: 1 }));
+  assert.equal(C.raioHalo({ incerteza: -1 }), 0);
+});
+
+test("o módulo não traz texto de valor ilustrativo", function () {
+  var fonte = fs.readFileSync(path.join(JS, "confianca.js"), "utf8");
+  assert.doesNotMatch(fonte, /stub|ilustrativ|preliminar|sorteio/i);
 });

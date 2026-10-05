@@ -15,9 +15,10 @@ var path = require("node:path");
 var vm = require("node:vm");
 
 var JS = path.join(__dirname, "..", "js");
+var caminho = require("./fonte_painel.js").caminho;
 var ctx = vm.createContext({ window: {}, setTimeout: setTimeout, clearTimeout: clearTimeout });
 ["dados_triagem.js", "tour.js"].forEach(function (f) {
-  vm.runInContext(fs.readFileSync(path.join(JS, f), "utf8"), ctx, { filename: f });
+  vm.runInContext(fs.readFileSync(caminho(f), "utf8"), ctx, { filename: f });
 });
 var DADOS = vm.runInContext("DADOS_TRIAGEM", ctx);
 var TOUR = vm.runInContext("TOUR", ctx);

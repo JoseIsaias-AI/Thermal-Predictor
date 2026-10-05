@@ -17,11 +17,12 @@ var path = require("node:path");
 var vm = require("node:vm");
 
 var JS = path.join(__dirname, "..", "js");
+var caminho = require("./fonte_painel.js").caminho;
 
 function carregar() {
   var ctx = vm.createContext({ window: {} });
   ["schema.js", "dados_triagem.js", "dados_comparacao.js", "leitura_publicos.js"].forEach(function (f) {
-    vm.runInContext(fs.readFileSync(path.join(JS, f), "utf8"), ctx, { filename: f });
+    vm.runInContext(fs.readFileSync(caminho(f), "utf8"), ctx, { filename: f });
   });
   return {
     DADOS: vm.runInContext("DADOS_TRIAGEM", ctx),
@@ -175,10 +176,17 @@ test("RN-05: a consulta é localizada no histórico pelos seis fatores categóri
     "a configuração exibida na triagem tem de estar entre as compatíveis");
   assert.ok(mat.rodadas > 0);
 
-  // Data-base do treino não existe até haver modelo: a tela mostra o traço.
+  // Sem data-base declarada na resposta, a tela mostra o traço.
   assert.equal(mat.data_base_treino, null);
-  assert.equal(mat.ilustrativo, true);
-  assert.equal(mat.versao_modelo, "stub");
+  assert.equal(mat.versao_modelo, "fixture-teste");
+  assert.equal("ilustrativo" in mat, false, "a maturidade não carrega mais marca de valor ilustrativo");
+});
+
+test("RN-05 sem catálogo do modelo: desconhecido, nunca \"configuração nova\"", function () {
+  var mat = LP.maturidade(M.DADOS, { configuracoes: null });
+  assert.equal(mat.no_historico, null);
+  assert.equal(mat.rodadas, null);
+  assert.equal(mat.configuracao_id, null);
 });
 
 test("configuração fora do vocabulário da base é sinalizada como nova", function () {
@@ -284,7 +292,7 @@ test("RN-05: é a configuração avaliada que se procura no histórico, não a d
     "a da querystring não pode herdar o selo da configuração do payload");
 
   // Os metadados do modelo continuam vindo do payload.
-  assert.equal(LP.maturidade(M.DADOS, M.CATALOGO, daUrl).versao_modelo, "stub");
+  assert.equal(LP.maturidade(M.DADOS, M.CATALOGO, daUrl).versao_modelo, "fixture-teste");
 });
 
 test("os pontos de contato do catálogo são os mesmos dez da triagem", function () {

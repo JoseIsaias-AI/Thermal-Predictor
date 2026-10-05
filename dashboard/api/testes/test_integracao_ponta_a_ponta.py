@@ -86,7 +86,7 @@ def test_campo_obrigatorio_vazio_para_no_painel_sem_ir_a_api(exemplo):
 # ------------------------------------------------------------- volta: API → painel
 
 def test_resposta_da_api_passa_no_validador_do_painel(cliente_predicao, exemplo):
-    """Se este teste cair, a tela volta ao stub em silêncio: é a falha mais cara da cadeia."""
+    """Se este teste cair, nenhuma tela mostra a previsão: é a falha mais cara da cadeia."""
     corpo = painel.montar_corpo(exemplo)
     resposta = cliente_predicao.post("/predicao", json=corpo).json()
 
@@ -101,17 +101,15 @@ def test_configuracao_devolvida_casa_com_a_que_o_painel_compara(cliente_predicao
     assert painel.mesma_configuracao(resposta["configuracao"], corpo) is True
 
 
-def test_tela_exibe_a_previsao_e_nao_o_stub(cliente_predicao, exemplo):
+def test_tela_exibe_a_previsao_do_modelo(cliente_predicao, exemplo):
     """O fluxo completo, do jeito que a tela o vive: query string, armazenamento e decisão."""
     corpo = painel.montar_corpo(exemplo)
     resposta = cliente_predicao.post("/predicao", json=corpo).json()
-    stub = {"versao_modelo": "stub", "preditor_e_stub": True, "pontos": [], "monitoramento": []}
 
     escolha = painel.resolver(
         configuracao=corpo,
         resposta=resposta,
         busca=painel.para_query_string(corpo),
-        stub=stub,
     )
 
     assert escolha["origem"] == "modelo"
@@ -119,7 +117,7 @@ def test_tela_exibe_a_previsao_e_nao_o_stub(cliente_predicao, exemplo):
     assert escolha["dados"]["versao_modelo"] == resposta["versao_modelo"]
 
 
-def test_configuracao_diferente_na_url_volta_ao_stub(cliente_predicao, exemplo):
+def test_configuracao_diferente_na_url_faz_a_tela_pedir_a_previsao(cliente_predicao, exemplo):
     """Link antigo não pode mostrar a previsão de outra consulta sob a configuração atual."""
     corpo = painel.montar_corpo(exemplo)
     resposta = cliente_predicao.post("/predicao", json=corpo).json()
@@ -129,18 +127,19 @@ def test_configuracao_diferente_na_url_volta_ao_stub(cliente_predicao, exemplo):
         configuracao=corpo,
         resposta=resposta,
         busca=painel.para_query_string(outra),
-        stub={"versao_modelo": "stub", "preditor_e_stub": True},
     )
 
-    assert escolha["origem"] == "outra_configuracao"
-    assert escolha["dados"]["preditor_e_stub"] is True
+    # Nenhum valor de reserva: a tela pede a previsão da configuração da URL.
+    assert escolha["origem"] == "a_prever"
+    assert escolha["motivo"] == "outra_configuracao"
+    assert escolha["dados"] is None
 
 
 @pytest.mark.parametrize(
     "campo", ["pontos", "total_pontos", "configuracao", "tolerancia_fracao", "modelos"]
 )
 def test_resposta_sem_campo_do_contrato_e_recusada_pelo_painel(cliente_predicao, exemplo, campo):
-    """Prende a direção da falha: resposta incompleta vira stub, não vira tela pela metade."""
+    """Prende a direção da falha: resposta incompleta é recusada, não vira tela pela metade."""
     corpo = painel.montar_corpo(exemplo)
     resposta = cliente_predicao.post("/predicao", json=corpo).json()
     del resposta[campo]
@@ -159,7 +158,6 @@ def test_valores_exibidos_sao_os_que_o_modelo_devolveu(cliente_predicao, exemplo
         configuracao=corpo,
         resposta=resposta,
         busca=painel.para_query_string(corpo),
-        stub={"versao_modelo": "stub", "preditor_e_stub": True},
     )
 
     assert escolha["dados"]["pontos"] == resposta["pontos"]
@@ -423,7 +421,7 @@ def test_ponto_sem_modelo_validado_chega_marcado_a_tela(cliente_predicao, exempl
         )
 
 
-def test_resposta_sem_o_bloco_modelos_volta_ao_stub(cliente_predicao, exemplo):
+def test_resposta_sem_o_bloco_modelos_e_recusada(cliente_predicao, exemplo):
     """O painel passou a depender da procedência: faltar é formato incompleto."""
     corpo = painel.montar_corpo(exemplo)
     resposta = cliente_predicao.post("/predicao", json=corpo).json()

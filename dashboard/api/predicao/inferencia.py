@@ -3,8 +3,8 @@
 Porte de `prever_configuracao`, dos notebooks `5_implantacao/exportacao_*.ipynb`. Cada termopar é
 previsto pelo modelo do seu subsistema a partir do mesmo vetor de configuração do treino
 (`codificacao.montar_vetor_configuracao`) e recebe o estado de risco de RN-01 contra o limite do
-catálogo de pontos. O resultado tem a forma de `dashboard/js/dados_triagem.js`, que as telas do
-painel já consomem, para a troca do dado de demonstração pelo modelo não mexer nelas.
+catálogo de pontos. O resultado tem a forma que as telas do painel consomem, a mesma da fixture
+dos testes do painel (`dashboard/testes/fixtures/dados_triagem.js`).
 """
 
 from .protocolo import CatalogoIndisponivel, ModeloIndisponivel

@@ -18,10 +18,11 @@ var path = require("node:path");
 var vm = require("node:vm");
 
 var JS = path.join(__dirname, "..", "js");
+var caminho = require("./fonte_painel.js").caminho;
 
 var ctx = vm.createContext({});
 ["dados_comparacao.js", "segura_proxima.js"].forEach(function (f) {
-  vm.runInContext(fs.readFileSync(path.join(JS, f), "utf8"), ctx, { filename: f });
+  vm.runInContext(fs.readFileSync(caminho(f), "utf8"), ctx, { filename: f });
 });
 
 // JSON de ida e volta: objetos do contexto vm não passam em deepEqual com os daqui.

@@ -94,7 +94,7 @@ def montar_corpo(entrada):
 
 
 def resposta_completa(resposta):
-    """Se `previsao_sessao.respostaCompleta` aceita a resposta; falso manda a tela ao stub."""
+    """Se `previsao_sessao.respostaCompleta` aceita a resposta; falso faz a tela pedir de novo."""
     return _executar("saida = PS.respostaCompleta(dados);", resposta)
 
 
@@ -131,14 +131,13 @@ def mesma_configuracao(a, b):
     return _executar("saida = PS.mesmaConfiguracao(dados[0], dados[1]);", [a, b])
 
 
-def resolver(configuracao, resposta, busca, stub):
-    """O que a tela exibiria: a previsão ou o stub, e por quê."""
+def resolver(configuracao, resposta, busca):
+    """O que a tela exibiria: a previsão guardada ou nada (a tela pede de novo), e por quê."""
     return _executar(
-        "saida = PS.resolver({ stub: dados.stub, busca: dados.busca, armazenamento: {"
+        "saida = PS.resolver({ busca: dados.busca, armazenamento: {"
         " getItem: function (chave) {"
         " return chave === PS.CHAVE ? JSON.stringify(dados.guardado) : null; } } });",
         {
-            "stub": stub,
             "busca": busca,
             "guardado": {"configuracao": configuracao, "resposta": resposta},
         },

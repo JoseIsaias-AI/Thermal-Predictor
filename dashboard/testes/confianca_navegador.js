@@ -2,7 +2,7 @@
  *
  * Abrir dashboard/triagem.html, colar este arquivo no console e esperar a
  * tabela. Os pontos são escolhidos pela linha da tabela, como o usuário faz.
- * Cobre um ponto de cada nível do stub, um monitorado (sem limite) e o de nome
+ * Cobre um ponto de cada nível calculado, um monitorado (sem limite) e o de nome
  * mais longo, e aperta o painel para ver o layout se acomodar.
  */
 
@@ -86,12 +86,13 @@
     checar(nome + ": temperatura no cartão", cartao.querySelector(".conf__temp").textContent === p.temperatura_prevista_c.toFixed(2) + " °C",
       cartao.querySelector(".conf__temp").textContent);
     checar(nome + ": nível no cartão", cartao.querySelector(".conf__nivel").textContent === conf.rotulo, cartao.querySelector(".conf__nivel").textContent);
-    checar(nome + ": passos acesos", cartao.querySelectorAll(".conf__passo.is-on").length === CONFIANCA.ORDEM.length - CONFIANCA.ORDEM.indexOf(conf.nivel));
+    var indice = CONFIANCA.ORDEM.indexOf(conf.nivel);
+    checar(nome + ": passos acesos", cartao.querySelectorAll(".conf__passo.is-on").length === (indice < 0 ? 0 : CONFIANCA.ORDEM.length - indice));
 
-    // Rótulo obrigatório de ilustrativo, visível e não só no DOM.
-    var tag = cartao.querySelector(".conf__tag");
-    checar(nome + ": rótulo ilustrativo visível", visivel(tag) && /ilustrativo/i.test(tag.textContent) && /preliminar/i.test(tag.textContent), tag && tag.textContent);
-    checar(nome + ": nota diz que não é métrica", /não é métrica/i.test(cartao.querySelector(".conf__nota").textContent));
+    // Faixa provável quando há MAE, e nenhum rótulo de valor ilustrativo.
+    checar(nome + ": faixa provável", !conf.faixa_c || !!cartao.querySelector(".conf__faixa"));
+    checar(nome + ": sem rótulo ilustrativo", !/ilustrativo|preliminar/i.test(cartao.textContent));
+    checar(nome + ": nota diz que não altera o risco", /não altera o estado de risco/i.test(cartao.querySelector(".conf__nota").textContent));
 
     // Estado de risco intacto, ao lado do cartão.
     var estado = detalhe.querySelector(".detail__state span:last-child").textContent;

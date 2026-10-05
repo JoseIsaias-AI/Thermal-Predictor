@@ -90,10 +90,19 @@ function criarElemento(tag) {
         throw new TypeError("appendChild recebeu " + filho + ": a tela montaria quebrada");
       }
       elemento.children.push(filho);
+      filho.parentNode = elemento;
+      return filho;
+    },
+    insertBefore: function (filho, referencia) {
+      var i = elemento.children.indexOf(referencia);
+      if (i < 0) elemento.children.push(filho);
+      else elemento.children.splice(i, 0, filho);
+      filho.parentNode = elemento;
       return filho;
     },
     removeChild: function (filho) {
       elemento.children = elemento.children.filter(function (c) { return c !== filho; });
+      filho.parentNode = null;
     },
     replaceChildren: function () {
       elemento.children = Array.prototype.slice.call(arguments);
@@ -127,6 +136,10 @@ function criarElemento(tag) {
     querySelectorAll: function (seletor) { return buscar(elemento, seletor); },
     insertAdjacentHTML: function () {}
   };
+
+  Object.defineProperty(elemento, "firstChild", {
+    get: function () { return elemento.children[0] || null; }
+  });
 
   /* `options` de um `select` e `elements` de um `form`, como no DOM real: vistas
      vivas sobre a árvore, e não listas que o teste precisa manter em dia. É o que

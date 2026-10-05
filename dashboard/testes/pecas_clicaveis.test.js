@@ -15,9 +15,10 @@ var path = require("node:path");
 var vm = require("node:vm");
 
 var JS = path.join(__dirname, "..", "js");
+var caminho = require("./fonte_painel.js").caminho;
 var ctx = vm.createContext({ window: {} });
 ["dados_triagem.js", "fogao.js", "painel_peca.js"].forEach(function (f) {
-  vm.runInContext(fs.readFileSync(path.join(JS, f), "utf8"), ctx, { filename: f });
+  vm.runInContext(fs.readFileSync(caminho(f), "utf8"), ctx, { filename: f });
 });
 var FOGAO = vm.runInContext("FOGAO", ctx);
 var DADOS = vm.runInContext("DADOS_TRIAGEM", ctx);
@@ -167,4 +168,49 @@ test("Placa de potência: referência é o ponto que a triagem pôs primeiro", f
   assert.equal(r.referencia, primeiro);
   var soma = r.contagem.acima_do_limite + r.contagem.banda_de_incerteza + r.contagem.dentro_do_limite + r.contagem.monitoramento;
   assert.equal(soma, 37);
+});
+
+test("cada termopar tem lugar fixo: a ordem da lista não muda a posição", function () {
+  var lista = FOGAO.pecas({ placa: "center", alojamento: "closed" });
+  function posicoes(pontos) {
+    var mapa = {};
+    FOGAO.posicionarPontos(pontos, lista).forEach(function (c) { mapa[c.ponto.measurement_id] = c.g.join(","); });
+    return mapa;
+  }
+
+  // A API ordena por risco; outra configuração traz outra ordem.
+  var ordemA = posicoes(TODOS);
+  var invertida = posicoes(TODOS.slice().reverse());
+  var porNome = posicoes(TODOS.slice().sort(function (a, b) { return a.TC_Name < b.TC_Name ? -1 : 1; }));
+
+  assert.equal(Object.keys(ordemA).length, 78);
+  Object.keys(ordemA).forEach(function (id) {
+    assert.equal(invertida[id], ordemA[id], id);
+    assert.equal(porNome[id], ordemA[id], id);
+  });
+
+  var lugares = Object.keys(ordemA).map(function (id) { return ordemA[id]; });
+  assert.equal(new Set(lugares).size, lugares.length, "dois termopares no mesmo lugar");
+});
+
+test("o mapa fixo cobre os 77 pontos do catálogo canônico e o 78º, nunca medido", function () {
+  var SCHEMA = (function () {
+    var c = vm.createContext({});
+    vm.runInContext(fs.readFileSync(caminho("schema.js"), "utf8") + ";this.S = SCHEMA;", c);
+    return c.S;
+  })();
+  var ids = [];
+  SCHEMA.measurement_point_groups.forEach(function (g) {
+    g.points.forEach(function (p) { if (g.area !== "Coil Temps") ids.push(p.value); });
+  });
+  ids.push("IPC Cooling P05 | IPC Cooling");
+
+  ids.forEach(function (id) { assert.ok(FOGAO.POSICAO_DO_TERMOPAR[id], "sem lugar: " + id); });
+  assert.equal(Object.keys(FOGAO.POSICAO_DO_TERMOPAR).length, ids.length);
+});
+
+test("ponto fora do catálogo não ganha o lugar de outro", function () {
+  var lista = FOGAO.pecas({ placa: "center", alojamento: "closed" });
+  var estranho = { measurement_id: "Ponto Novo | IPC Comp", TC_Name: "Ponto Novo", Key_Area: "IPC Comp" };
+  assert.equal(FOGAO.posicionarPontos([estranho], lista).length, 0);
 });

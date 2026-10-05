@@ -22,7 +22,7 @@ from .apoio import (
     PASTA_MODELO_FINAL,
     RAIZ_REPOSITORIO,
     area_do_termopar,
-    ler_stub_do_painel,
+    ler_fixture_do_painel,
     montar_configuracao,
 )
 
@@ -181,17 +181,14 @@ def test_inferencia_preve_todos_os_termopares_com_o_modelo_final(registro_final,
 
 
 def test_payload_tem_o_formato_que_o_painel_consome(registro_final, catalogo_sintetico):
-    stub = ler_stub_do_painel()
+    fixture = ler_fixture_do_painel()
     payload = inferir(CONFIGURACAO, registro_final, catalogo_sintetico)
 
-    # Contém o que o stub tem, e pode conter mais. O ponto da resposta traz
-    # `subsistema_modelo`, que o stub não tem: o dado de demonstração não sai de
-    # modelo nenhum, e os consumidores tratam a ausência como desconhecida
-    # (`js/previsao_sessao.js`, `pontoAferido`). O que o teste fixa é que nenhum
-    # campo lido pelas telas desapareça.
-    assert set(stub) <= set(payload)
-    assert set(stub["pontos"][0]) <= set(payload["pontos"][0])
-    assert set(stub["monitoramento"][0]) <= set(payload["monitoramento"][0])
+    # Contém tudo o que a fixture dos testes do painel tem, e pode conter mais. O
+    # que o teste fixa é que nenhum campo lido pelas telas desapareça da resposta.
+    assert set(fixture) <= set(payload)
+    assert set(fixture["pontos"][0]) <= set(payload["pontos"][0])
+    assert set(fixture["monitoramento"][0]) <= set(payload["monitoramento"][0])
 
     # E que o campo novo chegue em todos os pontos, não só no primeiro.
     todos = payload["pontos"] + payload["monitoramento"]

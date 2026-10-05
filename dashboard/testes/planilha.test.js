@@ -19,11 +19,12 @@ var vm = require("node:vm");
 var zlib = require("node:zlib");
 
 var JS = path.join(__dirname, "..", "js");
+var caminho = require("./fonte_painel.js").caminho;
 
 function carregar() {
   var ctx = vm.createContext({ window: {}, TextEncoder: TextEncoder });
   ["dados_triagem.js", "dados_comparacao.js", "planilha.js", "leitura_publicos.js"].forEach(function (f) {
-    vm.runInContext(fs.readFileSync(path.join(JS, f), "utf8"), ctx, { filename: f });
+    vm.runInContext(fs.readFileSync(caminho(f), "utf8"), ctx, { filename: f });
   });
   return {
     DADOS: vm.runInContext("DADOS_TRIAGEM", ctx),

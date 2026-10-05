@@ -10,7 +10,7 @@ PASTA_API = Path(__file__).resolve().parent.parent
 PASTA_DASHBOARD = PASTA_API.parent
 RAIZ_REPOSITORIO = PASTA_DASHBOARD.parent
 CAMINHO_SCHEMA_JS = PASTA_DASHBOARD / "js" / "schema.js"
-CAMINHO_STUB = PASTA_DASHBOARD / "js" / "dados_triagem.js"
+CAMINHO_FIXTURE_PAINEL = PASTA_DASHBOARD / "testes" / "fixtures" / "dados_triagem.js"
 CAMINHO_CATALOGO = PASTA_API / "catalogo_modelos.json"
 PASTA_MODELO_FINAL = RAIZ_REPOSITORIO / "modelos" / "modelo_final"
 
@@ -43,10 +43,14 @@ def area_do_termopar(termopar, subsistema):
     return AREA_REAL_DO_TERMOPAR.get(termopar, subsistema)
 
 
-def ler_stub_do_painel():
-    """`DADOS_TRIAGEM` de `dashboard/js/dados_triagem.js`: o formato que as telas consomem."""
-    texto = CAMINHO_STUB.read_text(encoding="utf-8")
-    return json.loads(texto.split("=", 1)[1].rsplit(";", 1)[0])
+def ler_fixture_do_painel():
+    """`DADOS_TRIAGEM` da fixture dos testes do painel: o formato que as telas consomem.
+
+    A fixture é sintética e nenhuma tela a carrega; serve para conferir que a resposta da
+    API tem todos os campos que as telas leem.
+    """
+    texto = CAMINHO_FIXTURE_PAINEL.read_text(encoding="utf-8")
+    return json.loads(texto.split("var DADOS_TRIAGEM =", 1)[1].rsplit(";", 1)[0])
 
 
 def montar_configuracao(familia=None, caminho_catalogo=CAMINHO_CATALOGO, caminho_catalogo_pontos=None):

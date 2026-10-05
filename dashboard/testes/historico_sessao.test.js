@@ -19,6 +19,7 @@ var path = require("node:path");
 var vm = require("node:vm");
 
 var JS = path.join(__dirname, "..", "js");
+var caminho = require("./fonte_painel.js").caminho;
 var ARQUIVOS = ["schema.js", "dados_triagem.js", "dados_comparacao.js", "planilha.js",
   "leitura_publicos.js", "resumo_executivo.js", "documento_pdf.js", "registro_pdf.js", "historico_sessao.js"];
 
@@ -52,12 +53,38 @@ function carregar(opcoes) {
     };
   }
   vm.createContext(ctx);
-  ARQUIVOS.forEach(function (f) {
-    vm.runInContext(fs.readFileSync(path.join(JS, f), "utf8"), ctx, { filename: f });
-  });
+  function rodar(f) { vm.runInContext(fs.readFileSync(caminho(f), "utf8"), ctx, { filename: f }); }
+  ARQUIVOS.slice(0, -1).forEach(rodar);
+
+  var FIXTURE = vm.runInContext("DADOS_TRIAGEM", ctx);
+  var CATALOGO = vm.runInContext("DADOS_COMPARACAO", ctx);
+  var LP = vm.runInContext("LEITURA_PUBLICOS", ctx);
+
+  /* O que a API devolveria para a configuração: a previsão do catálogo quando ela
+     consta, ou a fixture com a configuração trocada. Faz o papel de
+     js/previsao_sessao.js, que define DADOS_TRIAGEM antes de a tela montar. */
+  function previsao(cfg) {
+    var entrada = LP.configuracaoNoCatalogo(cfg, CATALOGO);
+    if (entrada) return LP.payloadDoCatalogo(CATALOGO, entrada);
+    var copia = JSON.parse(JSON.stringify(FIXTURE));
+    copia.configuracao = JSON.parse(JSON.stringify(cfg));
+    return copia;
+  }
+
+  var daUrl = LP.configuracaoDaUrl(janela.location.search);
+  if (daUrl) ctx.DADOS_TRIAGEM = previsao(daUrl);
+  rodar(ARQUIVOS[ARQUIVOS.length - 1]);
+
+  var H = vm.runInContext("HISTORICO_SESSAO", ctx);
   return {
-    DADOS: vm.runInContext("DADOS_TRIAGEM", ctx),
-    CATALOGO: vm.runInContext("DADOS_COMPARACAO", ctx),
+    previsao: previsao,
+    // Registrar é o que a tela faz com a previsão da configuração aberta.
+    registrar: function (cfg, quando) {
+      ctx.DADOS_TRIAGEM = previsao(cfg);
+      return H.registrar(cfg, quando);
+    },
+    DADOS: FIXTURE,
+    CATALOGO: CATALOGO,
     LP: vm.runInContext("LEITURA_PUBLICOS", ctx),
     P: vm.runInContext("PLANILHA", ctx),
     PDF: vm.runInContext("DOCUMENTO_PDF", ctx),
@@ -190,8 +217,8 @@ test("registra configuração, horário e contagem por estado de cada análise",
   var cfgs = configuracoes(M);
   var quando = new Date(2026, 8, 22, 14, 30);
 
-  var e = M.H.registrar(cfgs[0], quando);
-  var pontos = M.LP.todosOsPontos(M.LP.fonte(cfgs[0]));
+  var e = M.registrar(cfgs[0], quando);
+  var pontos = M.LP.todosOsPontos(M.previsao(cfgs[0]));
 
   assert.equal(e.n, 1);
   assert.equal(e.quando, quando.toISOString());
@@ -207,9 +234,9 @@ test("a mesma configuração não entra duas vezes; outra entra no fim", functio
   var M = carregar();
   var cfgs = configuracoes(M);
 
-  M.H.registrar(cfgs[0]);
-  M.H.registrar(cfgs[1]);
-  var repetida = M.H.registrar(JSON.parse(JSON.stringify(cfgs[0])));
+  M.registrar(cfgs[0]);
+  M.registrar(cfgs[1]);
+  var repetida = M.registrar(JSON.parse(JSON.stringify(cfgs[0])));
 
   assert.equal(repetida.n, 1);
   assert.deepEqual(Array.from(M.H.listar(), function (e) { return e.n; }), [1, 2]);
@@ -217,7 +244,7 @@ test("a mesma configuração não entra duas vezes; outra entra no fim", functio
 
 test("a busca gravada reabre a mesma configuração", function () {
   var M = carregar();
-  M.H.registrar(configuracoes(M)[0]);
+  M.registrar(configuracoes(M)[0]);
   var e = M.H.listar()[0];
   assert.ok(M.LP.mesmosSeteFatores(M.LP.configuracaoDaUrl(e.busca), e.config));
 });
@@ -255,22 +282,32 @@ test("tela sem configuração na URL mostra a referência e não registra", func
 test("limpar apaga tudo e a numeração recomeça", function () {
   var M = carregar();
   var cfgs = configuracoes(M);
-  M.H.registrar(cfgs[0]);
-  M.H.registrar(cfgs[1]);
+  M.registrar(cfgs[0]);
+  M.registrar(cfgs[1]);
   M.H.limpar();
   assert.equal(M.H.listar().length, 0);
-  assert.equal(M.H.registrar(cfgs[2]).n, 1);
+  assert.equal(M.registrar(cfgs[2]).n, 1);
 });
 
-test("nada além de configuração, horário e contagem vai para o armazenamento", function () {
+test("o armazenamento guarda a resposta do modelo de cada análise, e só ela", function () {
   var armazenamento = armazenamentoFalso();
   var M = carregar();
-  carregar({ armazenamento: armazenamento, pagina: "triagem.html", busca: M.H.paraBusca(configuracoes(M)[0]) });
+  var cfg = configuracoes(M)[0];
+  carregar({ armazenamento: armazenamento, pagina: "triagem.html", busca: M.H.paraBusca(cfg) });
 
-  var gravado = armazenamento._dados["thermal-predictor:historico-sessao"];
-  assert.ok(gravado);
-  assert.equal(/TC_Name|temperatura_prevista|margem_c|limit_c/.test(gravado), false,
-    "ponto de medição não é guardado: é recalculado ao exportar");
+  var gravado = JSON.parse(armazenamento._dados["thermal-predictor:historico-sessao"]);
+  assert.equal(gravado.entradas.length, 1);
+  // A exportação de uma análise antiga relê esta resposta, e não outra fonte.
+  assert.deepEqual(gravado.entradas[0].resposta, JSON.parse(JSON.stringify(M.previsao(cfg))));
+});
+
+test("previsão de outra configuração não entra no histórico", function () {
+  var M = carregar();
+  var cfgs = configuracoes(M);
+  M.registrar(cfgs[0]);
+  // A tela está com a previsão de cfgs[0]; registrar cfgs[1] sem a previsão dela não vale.
+  assert.equal(M.H.registrar(cfgs[1]), null);
+  assert.equal(M.H.listar().length, 1);
 });
 
 /* ----- Planilha do histórico ----- */
@@ -278,7 +315,7 @@ test("nada além de configuração, horário e contagem vai para o armazenamento
 test("planilha do histórico: uma linha por configuração, sem divergência da tela", function () {
   var M = carregar();
   var cfgs = configuracoes(M);
-  cfgs.forEach(function (c) { M.H.registrar(c); });
+  cfgs.forEach(function (c) { M.registrar(c); });
 
   var aba = M.H.abaDaPlanilha();
   var pacote = abrirPacote(M.P.gerarBytes(aba));
@@ -295,7 +332,7 @@ test("planilha do histórico: uma linha por configuração, sem divergência da 
 
   M.H.listar().forEach(function (e, k) {
     var linha = linhas[k + 1];
-    var dados = M.LP.fonte(e.config);
+    var dados = M.previsao(e.config);
     var pontos = M.LP.todosOsPontos(dados);
     var c = M.LP.contarEstados(pontos);
 
@@ -322,7 +359,7 @@ test("planilha do histórico: uma linha por configuração, sem divergência da 
 
 test("contagens saem como inteiro e a folga com duas casas", function () {
   var M = carregar();
-  M.H.registrar(configuracoes(M)[0]);
+  M.registrar(configuracoes(M)[0]);
   var xml = abrirPacote(M.P.gerarBytes(M.H.abaDaPlanilha()))["xl/worksheets/sheet1.xml"];
   var estilos = abrirPacote(M.P.gerarBytes(M.H.abaDaPlanilha()))["xl/styles.xml"];
 
@@ -334,8 +371,8 @@ test("contagens saem como inteiro e a folga com duas casas", function () {
 test("conformidade com histórico: duas abas, a da análise primeiro", function () {
   var M = carregar();
   var cfgs = configuracoes(M);
-  cfgs.forEach(function (c) { M.H.registrar(c); });
-  var pontos = M.LP.todosOsPontos(M.LP.fonte(cfgs[0]));
+  cfgs.forEach(function (c) { M.registrar(c); });
+  var pontos = M.LP.todosOsPontos(M.previsao(cfgs[0]));
 
   var pacote = abrirPacote(M.P.gerarBytes({ abas: [
     { aba: "Conformidade", colunas: [{ titulo: "Componente", tipo: "texto", valor: function (p) { return p.TC_Name; } }],
@@ -376,7 +413,7 @@ test("nomes de aba repetidos ou longos demais não quebram a pasta", function ()
 
 test("PDF de uma análise: estrutura válida e marcação de registro de sessão", function () {
   var M = carregar();
-  var e = M.H.registrar(configuracoes(M)[0]);
+  var e = M.registrar(configuracoes(M)[0]);
   var paginas = abrirPdf(M.R.analise(M.H.analise(e)).bytes());
   var texto = textoCorrido(paginas);
 
@@ -392,9 +429,11 @@ test("PDF de uma análise: estrutura válida e marcação de registro de sessão
   // O mesmo enquadramento da faixa de avisos da conformidade.
   ["Registro de sessão, não é laudo formal.", "Triagem pré-simulação.",
     "Não substitui a simulação CFD nem o ensaio físico.", "Não é parecer de conformidade.",
-    "Arquitetura única.", "Valores de demonstração."].forEach(function (frase) {
+    "Arquitetura única."].forEach(function (frase) {
     assert.ok(texto.indexOf(frase) >= 0, "aviso ausente: " + frase);
   });
+  assert.doesNotMatch(texto, /demonstra|sintétic|stub|ilustrativ|preliminar/i,
+    "o registro não fala em valor de demonstração");
   assert.ok(texto.indexOf("ANÁLISE 1 DA SESSÃO") >= 0);
 });
 
@@ -403,11 +442,11 @@ test("PDF de uma análise: resumo e tabelas conferem com a tela, número a núme
   var cfgs = configuracoes(M);
 
   cfgs.forEach(function (cfg) {
-    var e = M.H.registrar(cfg);
+    var e = M.registrar(cfg);
     var a = M.H.analise(e);
     var texto = textoCorrido(abrirPdf(M.R.analise(a).bytes()));
     var LP = M.LP;
-    var dados = LP.fonte(cfg);
+    var dados = M.previsao(cfg);
     var pontos = LP.todosOsPontos(dados);
 
     // Resumo executivo: o mesmo texto que a triagem monta.
@@ -464,7 +503,7 @@ test("PDF de uma análise: resumo e tabelas conferem com a tela, número a núme
 test("PDF do histórico: uma linha por análise, com a contagem gravada", function () {
   var M = carregar();
   var cfgs = configuracoes(M);
-  cfgs.forEach(function (c) { M.H.registrar(c); });
+  cfgs.forEach(function (c) { M.registrar(c); });
 
   var analises = M.H.listar().map(M.H.analise);
   var paginas = abrirPdf(M.R.historico(analises).bytes());
