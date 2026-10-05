@@ -16,8 +16,7 @@ var fs = require("node:fs");
 var path = require("node:path");
 var vm = require("node:vm");
 
-var JS = path.join(__dirname, "..", "js");
-var caminho = require("./fonte_painel.js").caminho;
+var caminho = require("./apoio/fonte_painel.js").caminho;
 
 function carregar() {
   var ctx = vm.createContext({ window: {} });
@@ -399,7 +398,7 @@ test("configuração sem par no histórico não inventa alternativa", function (
 });
 
 test("os temas da tela de marketing cobrem os sete subsistemas", function () {
-  /* Os temas moram em js/leitura_publicos.js, lidos pela tela de marketing e
+  /* Os temas moram em js/leitura/leitura_publicos.js, lidos pela tela de marketing e
      pelo registro em PDF. O que se cobra aqui é que nenhum subsistema fique de
      fora: um subsistema sem tema some da leitura de quem planeja campanha, e
      um risco deixaria de aparecer. */

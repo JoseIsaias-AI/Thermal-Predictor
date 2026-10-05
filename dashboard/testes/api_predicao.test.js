@@ -14,12 +14,13 @@
 "use strict";
 
 var test = require("node:test");
+var caminho = require("./apoio/fonte_painel.js").caminho;
 var assert = require("node:assert/strict");
 var fs = require("node:fs");
 var path = require("node:path");
 
 var RAIZ = path.join(__dirname, "..", "..");
-var API = require(path.join(__dirname, "..", "js", "api_predicao.js"));
+var API = require(caminho("api_predicao.js"));
 
 var EXEMPLO = JSON.parse(
   fs.readFileSync(path.join(RAIZ, "dashboard", "api", "dominio", "esquema_features.json"), "utf8")
@@ -103,7 +104,7 @@ test("baseDaApi aceita ?predicao= para trocar só a porta", function () {
   assert.equal(API.baseDaApi({ location: { search: "?predicao=8010" } }), "http://127.0.0.1:8010");
 });
 
-/* `?api=` é do Robertão (`js/chat.js`). Mover o chat não pode arrastar a
+/* `?api=` é do Robertão (`js/assistente/chat.js`). Mover o chat não pode arrastar a
    predição: as duas rodam ao mesmo tempo, em portas diferentes, e uma chave
    compartilhada estaria errada para uma das duas. */
 test("baseDaApi não se move com o ?api= do chat", function () {

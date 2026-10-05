@@ -196,7 +196,7 @@ def _coerente(configuracao):
     """Alinha `losses.present` ao modo de ensaio, como o formulário alinha na tela.
 
     `Pyro` e "sem perda declarada" são a mesma condição na base, nos dois sentidos, e
-    `js/app.js` (`applyPyroEquivalence`) desabilita a opção que deixou de ser possível
+    `js/telas/consulta.js` (`applyPyroEquivalence`) desabilita a opção que deixou de ser possível
     sempre que o modo muda. Variar um fator sem reaplicar esse acerto produziria uma
     configuração que a tela não deixa montar, e o 422 dela não diria nada sobre o nível
     em teste.

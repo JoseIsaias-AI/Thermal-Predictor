@@ -5,7 +5,7 @@
  *
  * Sem a API, toda tela mostra só o aviso "Serviço de predição indisponível",
  * com instrução e botão de tentar de novo, e nenhum número. O aviso é montado
- * por js/estado_servico.js; quem esconde o resto da tela é o CSS, pela marca em
+ * por js/nucleo/estado_servico.js; quem esconde o resto da tela é o CSS, pela marca em
  * `body[data-servico]`, e por isso o teste confere as duas metades.
  */
 
@@ -16,8 +16,8 @@ var assert = require("node:assert/strict");
 var fs = require("node:fs");
 var path = require("node:path");
 
-var D = require("./dom_duble.js");
-var ES = require("../js/estado_servico.js");
+var D = require("./apoio/dom_duble.js");
+var ES = require("../js/nucleo/estado_servico.js");
 
 var PAINEL = path.join(__dirname, "..");
 
@@ -86,7 +86,7 @@ test("configuração inválida e sem configuração levam à consulta", function
 });
 
 test("o CSS esconde o conteúdo e o chip do modelo em qualquer estado sem previsão", function () {
-  var css = fs.readFileSync(path.join(PAINEL, "css", "app.css"), "utf8");
+  var css = fs.readFileSync(path.join(PAINEL, "css", "base", "app.css"), "utf8");
   assert.match(css, /body\[data-servico\]:not\(\[data-servico="verificando"\]\) #conteudo > :not\(\.servico\)/);
   assert.match(css, /body\[data-servico\] \.model-chip \{ display: none !important; \}/);
   assert.match(css, /body\[data-servico="verificando"\] #conteudo \{ visibility: hidden; \}/);
@@ -96,7 +96,7 @@ test("todas as telas carregam o estado do serviço e têm o #conteudo onde ele e
   ["index.html", "triagem.html", "comparacao.html", "conformidade.html", "design.html",
     "marketing.html", "engenharia.html"].forEach(function (arquivo) {
     var fonte = fs.readFileSync(path.join(PAINEL, arquivo), "utf8");
-    assert.ok(fonte.indexOf('src="js/estado_servico.js') > 0, arquivo);
+    assert.ok(fonte.indexOf('src="js/nucleo/estado_servico.js') > 0, arquivo);
     assert.ok(fonte.indexOf('id="conteudo"') > 0, arquivo);
   });
 });

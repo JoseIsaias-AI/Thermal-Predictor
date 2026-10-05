@@ -9,7 +9,7 @@ from api.configuracao import Configuracao
 PASTA_API = Path(__file__).resolve().parent.parent
 PASTA_DASHBOARD = PASTA_API.parent
 RAIZ_REPOSITORIO = PASTA_DASHBOARD.parent
-CAMINHO_SCHEMA_JS = PASTA_DASHBOARD / "js" / "schema.js"
+CAMINHO_SCHEMA_JS = PASTA_DASHBOARD / "js" / "nucleo" / "schema.js"
 CAMINHO_FIXTURE_PAINEL = PASTA_DASHBOARD / "testes" / "fixtures" / "dados_triagem.js"
 CAMINHO_CATALOGO = PASTA_API / "catalogo_modelos.json"
 PASTA_MODELO_FINAL = RAIZ_REPOSITORIO / "modelos" / "modelo_final"

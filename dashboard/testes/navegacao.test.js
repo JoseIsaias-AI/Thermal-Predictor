@@ -17,8 +17,8 @@ var assert = require("node:assert/strict");
 var fs = require("node:fs");
 var path = require("node:path");
 
-var D = require("./dom_duble.js");
-var NAV = require("../js/navegacao.js");
+var D = require("./apoio/dom_duble.js");
+var NAV = require("../js/nucleo/navegacao.js");
 
 var PAINEL = path.join(__dirname, "..");
 var TELAS = ["index.html", "triagem.html", "comparacao.html", "conformidade.html",
@@ -62,9 +62,9 @@ function documentoCom(links) {
 test("todas as telas carregam o módulo antes dos scripts da tela", function () {
   TELAS.forEach(function (tela) {
     var fonte = html(tela);
-    var nav = fonte.indexOf('src="js/navegacao.js');
-    assert.ok(nav > 0, tela + " não carrega js/navegacao.js");
-    var tela_js = fonte.indexOf('src="js/' + (tela === "index.html" ? "app" : tela.replace(".html", "")) + ".js");
+    var nav = fonte.indexOf('src="js/nucleo/navegacao.js');
+    assert.ok(nav > 0, tela + " não carrega js/nucleo/navegacao.js");
+    var tela_js = fonte.indexOf('src="js/telas/' + (tela === "index.html" ? "consulta" : tela.replace(".html", "")) + ".js");
     assert.ok(tela_js > nav, tela + ": o módulo tem de vir antes do script da tela");
   });
 });
@@ -123,7 +123,7 @@ test("sem configuração na URL os links ficam como no HTML", function () {
   assert.equal(doc.querySelector(".nav__link").getAttribute("href"), "design.html");
 });
 
-test("a regra não mora mais em js/modo_leitura.js", function () {
-  var fonte = fs.readFileSync(path.join(PAINEL, "js", "modo_leitura.js"), "utf8");
+test("a regra não mora mais em js/nucleo/modo_leitura.js", function () {
+  var fonte = fs.readFileSync(path.join(PAINEL, "js", "nucleo", "modo_leitura.js"), "utf8");
   assert.doesNotMatch(fonte, /propagarConfiguracao|TELAS_COM_CONFIGURACAO/);
 });

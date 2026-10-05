@@ -8,20 +8,20 @@
   <link rel="icon" type="image/png" sizes="48x48" href="../assets/dashboard/favicon-whirlpool.png">
   <link rel="apple-touch-icon" href="../assets/dashboard/favicon-whirlpool.png">
 
-  <!-- Fontes hospedadas localmente em css/tokens.css (@font-face), sem
+  <!-- Fontes hospedadas localmente em css/base/tokens.css (@font-face), sem
        dependência de rede (RNF-02 e RNF-04, Tabela 48 da documentação). -->
-  <link rel="stylesheet" href="css/tokens.css?v=5">
-  <link rel="stylesheet" href="css/app.css?v=8">
-  <link rel="stylesheet" href="css/triagem.css?v=6">
-  <link rel="stylesheet" href="css/fogao.css?v=10">
-  <link rel="stylesheet" href="css/grafico.css?v=5">
-  <link rel="stylesheet" href="css/comparacao.css?v=7">
-  <link rel="stylesheet" href="css/chat.css?v=5">
+  <link rel="stylesheet" href="css/base/tokens.css?v=5">
+  <link rel="stylesheet" href="css/base/app.css?v=8">
+  <link rel="stylesheet" href="css/telas/triagem.css?v=6">
+  <link rel="stylesheet" href="css/componentes/fogao.css?v=10">
+  <link rel="stylesheet" href="css/componentes/grafico.css?v=5">
+  <link rel="stylesheet" href="css/telas/comparacao.css?v=7">
+  <link rel="stylesheet" href="css/componentes/chat.css?v=5">
   <!-- Antes de pintar: a página já abre no tema da sessão. -->
-  <script src="js/tema.js?v=1"></script>
+  <script src="js/nucleo/tema.js?v=1"></script>
   <!-- Recursos assistivos: fonte, contraste e cor escolhidos já valem antes de pintar. -->
-  <link rel="stylesheet" href="css/acessibilidade.css?v=2">
-  <script src="js/acessibilidade.js?v=2"></script>
+  <link rel="stylesheet" href="css/base/acessibilidade.css?v=2">
+  <script src="js/acessibilidade/acessibilidade.js?v=2"></script>
 </head>
 <body data-previsao="opcional">
 
@@ -60,7 +60,7 @@
       <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.3" aria-hidden="true"><circle cx="7" cy="7" r="5.6"></circle><path d="M7 4.2v3.4"></path><circle cx="7" cy="9.9" r="0.6" fill="currentColor" stroke="none"></circle></svg>
       <span><strong>Modelo <span id="model-version">—</span></strong></span>
     </p>
-    <!-- Tema claro ou escuro, só nesta sessão (js/tema.js). -->
+    <!-- Tema claro ou escuro, só nesta sessão (js/nucleo/tema.js). -->
     <button class="tema-toggle" type="button" data-tema-alternar aria-pressed="false"
             aria-label="Tema escuro" title="Usar tema escuro">
       <svg class="tema-toggle__lua" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round" aria-hidden="true"><path d="M13.6 10.1A6 6 0 0 1 5.9 2.4a6 6 0 1 0 7.7 7.7z"></path></svg>
@@ -485,24 +485,24 @@
 
 <!-- schema.js traduz os fatores em rótulos legíveis; fogao.js dá a escala de
      folga. -->
-<script src="js/schema.js?v=3"></script>
+<script src="js/nucleo/schema.js?v=3"></script>
 <!-- Repassa a configuração da URL aos links do menu. -->
-<script src="js/navegacao.js?v=1"></script>
-<script src="js/api_predicao.js?v=5"></script>
-<script src="js/estado_servico.js?v=1"></script>
+<script src="js/nucleo/navegacao.js?v=1"></script>
+<script src="js/nucleo/api_predicao.js?v=5"></script>
+<script src="js/nucleo/estado_servico.js?v=1"></script>
 <!-- A previsão do modelo para a configuração da URL, quando houver uma. -->
-<script src="js/previsao_sessao.js?v=5"></script>
+<script src="js/nucleo/previsao_sessao.js?v=5"></script>
 <!-- Catálogo das configurações históricas com a previsão de cada uma. -->
-<script src="js/catalogo_modelo.js?v=1"></script>
-<script src="js/fogao.js?v=8"></script>
-<script src="js/grafico.js?v=4"></script>
-<script src="js/segura_proxima.js?v=1"></script>
+<script src="js/nucleo/catalogo_modelo.js?v=1"></script>
+<script src="js/visual/fogao.js?v=8"></script>
+<script src="js/visual/grafico.js?v=4"></script>
+<script src="js/leitura/segura_proxima.js?v=1"></script>
 <!-- Passo 4: o mesmo viewport e o mesmo painel de peça da triagem. -->
 <script src="vendor/three.min.js"></script>
-<script src="js/fogao3d.js?v=11"></script>
-<script src="js/painel_peca.js?v=7"></script>
-<script src="js/diff_termico.js?v=1"></script>
-<script src="js/comparacao.js?v=8"></script>
-<script src="js/chat.js?v=5"></script>
+<script src="js/visual/fogao3d.js?v=11"></script>
+<script src="js/visual/painel_peca.js?v=7"></script>
+<script src="js/leitura/diff_termico.js?v=1"></script>
+<script src="js/telas/comparacao.js?v=8"></script>
+<script src="js/assistente/chat.js?v=5"></script>
 </body>
 </html>

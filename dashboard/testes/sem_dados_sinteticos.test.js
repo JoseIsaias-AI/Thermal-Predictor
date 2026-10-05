@@ -17,7 +17,6 @@ var fs = require("node:fs");
 var path = require("node:path");
 
 var PAINEL = path.join(__dirname, "..");
-var JS = path.join(PAINEL, "js");
 var TELAS = ["index.html", "triagem.html", "comparacao.html", "conformidade.html",
   "design.html", "marketing.html", "engenharia.html"];
 
@@ -42,8 +41,9 @@ test("nenhuma página carrega os dados sintéticos", function () {
     var fonte = fs.readFileSync(path.join(PAINEL, tela), "utf8");
     assert.doesNotMatch(fonte, /dados_triagem\.js|dados_comparacao\.js/, tela);
   });
-  assert.equal(fs.existsSync(path.join(JS, "dados_triagem.js")), false);
-  assert.equal(fs.existsSync(path.join(JS, "dados_comparacao.js")), false);
+  var nomes = require("./apoio/fonte_painel.js").todos().map(function (s) { return s.nome; });
+  assert.equal(nomes.indexOf("dados_triagem.js"), -1);
+  assert.equal(nomes.indexOf("dados_comparacao.js"), -1);
 });
 
 test("o HTML das telas não fala em valores sintéticos nem em demonstração", function () {
@@ -56,10 +56,10 @@ test("o HTML das telas não fala em valores sintéticos nem em demonstração", 
 });
 
 test("nenhum texto dos scripts do painel fala em valores sintéticos", function () {
-  fs.readdirSync(JS).filter(function (f) { return /\.js$/.test(f); }).forEach(function (arquivo) {
-    var literais = literaisJs(fs.readFileSync(path.join(JS, arquivo), "utf8"));
+  require("./apoio/fonte_painel.js").todos().forEach(function (script) {
+    var literais = literaisJs(fs.readFileSync(script.caminho, "utf8"));
     var achado = PROIBIDOS.exec(literais);
-    assert.equal(achado, null, arquivo + ": " + (achado && literais.substr(Math.max(0, achado.index - 60), 140)));
+    assert.equal(achado, null, script.nome + ": " + (achado && literais.substr(Math.max(0, achado.index - 60), 140)));
   });
 });
 

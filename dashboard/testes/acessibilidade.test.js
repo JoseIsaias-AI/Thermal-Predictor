@@ -19,9 +19,9 @@ var path = require("node:path");
 var vm = require("node:vm");
 
 var RAIZ = path.join(__dirname, "..");
-var FONTE_A11Y = fs.readFileSync(path.join(RAIZ, "js", "acessibilidade.js"), "utf8");
-var TOKENS = fs.readFileSync(path.join(RAIZ, "css", "tokens.css"), "utf8");
-var CSS_A11Y = fs.readFileSync(path.join(RAIZ, "css", "acessibilidade.css"), "utf8");
+var FONTE_A11Y = fs.readFileSync(path.join(RAIZ, "js", "acessibilidade", "acessibilidade.js"), "utf8");
+var TOKENS = fs.readFileSync(path.join(RAIZ, "css", "base", "tokens.css"), "utf8");
+var CSS_A11Y = fs.readFileSync(path.join(RAIZ, "css", "base", "acessibilidade.css"), "utf8");
 
 /* Objetos criados dentro do vm têm outro Object.prototype: compara-se o conteúdo. */
 function simples(o) { return JSON.parse(JSON.stringify(o)); }
@@ -161,8 +161,8 @@ test("modo daltônico recarrega só ao ligar ou desligar, não ao trocar de tipo
 
 test("fonte maior escala os limites das media queries, e volta ao desligar", function () {
   function regra(texto) { return { media: { mediaText: texto }, cssRules: [] }; }
-  var pagina = { href: "http://x/css/app.css", cssRules: [regra("(max-width: 60rem)"), regra("(min-width: 72.01rem) and (max-width: 900px)"), regra("(prefers-reduced-motion: reduce)")] };
-  var propria = { href: "http://x/css/acessibilidade.css?v=1", cssRules: [regra("(max-width: 600px)")] };
+  var pagina = { href: "http://x/css/base/app.css", cssRules: [regra("(max-width: 60rem)"), regra("(min-width: 72.01rem) and (max-width: 900px)"), regra("(prefers-reduced-motion: reduce)")] };
+  var propria = { href: "http://x/css/base/acessibilidade.css?v=1", cssRules: [regra("(max-width: 600px)")] };
   var p = carregar({ folhas: [pagina, propria] });
 
   p.A.definir("fonte", 3);
@@ -291,7 +291,7 @@ function carregarFogao(tema, daltonico) {
     ACESSIBILIDADE: { nivel: function (id) { return id === "daltonico" ? daltonico : 0; } }
   };
   vm.createContext(ctx);
-  vm.runInContext(fs.readFileSync(path.join(RAIZ, "js", "fogao.js"), "utf8"), ctx, { filename: "fogao.js" });
+  vm.runInContext(fs.readFileSync(path.join(RAIZ, "js", "visual", "fogao.js"), "utf8"), ctx, { filename: "fogao.js" });
   return ctx.FOGAO;
 }
 

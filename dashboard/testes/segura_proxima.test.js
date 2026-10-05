@@ -17,8 +17,7 @@ var fs = require("node:fs");
 var path = require("node:path");
 var vm = require("node:vm");
 
-var JS = path.join(__dirname, "..", "js");
-var caminho = require("./fonte_painel.js").caminho;
+var caminho = require("./apoio/fonte_painel.js").caminho;
 
 var ctx = vm.createContext({});
 ["dados_comparacao.js", "segura_proxima.js"].forEach(function (f) {

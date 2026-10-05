@@ -1,0 +1,220 @@
+/* Histórico da sessão: botão nas ações da tela e painel suspenso com a lista.
+ *
+ * Carrega depois de css/telas/triagem.css e reaproveita .btn e .config__tag. Mesmas
+ * cores de estado das tabelas: vermelho só para o que passa do limite. */
+
+.sessao-botao { padding-right: 6px; }
+.sessao-botao[aria-expanded="true"] { border-color: var(--color-accent); color: var(--color-accent); }
+
+.sessao-botao__n {
+  min-width: 20px;
+  padding: 0 6px;
+  font-variant-numeric: tabular-nums;
+  line-height: 20px;
+  text-align: center;
+  color: var(--color-accent);
+  background: var(--color-surface-accent);
+  border-radius: 999px;
+}
+
+/* ----- Painel ----- */
+
+/* Posição calculada no script, logo abaixo do botão. */
+.sessao {
+  position: absolute;
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  width: min(30rem, calc(100vw - 2 * var(--space-4)));
+  max-height: min(36rem, calc(100vh - 7rem));
+  background: var(--color-surface-raised);
+  border: var(--border-width) solid var(--color-border-strong);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-dialog);
+}
+
+.sessao[hidden] { display: none; }
+
+.sessao__cabeca {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-3) var(--space-4) 0;
+}
+
+.sessao__titulo {
+  margin: 0;
+  font-size: var(--size-subhead);
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.sessao__fechar {
+  width: 28px;
+  height: 28px;
+  font-size: 1.25rem;
+  line-height: 1;
+  color: var(--color-text-muted);
+  background: none;
+  border: 0;
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+
+.sessao__fechar:hover { color: var(--color-text); background: var(--color-surface-sunken); }
+.sessao__fechar:focus-visible { outline: 2px solid var(--color-focus-ring); }
+
+/* O aviso de limpeza é parte do painel, não rodapé: vem antes da lista. */
+.sessao__aviso {
+  margin: var(--space-2) var(--space-4) var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--size-small);
+  line-height: var(--leading-body);
+  color: var(--color-text-muted);
+  background: var(--color-surface-sunken);
+  border: var(--border-width) solid var(--color-border);
+  border-left: 3px solid var(--color-accent);
+  border-radius: var(--radius);
+}
+
+.sessao__aviso strong { color: var(--color-text); font-weight: var(--weight-semibold); }
+
+.sessao__lista {
+  flex: 1 1 auto;
+  min-height: 0;
+  margin: 0;
+  padding: 0 var(--space-4);
+  overflow-y: auto;
+  list-style: none;
+}
+
+.sessao-vazio {
+  padding: var(--space-4) 0;
+  font-size: var(--size-small);
+  color: var(--color-text-subtle);
+}
+
+.sessao-item {
+  padding: var(--space-3) 0;
+  border-bottom: var(--border-width) solid var(--color-border);
+}
+
+.sessao-item:last-child { border-bottom: 0; }
+
+.sessao-item--atual {
+  margin: 0 calc(-1 * var(--space-4));
+  padding-left: calc(var(--space-4) - 3px);
+  padding-right: var(--space-4);
+  background: var(--color-surface-accent);
+  border-left: 3px solid var(--color-accent);
+}
+
+.sessao-item__topo {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.sessao-item__n {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: var(--size-small);
+  color: var(--color-text);
+}
+
+.sessao-item__hora {
+  font-size: var(--size-small);
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-muted);
+}
+
+.sessao .config__tag { cursor: default; }
+
+.sessao .config__tag--nota {
+  color: var(--color-text-muted);
+  background: var(--color-surface-sunken);
+  box-shadow: inset 0 0 0 1px var(--color-border);
+}
+
+.sessao-item__atual {
+  margin-left: auto;
+  font-size: var(--size-kicker);
+  font-weight: var(--weight-semibold);
+  letter-spacing: var(--tracking-kicker);
+  text-transform: uppercase;
+  color: var(--color-accent);
+}
+
+.sessao-item__config {
+  margin: var(--space-1) 0 0;
+  font-size: var(--size-small);
+  line-height: var(--leading-tight);
+  color: var(--color-text);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.sessao-item__conta {
+  margin: var(--space-1) 0 0;
+  font-size: var(--size-small);
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-muted);
+}
+
+.sessao-conta strong { font-weight: var(--weight-semibold); color: var(--color-text); }
+.sessao-conta--acima_do_limite strong { color: var(--color-critical); }
+
+.sessao-item__acoes {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+}
+
+.sessao-item__nota,
+.sessao__nota {
+  font-size: var(--size-small);
+  color: var(--color-text-subtle);
+}
+
+.btn--mini {
+  height: 26px;
+  padding: 0 var(--space-2);
+  font-size: var(--size-small);
+}
+
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.sessao__acoes {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  border-top: var(--border-width) solid var(--color-border);
+}
+
+.sessao__limpar { margin-left: auto; color: var(--color-text-muted); }
+
+/* ----- Opção de exportação da conformidade ----- */
+
+.export-opcao {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--size-small);
+  color: var(--color-text-muted);
+  cursor: pointer;
+}
+
+.export-opcao input { margin: 0; accent-color: var(--color-accent); }
+.export-opcao:has(input:disabled) { opacity: 0.55; cursor: not-allowed; }
+
+/* ----- Tela de consulta: botão ao lado da contagem de fatores ----- */
+
+.form-progress__head:has(.form-progress__sessao) { align-items: center; }
+.form-progress__head:has(.form-progress__sessao) .form-progress__count { margin-left: auto; }
+.form-progress__sessao { display: inline-flex; }

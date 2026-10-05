@@ -11,12 +11,12 @@
 "use strict";
 
 var test = require("node:test");
+var caminho = require("./apoio/fonte_painel.js").caminho;
 var assert = require("node:assert/strict");
 var fs = require("node:fs");
 var path = require("node:path");
 var vm = require("node:vm");
 
-var JS = path.join(__dirname, "..", "js");
 
 var ANALISE = (function () {
   var ctx = vm.createContext({
@@ -24,7 +24,7 @@ var ANALISE = (function () {
     document: { getElementById: function () { return null; } },
     performance: { now: function () { return 0; } }
   });
-  vm.runInContext(fs.readFileSync(path.join(JS, "analise.js"), "utf8"), ctx, { filename: "analise.js" });
+  vm.runInContext(fs.readFileSync(caminho("analise.js"), "utf8"), ctx, { filename: "analise.js" });
   return vm.runInContext("ANALISE", ctx);
 })();
 

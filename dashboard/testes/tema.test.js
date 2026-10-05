@@ -10,12 +10,13 @@
 "use strict";
 
 var test = require("node:test");
+var caminho = require("./apoio/fonte_painel.js").caminho;
 var assert = require("node:assert/strict");
 var fs = require("node:fs");
 var path = require("node:path");
 var vm = require("node:vm");
 
-var CSS = fs.readFileSync(path.join(__dirname, "..", "css", "tokens.css"), "utf8");
+var CSS = fs.readFileSync(path.join(__dirname, "..", "css", "base", "tokens.css"), "utf8");
 
 function bloco(seletor) {
   var i = CSS.indexOf(seletor + " {");
@@ -100,7 +101,7 @@ function carregarFogao(tema) {
     ctx.trocar = function (t) { ouvintes.forEach(function (fn) { fn(t); }); };
   }
   vm.createContext(ctx);
-  vm.runInContext(fs.readFileSync(path.join(__dirname, "..", "js", "fogao.js"), "utf8"), ctx, { filename: "fogao.js" });
+  vm.runInContext(fs.readFileSync(caminho("fogao.js"), "utf8"), ctx, { filename: "fogao.js" });
   return ctx;
 }
 

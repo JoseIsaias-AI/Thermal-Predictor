@@ -18,8 +18,7 @@ var fs = require("node:fs");
 var path = require("node:path");
 var vm = require("node:vm");
 
-var JS = path.join(__dirname, "..", "js");
-var caminho = require("./fonte_painel.js").caminho;
+var caminho = require("./apoio/fonte_painel.js").caminho;
 var ARQUIVOS = ["schema.js", "dados_triagem.js", "dados_comparacao.js", "planilha.js",
   "leitura_publicos.js", "resumo_executivo.js", "documento_pdf.js", "registro_pdf.js", "historico_sessao.js"];
 
@@ -62,7 +61,7 @@ function carregar(opcoes) {
 
   /* O que a API devolveria para a configuração: a previsão do catálogo quando ela
      consta, ou a fixture com a configuração trocada. Faz o papel de
-     js/previsao_sessao.js, que define DADOS_TRIAGEM antes de a tela montar. */
+     js/nucleo/previsao_sessao.js, que define DADOS_TRIAGEM antes de a tela montar. */
   function previsao(cfg) {
     var entrada = LP.configuracaoNoCatalogo(cfg, CATALOGO);
     if (entrada) return LP.payloadDoCatalogo(CATALOGO, entrada);
@@ -203,8 +202,8 @@ function textoCorrido(paginas) {
   return paginas.map(function (p) { return p.join(" "); }).join(" ").replace(/\s+/g, " ");
 }
 
-/* ----- Formatação de cada tela (js/conformidade.js, js/triagem.js,
-   js/marketing.js) ----- */
+/* ----- Formatação de cada tela (js/telas/conformidade.js, js/telas/triagem.js,
+   js/telas/marketing.js) ----- */
 
 function g2(v) { return v === null || v === undefined ? "—" : v.toFixed(2); }
 function g1(v) { return v === null || v === undefined ? "—" : v.toFixed(1); }
@@ -459,7 +458,7 @@ test("PDF de uma análise: resumo e tabelas conferem com a tela, número a núme
     assert.ok(texto.indexOf("Acima do limite admissível " + c.acima_do_limite + " " + LP.percentual(c.acima_do_limite, n)) >= 0, "contagem acima");
     assert.ok(texto.indexOf("Dentro do limite nesta triagem " + c.dentro_do_limite + " " + LP.percentual(c.dentro_do_limite, n)) >= 0, "contagem dentro");
 
-    // Conformidade: cada linha da tabela, com a formatação de js/conformidade.js.
+    // Conformidade: cada linha da tabela, com a formatação de js/telas/conformidade.js.
     var reprovados = LP.reprovados(pontos);
     assert.ok(texto.indexOf(reprovados.length + " de " + (pontos.length - c.monitoramento) + " componentes avaliados") >= 0);
     reprovados.forEach(function (p) {
@@ -476,7 +475,7 @@ test("PDF de uma análise: resumo e tabelas conferem com a tela, número a núme
       assert.ok(texto.indexOf(linha) >= 0, "linha do subsistema: " + linha);
     });
 
-    // Marketing, com uma casa como em js/marketing.js.
+    // Marketing, com uma casa como em js/telas/marketing.js.
     LP.leiturasDeMarketing(pontos).forEach(function (l) {
       var linha = [l.tema.nome, LP.traduzirEstado(l.estado, "marketing"),
         l.pior_ponto ? l.pior_ponto.TC_Name : "—", g1(l.pior_margem_c)].join(" ");

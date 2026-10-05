@@ -18,8 +18,7 @@ var path = require("node:path");
 var vm = require("node:vm");
 var zlib = require("node:zlib");
 
-var JS = path.join(__dirname, "..", "js");
-var caminho = require("./fonte_painel.js").caminho;
+var caminho = require("./apoio/fonte_painel.js").caminho;
 
 function carregar() {
   var ctx = vm.createContext({ window: {}, TextEncoder: TextEncoder });

@@ -1,4 +1,4 @@
-"""Leitor do dicionário de features do painel (`dashboard/js/schema.js`).
+"""Leitor do dicionário de features do painel (`dashboard/js/nucleo/schema.js`).
 
 Existe só para o teste de paridade: a API não depende do painel em tempo de execução.
 """
@@ -15,7 +15,7 @@ def _remover_comentarios(texto):
 
 
 def ler_schema_js(caminho):
-    """Devolve o objeto SCHEMA de `dashboard/js/schema.js` como dicionário."""
+    """Devolve o objeto SCHEMA de `dashboard/js/nucleo/schema.js` como dicionário."""
     texto = Path(caminho).read_text(encoding="utf-8")
     corpo = texto.split("var SCHEMA =", 1)[1].rsplit("};", 1)[0] + "}"
     corpo = _remover_comentarios(corpo)

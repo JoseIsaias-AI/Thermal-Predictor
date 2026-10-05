@@ -7,7 +7,7 @@ monta é o que a API realmente aceita**, nem que **a resposta que a API realment
 passa no validador do painel**.
 
 Esse vão é silencioso e caro: se a API deixar de mandar um campo, `respostaCompleta()` em
-`js/previsao_sessao.js` recusa a previsão e a tela volta aos valores de demonstração, sem
+`js/nucleo/previsao_sessao.js` recusa a previsão e a tela volta aos valores de demonstração, sem
 erro e sem aviso. O usuário veria números sintéticos achando que são do modelo.
 
 A ponte não roda navegador: carrega os mesmos arquivos `.js` que as páginas carregam, pelo
@@ -69,8 +69,8 @@ def _executar(corpo_js, entrada):
             [
                 NODE,
                 str(caminho),
-                str(PASTA_JS / "api_predicao.js"),
-                str(PASTA_JS / "previsao_sessao.js"),
+                str(PASTA_JS / "nucleo" / "api_predicao.js"),
+                str(PASTA_JS / "nucleo" / "previsao_sessao.js"),
                 json.dumps(entrada),
             ],
             capture_output=True,
@@ -162,7 +162,7 @@ def classificar_erro(status, corpo):
 
 
 def para_query_string(configuracao):
-    """Mesma serialização de `paraQueryString` em `js/app.js`, que leva a configuração à tela."""
+    """Mesma serialização de `paraQueryString` em `js/telas/consulta.js`, que leva a configuração à tela."""
     partes = []
 
     for chave, valor in configuracao.items():

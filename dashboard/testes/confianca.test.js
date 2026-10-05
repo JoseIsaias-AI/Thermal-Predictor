@@ -16,8 +16,7 @@ var fs = require("node:fs");
 var path = require("node:path");
 var vm = require("node:vm");
 
-var JS = path.join(__dirname, "..", "js");
-var caminho = require("./fonte_painel.js").caminho;
+var caminho = require("./apoio/fonte_painel.js").caminho;
 
 /* `GET /modelos` falso, no formato da API: métricas de teste por subsistema, e
    `AC Blower Inlet` sem modelo validado e sem métrica, como no modelo final. */
@@ -148,6 +147,6 @@ test("raio do halo cresce com a incerteza e parte de fora do anel de seleção",
 });
 
 test("o módulo não traz texto de valor ilustrativo", function () {
-  var fonte = fs.readFileSync(path.join(JS, "confianca.js"), "utf8");
+  var fonte = fs.readFileSync(caminho("confianca.js"), "utf8");
   assert.doesNotMatch(fonte, /stub|ilustrativ|preliminar|sorteio/i);
 });

@@ -16,8 +16,7 @@ var fs = require("node:fs");
 var path = require("node:path");
 var vm = require("node:vm");
 
-var JS = path.join(__dirname, "..", "js");
-var caminho = require("./fonte_painel.js").caminho;
+var caminho = require("./apoio/fonte_painel.js").caminho;
 var ctx = vm.createContext({ window: {} });
 ["dados_triagem.js", "dados_comparacao.js", "fogao.js", "painel_peca.js", "diff_termico.js"].forEach(function (f) {
   vm.runInContext(fs.readFileSync(caminho(f), "utf8"), ctx, { filename: f });

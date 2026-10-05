@@ -1,6 +1,6 @@
 {
   "versao": "1.0",
-  "origem": "dashboard/js/schema.js, Seção 4.2.2 da documentação",
+  "origem": "dashboard/js/nucleo/schema.js, Seção 4.2.2 da documentação",
   "descricao": "Contrato de entrada da camada de predição: os sete fatores de configuração de ensaio e seus níveis válidos.",
   "fatores": [
     {

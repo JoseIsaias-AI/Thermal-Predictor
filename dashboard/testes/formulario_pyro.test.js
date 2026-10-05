@@ -25,10 +25,9 @@ var fs = require("node:fs");
 var path = require("node:path");
 var vm = require("node:vm");
 
-var D = require("./dom_duble.js");
+var D = require("./apoio/dom_duble.js");
 
-var JS = path.join(__dirname, "..", "js");
-var caminho = require("./fonte_painel.js").caminho;
+var caminho = require("./apoio/fonte_painel.js").caminho;
 
 // Os scripts da consulta, na ordem de `index.html`.
 var MODULOS = [
@@ -76,7 +75,7 @@ function montarConsulta() {
     ctx
   );
 
-  vm.runInContext(fs.readFileSync(path.join(JS, "app.js"), "utf8"), ctx, { filename: "app.js" });
+  vm.runInContext(fs.readFileSync(caminho("consulta.js"), "utf8"), ctx, { filename: "consulta.js" });
 
   return {
     doc: doc,

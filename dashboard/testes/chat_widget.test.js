@@ -12,13 +12,14 @@
 "use strict";
 
 var test = require("node:test");
+var caminho = require("./apoio/fonte_painel.js").caminho;
 var assert = require("node:assert/strict");
 var fs = require("node:fs");
 var path = require("node:path");
 var vm = require("node:vm");
 
 var FONTE = fs.readFileSync(
-  path.join(__dirname, "..", "js", "chat.js"), "utf8"
+  caminho("chat.js"), "utf8"
 );
 
 function criarElemento(tag) {

@@ -30,10 +30,9 @@ var fs = require("node:fs");
 var path = require("node:path");
 var vm = require("node:vm");
 
-var D = require("./dom_duble.js");
+var D = require("./apoio/dom_duble.js");
 
-var JS = path.join(__dirname, "..", "js");
-var caminho = require("./fonte_painel.js").caminho;
+var caminho = require("./apoio/fonte_painel.js").caminho;
 var CSS = path.join(__dirname, "..", "css");
 
 // ------------------------------------------------------------------- payloads
@@ -115,7 +114,7 @@ function carregarPrevisaoSessao() {
   var ctx = vm.createContext({ window: {}, module: { exports: {} } });
 
   vm.runInContext(
-    fs.readFileSync(path.join(JS, "previsao_sessao.js"), "utf8"), ctx,
+    fs.readFileSync(caminho("previsao_sessao.js"), "utf8"), ctx,
     { filename: "previsao_sessao.js" }
   );
 
@@ -177,8 +176,8 @@ test("marcaDeSubsistemas nomeia os modelos e some com lista vazia", function () 
 
 // ------------------------------------------- 2. a classe existe de verdade
 
-test("a classe da marca está definida em css/triagem.css", function () {
-  var folha = fs.readFileSync(path.join(CSS, "triagem.css"), "utf8");
+test("a classe da marca está definida em css/telas/triagem.css", function () {
+  var folha = fs.readFileSync(path.join(CSS, "telas", "triagem.css"), "utf8");
 
   assert.match(
     folha, new RegExp("\\." + PS.CLASSE_MARCA + "\\s*(,|\\{)"),

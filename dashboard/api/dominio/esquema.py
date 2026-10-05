@@ -1,6 +1,6 @@
 """Dicionário de features servido em /schema e usado para validar a entrada.
 
-Fonte única do lado da API: `esquema_features.json`, derivado de `dashboard/js/schema.js`
+Fonte única do lado da API: `esquema_features.json`, derivado de `dashboard/js/nucleo/schema.js`
 (Seção 4.2.2 da documentação). O teste de paridade impede que os dois divirjam.
 """
 

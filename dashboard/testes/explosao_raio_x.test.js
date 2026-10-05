@@ -9,14 +9,14 @@
 "use strict";
 
 var test = require("node:test");
+var caminho = require("./apoio/fonte_painel.js").caminho;
 var assert = require("node:assert/strict");
 var fs = require("node:fs");
 var path = require("node:path");
 var vm = require("node:vm");
 
-var JS = path.join(__dirname, "..", "js");
 var ctx = vm.createContext({ window: {} });
-vm.runInContext(fs.readFileSync(path.join(JS, "fogao.js"), "utf8"), ctx, { filename: "fogao.js" });
+vm.runInContext(fs.readFileSync(caminho("fogao.js"), "utf8"), ctx, { filename: "fogao.js" });
 var FOGAO = vm.runInContext("FOGAO", ctx);
 
 var CONFIGS = [{}, { placa: "right" }, { placa: "right", alojamento: "open" }];

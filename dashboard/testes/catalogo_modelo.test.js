@@ -15,9 +15,9 @@ var assert = require("node:assert/strict");
 var fs = require("node:fs");
 var vm = require("node:vm");
 
-var D = require("./dom_duble.js");
-var caminho = require("./fonte_painel.js").caminho;
-var CM = require("../js/catalogo_modelo.js");
+var D = require("./apoio/dom_duble.js");
+var caminho = require("./apoio/fonte_painel.js").caminho;
+var CM = require("../js/nucleo/catalogo_modelo.js");
 
 function catalogo() {
   var c = vm.createContext({});

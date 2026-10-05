@@ -20,11 +20,10 @@ var fs = require("node:fs");
 var path = require("node:path");
 var vm = require("node:vm");
 
-var D = require("./dom_duble.js");
+var D = require("./apoio/dom_duble.js");
 
-var JS = path.join(__dirname, "..", "js");
-var caminho = require("./fonte_painel.js").caminho;
-var PS = require(path.join(JS, "previsao_sessao.js"));
+var caminho = require("./apoio/fonte_painel.js").caminho;
+var PS = require(caminho("previsao_sessao.js"));
 
 /* A fixture no formato da resposta, para conferir que a API tem os campos que
    as telas leem. */
