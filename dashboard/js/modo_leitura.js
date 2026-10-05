@@ -11,9 +11,6 @@ var MODO_LEITURA = (function () {
   var CHAVE = "thermal-predictor.modo-leitura";
   var MODOS = ["tecnico", "executivo"];
 
-  // As telas que leem a configuração da querystring; as demais têm URL própria.
-  var TELAS_COM_CONFIGURACAO = ["triagem.html", "conformidade.html", "design.html", "marketing.html", "engenharia.html"];
-
   function lerGuardado() {
     try {
       var v = window.localStorage.getItem(CHAVE);
@@ -43,22 +40,9 @@ var MODO_LEITURA = (function () {
     }
   }
 
-  /* A configuração trocada numa tela segue para as vizinhas: sem isso, o
-     resumo de outra tela falaria da configuração de referência. */
-  function propagarConfiguracao() {
-    var busca = window.location.search;
-    if (!busca) return;
-    Array.prototype.forEach.call(document.querySelectorAll(".nav__link"), function (a) {
-      var destino = a.getAttribute("href");
-      if (TELAS_COM_CONFIGURACAO.indexOf(destino) >= 0) a.setAttribute("href", destino + busca);
-    });
-  }
-
   /* Liga o controle `#modo-leitura`, se a tela tiver um. Sem controle, a tela
      tem modo fixo, declarado no próprio body. */
   function iniciar() {
-    propagarConfiguracao();
-
     var grupo = document.getElementById("modo-leitura");
     if (!grupo) return;
 
