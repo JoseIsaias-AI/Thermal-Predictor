@@ -16,15 +16,17 @@ from .controladores.predicao import tratar_entrada_mal_formada
 from .dominio.esquema import carregar_esquema
 from .predicao.catalogo_pontos import carregar_catalogo_pontos
 from .predicao.registro import construir_registro
-from .rotas import desempenho, esquema, modelos, predicao, saude
+from .predicao.catalogo_configuracoes import carregar_catalogo_configuracoes
+from .rotas import catalogo, desempenho, esquema, modelos, predicao, saude
 from .rotas.desempenho import carregar_desempenho
 from .servicos.predicao import ServicoDePredicao
 
 DESCRICAO = """
 Serviço do Thermal Predictor. Publica o contrato de entrada da camada de predição, os
-metadados dos modelos por subsistema, o desempenho agregado do modelo final (`GET /desempenho`)
-e a previsão de temperatura de cada componente para uma configuração experimental
-(`POST /predicao`).
+metadados dos modelos por subsistema, o desempenho agregado do modelo final (`GET /desempenho`),
+a previsão de temperatura de cada componente para uma configuração experimental
+(`POST /predicao`) e o catálogo das configurações históricas com a previsão de cada uma
+(`GET /catalogo`).
 
 Cada subsistema tem base e faixa de temperatura próprias e recebe seu próprio modelo. A
 família ativa é definida em `api/catalogo_modelos.json` ou na variável de ambiente
@@ -41,6 +43,9 @@ def montar_estado(app, configuracao=None):
     app.state.registro = construir_registro(configuracao)
     app.state.catalogo_pontos = carregar_catalogo_pontos(configuracao.caminho_catalogo_pontos)
     app.state.desempenho = carregar_desempenho(configuracao, app.state.registro.familia_ativa)
+    app.state.catalogo_configuracoes = carregar_catalogo_configuracoes(
+        configuracao.caminho_catalogo_pontos)
+    app.state.catalogo_resposta = None
     app.state.servico_de_predicao = ServicoDePredicao(
         app.state.registro, app.state.catalogo_pontos, app.state.esquema
     )
@@ -89,6 +94,7 @@ def criar_app(configuracao=None):
     app.include_router(modelos.roteador)
     app.include_router(desempenho.roteador)
     app.include_router(predicao.roteador)
+    app.include_router(catalogo.roteador)
 
     return app
 

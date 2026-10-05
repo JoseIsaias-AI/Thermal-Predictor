@@ -230,6 +230,43 @@ class RespostaDesempenho(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
 
+class PontoDoCatalogo(BaseModel):
+    id: str = Field(description="`measurement_id` do ponto.")
+    nome: str
+    area: str
+    subsistema_modelo: str
+    limite: float | None
+    mono: bool = Field(description="Ponto sem limite declarado, só monitorado (RN-03).")
+
+
+class ConfiguracaoDoCatalogo(BaseModel):
+    id: str = Field(description="Identificador neutro, CFG-xx.")
+    rodadas: int
+    fatores: dict
+    severidade: str = Field(description="Pior estado entre os pontos com limite.")
+    resumo: list[int] = Field(description="Pontos acima do limite, na banda e dentro do limite.")
+    t: list[float] = Field(description="Temperatura prevista, na ordem de `pontos`.")
+    m: list[float | None] = Field(description="Folga até o limite; nula nos monitorados.")
+    e: list[int] = Field(description="Índice do estado em `estados`.")
+
+
+class RespostaCatalogo(BaseModel):
+    versao_modelo: str
+    preditor_e_stub: bool
+    tolerancia_fracao: float
+    total_rodadas: int
+    total_configuracoes: int = Field(description="Distintas nos sete fatores.")
+    total_configuracoes_codificadas: int = Field(
+        description="Distintas nas colunas que o modelo recebe, onde `Open - Updated` é `Open`."
+    )
+    total_configuracoes_seis_fatores: int = Field(
+        description="Distintas nos seis fatores categóricos, sem as perdas."
+    )
+    estados: list[list[str]]
+    pontos: list[PontoDoCatalogo]
+    configuracoes: list[ConfiguracaoDoCatalogo]
+
+
 class PerdasDaConfiguracao(BaseModel):
     """Bloco `losses`, decomposto em presença, arranjo e ordem das perdas (Seção 4.2.2d)."""
 

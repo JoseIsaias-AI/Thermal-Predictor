@@ -20,6 +20,11 @@ def obter_catalogo_pontos(request: Request):
     return request.app.state.catalogo_pontos
 
 
+def obter_estado_do_app(request: Request):
+    """O estado montado na subida, onde o catálogo guarda a resposta já calculada."""
+    return request.app.state
+
+
 def obter_desempenho(request: Request):
     """Métricas agregadas do modelo ativo, lidas na subida; `None` sem o arquivo."""
     return request.app.state.desempenho
