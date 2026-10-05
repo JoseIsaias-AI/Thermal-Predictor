@@ -51,7 +51,7 @@ Decisões que sustentam esse fluxo:
 |---|---|---|
 | `documentation_search` | conectada | documentos Markdown em `docs/`, indexados no pgvector |
 | `dataset_query` | conectada | `dataset_completo_com_flags_de_auditoria.csv` |
-| `thermal_prediction` | conectada | sete modelos `.joblib` em `modelos/<algoritmo>/` |
+| `thermal_prediction` | conectada | modelo final de cada dataset, sete `.joblib` em `modelos/modelo_final/` (os mesmos da API do painel) |
 
 O que não está conectado é bloqueado em código: mesmo que o modelo peça a
 ferramenta, a resposta vira `insufficient_data`. Cada fonte é registrada só
@@ -196,9 +196,9 @@ llm/
 - modelo `embeddinggemma` baixado, ou outro definido em `OLLAMA_EMBEDDING_MODEL`
   (precisa expor a capacidade `embedding`; o `qwen3:4b` não expõe);
 - Docker, para a base vetorial local;
-- `dataset_completo_com_flags_de_auditoria.csv` e o diretório `modelos/`, ambos
-  gerados pelos notebooks e não versionados. Os caminhos ficam em
-  `DATASET_PATH` e `MODELS_DIR`, relativos a `g02/llm`.
+- `dataset_completo_com_flags_de_auditoria.csv`, gerado pelo notebook `2.1` e não
+  versionado, e o modelo final em `modelos/modelo_final/`, versionado. Os caminhos
+  ficam em `DATASET_PATH` e `MODELS_DIR`, relativos a `g02/llm`.
 
 Os `.joblib` foram serializados com **scikit-learn 1.7.2**. Versões seguintes
 mudaram os módulos internos e falham ao carregar (`No module named '_loss'`),

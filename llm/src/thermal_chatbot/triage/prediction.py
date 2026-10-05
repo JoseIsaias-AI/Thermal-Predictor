@@ -102,6 +102,15 @@ class ThermalPredictor:
     def version(self) -> str:
         return self.bundles[0].version
 
+    @property
+    def algorithm(self) -> str:
+        """Algoritmo único da família ou, no modelo final, o de cada conjunto."""
+
+        algoritmos = {pacote.algorithm for pacote in self.bundles}
+        if len(algoritmos) == 1:
+            return algoritmos.pop()
+        return "; ".join(f"{pacote.set_name}: {pacote.algorithm}" for pacote in self.bundles)
+
     def predict(self, configuration: Configuration) -> dict[str, Any]:
         """Prevê todos os termopares cobertos e classifica cada um por RN-01."""
 
@@ -129,7 +138,7 @@ class ThermalPredictor:
 
         return {
             "versao_modelo": self.version,
-            "algoritmo": self.bundles[0].algorithm,
+            "algoritmo": self.algorithm,
             "conjuntos_sem_validacao": sorted(
                 pacote.set_name for pacote in self.bundles if not pacote.validated
             ),
@@ -178,7 +187,7 @@ class ThermalPredictor:
             estimator=self._load_estimator(caminho_modelo),
             input_columns=list(metadados["colunas_entrada"]),
             code_by_thermocouple=dict(metadados["codigo_por_termopar"]),
-            validation_metrics=dict(metadados.get("metricas_validacao", {})),
+            validation_metrics=dict(metadados.get("metricas_validacao") or {}),
             validated=bool(metadados.get("validado", False)),
             note=str(metadados.get("observacao", "")),
         )

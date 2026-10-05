@@ -34,7 +34,7 @@ class Settings(BaseModel):
     dataset_enabled: bool = True
     dataset_path: str = "../dataset_completo_com_flags_de_auditoria.csv"
     prediction_enabled: bool = True
-    models_dir: str = "../modelos/gradient_boosting"
+    models_dir: str = "../modelos/modelo_final"
 
     model_config = ConfigDict(extra="forbid", validate_default=True)
 
