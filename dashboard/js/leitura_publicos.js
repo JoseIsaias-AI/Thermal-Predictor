@@ -573,17 +573,19 @@ var LEITURA_PUBLICOS = (function () {
     var cat = catalogo || catalogoDoModelo();
     var lista = (cat && cat.configuracoes) || null;
 
-    var achada = null;
-    (lista || []).forEach(function (c) {
-      if (!achada && mesmaConfiguracao(cfg, c.fatores)) achada = c;
-    });
+    // RN-05 compara os seis fatores categóricos. Das entradas que coincidem,
+    // o identificador é o da que coincide também nas perdas, quando existe.
+    var coincidem = (lista || []).filter(function (c) { return mesmaConfiguracao(cfg, c.fatores); });
+    var exata = coincidem.filter(function (c) { return mesmosSeteFatores(cfg, c.fatores); })[0];
+    var achada = exata || coincidem[0] || null;
+    var rodadas = coincidem.reduce(function (soma, c) { return soma + (c.rodadas || 0); }, 0);
 
     // Sem catálogo não há como saber se a configuração já foi testada: `null`,
     // e não "nova", que seria uma afirmação sem base.
     return {
       no_historico: lista ? achada !== null : null,
       configuracao_id: achada ? achada.id : null,
-      rodadas: achada ? achada.rodadas : (lista ? 0 : null),
+      rodadas: lista ? rodadas : null,
       versao_modelo: (dados && dados.versao_modelo) || null,
       data_base_treino: (dados && dados.data_base_treino) || null
     };
