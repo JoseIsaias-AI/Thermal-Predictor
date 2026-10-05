@@ -67,7 +67,7 @@
      mesma qualidade: `AC Blower Inlet` não teve modelo aprovado. Sem a marca, os
      seus pontos apareceriam com o mesmo peso visual dos validados. A pergunta é
      feita a `PREVISAO_SESSAO`, que casa ponto e modelo por `subsistema_modelo`;
-     nos dados de demonstração, que não trazem o bloco `modelos`, nada é marcado. */
+     numa resposta sem o bloco `modelos`, nada é marcado. */
   function marcaDeModelo(ponto) {
     if (typeof PREVISAO_SESSAO === "undefined") return null;
 
@@ -145,7 +145,8 @@
 
     // Histórico e modelo entram como campos da mesma grade: no selo, o texto
     // quebrava em três linhas dentro da coluna do título.
-    item("Histórico", mat.no_historico
+    item("Histórico", mat.no_historico === null ? "Catálogo indisponível"
+      : mat.no_historico
       ? mat.rodadas + (mat.rodadas === 1 ? " rodada simulada" : " rodadas simuladas")
       : "Nenhuma rodada equivalente");
     item("Modelo", mat.versao_modelo || "—");
@@ -164,7 +165,8 @@
     selo.title = mat.no_historico
       ? "A combinação dos seis fatores diretamente categóricos coincide com uma das configurações já simuladas."
       : "Nenhuma rodada da base combina esses seis fatores. A previsão é extrapolação e não vem com grau de confiança diferenciado.";
-    selo.hidden = false;
+    // Sem o catálogo das rodadas não há como dizer se a combinação é nova: sem selo.
+    selo.hidden = mat.no_historico === null;
 
     var nota = document.getElementById("config-default-note");
     nota.hidden = veioDaUrl;

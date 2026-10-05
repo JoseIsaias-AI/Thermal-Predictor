@@ -42,6 +42,9 @@ var REGISTRO_PDF = (function () {
   }
 
   function origem(mat) {
+    if (mat.no_historico === null) {
+      return "Histórico indisponível: o serviço não publicou o catálogo das rodadas";
+    }
     if (mat.no_historico) {
       return "Já simulada · " + mat.configuracao_id + ", " + mat.rodadas +
         (mat.rodadas === 1 ? " rodada" : " rodadas") + " na base";
@@ -75,9 +78,6 @@ var REGISTRO_PDF = (function () {
       item("Arquitetura única.",
         "Esta prova de conceito cobre a arquitetura presente na base disponível, sem distinguir os requisitos de Brasil e México.")
     ];
-    if (mat.ilustrativo) {
-      itens.push(item("Valores de demonstração.", "Os números são sintéticos e ainda não saem de modelo treinado."));
-    }
 
     doc.aviso(itens, { barra: COR.acento });
   }
@@ -263,7 +263,7 @@ var REGISTRO_PDF = (function () {
         LP.dataLegivel(new Date(ultima.entrada.quando)) + " · na ordem em que foram consultadas",
         { tamanho: 8.5, cor: COR.suave, depois: 10 });
     }
-    enquadramento(doc, primeira ? primeira.mat : { ilustrativo: true });
+    enquadramento(doc, primeira ? primeira.mat : {});
 
     doc.secao("Análises da sessão", "Uma linha por configuração analisada. O detalhamento de cada uma vem nas páginas seguintes.");
     doc.tabela({
@@ -271,7 +271,7 @@ var REGISTRO_PDF = (function () {
         { titulo: "#", tipo: "numero", valor: function (a) { return String(a.entrada.n); } },
         { titulo: "Analisada em", tipo: "texto", valor: function (a) { return LP.dataLegivel(new Date(a.entrada.quando)); } },
         { titulo: "Configuração", tipo: "texto", valor: function (a) {
-          return { texto: configuracaoCurta(a.entrada.config), sub: a.mat.no_historico ? "Já simulada · " + a.mat.configuracao_id : "Configuração nova" };
+          return { texto: configuracaoCurta(a.entrada.config), sub: a.mat.no_historico === null ? "Histórico indisponível" : a.mat.no_historico ? "Já simulada · " + a.mat.configuracao_id : "Configuração nova" };
         } },
         { titulo: "Acima", tipo: "numero", valor: function (a) {
           return { texto: String(a.contagem.acima_do_limite), cor: a.contagem.acima_do_limite ? COR.critico : null, negrito: a.contagem.acima_do_limite > 0 };

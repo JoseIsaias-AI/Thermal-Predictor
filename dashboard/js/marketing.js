@@ -139,12 +139,13 @@
       lista.appendChild(bloco);
     });
 
+    // Sem o catálogo das rodadas não há como dizer se a combinação é nova: sem selo.
     var selo = document.getElementById("config-origin");
     selo.textContent = mat.no_historico ? "já simulada" : "configuração nova";
     selo.title = mat.no_historico
       ? "Esta combinação já foi simulada antes, então a leitura se apoia em rodada existente."
       : "Nenhuma rodada anterior combina estas escolhas. A leitura é uma projeção, e tende a mudar mais que a de uma configuração já simulada.";
-    selo.hidden = false;
+    selo.hidden = mat.no_historico === null;
 
     document.getElementById("config-default-note").hidden = veioDaUrl;
     document.getElementById("config-panel").hidden = false;
@@ -180,8 +181,11 @@
     var lista = document.getElementById("maturidade-lista");
 
     itemDeMaturidade(lista, "Base da leitura",
-      mat.no_historico ? "Configuração já simulada" : "Configuração nova",
-      mat.no_historico
+      mat.no_historico === null ? "Histórico indisponível"
+        : mat.no_historico ? "Configuração já simulada" : "Configuração nova",
+      mat.no_historico === null
+        ? "O serviço de predição não publicou o catálogo das rodadas anteriores, e sem ele não há como dizer se esta combinação já foi simulada."
+        : mat.no_historico
         ? "A combinação consta das rodadas anteriores. Entre as leituras disponíveis, é a que menos tende a mudar."
         : "Nenhuma rodada anterior combina estas escolhas. Esta leitura tende a mudar mais quando o cálculo detalhado da engenharia rodar.");
 
@@ -193,9 +197,8 @@
       "Até quando vão os dados que ensinaram o modelo. Mudança de material ou de fornecedor depois dessa data não está refletida aqui.",
       { palavra: "treino", explicacao: LP.GLOSSARIO.treino });
 
-    document.getElementById("maturidade-nota").textContent = mat.ilustrativo
-      ? "Enquanto o painel exibir valores de demonstração, nenhuma leitura desta tela pode sustentar decisão de campanha."
-      : "Confirme a leitura com a engenharia antes de fechar o calendário: a validação formal continua sendo o que autoriza a promessa.";
+    document.getElementById("maturidade-nota").textContent =
+      "Confirme a leitura com a engenharia antes de fechar o calendário: a validação formal continua sendo o que autoriza a promessa.";
 
     document.getElementById("maturidade-panel").hidden = false;
   }

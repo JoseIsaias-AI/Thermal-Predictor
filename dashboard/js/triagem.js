@@ -62,8 +62,8 @@
      `AC Blower Inlet` não teve modelo aprovado, e os seus dois pontos cairiam na
      tabela com o mesmo peso visual dos validados. Quem casa ponto e modelo é
      `PREVISAO_SESSAO`, por `subsistema_modelo` e nunca por `Key_Area` — a área
-     `Main Vent Sys` sai de dois modelos. Nos dados de demonstração, que não
-     trazem o bloco `modelos`, nada é marcado. */
+     `Main Vent Sys` sai de dois modelos. Numa resposta sem o bloco `modelos`,
+     nada é marcado. */
   function marcaDeModelo(ponto) {
     if (typeof PREVISAO_SESSAO === "undefined") return null;
 
@@ -173,8 +173,7 @@
 
     document.getElementById("page-title").textContent = tituloConclusao(dados.pontos);
 
-    // Chip e aviso de demonstração ficam com js/previsao_sessao.js, que vale para
-    // as cinco telas e já sabe se o dado veio do modelo ou do stub.
+    // O chip do modelo fica com js/previsao_sessao.js, que vale para todas as telas.
 
     // Ordem já vem pronta no dado; reordenar aqui duplicaria a regra.
     dados.pontos.forEach(function (ponto) {
@@ -189,8 +188,8 @@
     screeningPanel.hidden = false;
 
     /* O total sai do dado, e não do HTML: o catálogo tem 78 pontos, mas o modelo
-       prevê 77 — `IPC Cooling P05` nunca foi medido e não tem modelo —,
-       e o de demonstração traz os 78. Número fixo aqui mentiria em um dos casos. */
+       prevê 77 — `IPC Cooling P05` nunca foi medido e não tem modelo.
+       Número fixo aqui mentiria se o modelo mudar de cobertura. */
     document.getElementById("monitoring-count").textContent = dados.total_monitoramento;
     document.getElementById("monitoring-total").textContent = dados.total_pontos;
     dados.monitoramento.forEach(function (ponto) {

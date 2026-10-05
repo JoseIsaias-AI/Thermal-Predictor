@@ -231,7 +231,8 @@ var HISTORICO_SESSAO = (function () {
       { titulo: "Análise", tipo: "inteiro", valor: function (a) { return a.entrada.n; } },
       { titulo: "Analisada em", tipo: "texto", valor: function (a) { return LP.dataLegivel(new Date(a.entrada.quando)); } },
       { titulo: "Origem", tipo: "texto", valor: function (a) {
-        return a.mat.no_historico ? "Já simulada · " + a.mat.configuracao_id : "Configuração nova";
+        return a.mat.no_historico === null ? "Histórico indisponível"
+          : a.mat.no_historico ? "Já simulada · " + a.mat.configuracao_id : "Configuração nova";
       } }
     ].concat(colunasDosFatores()).concat([
       { titulo: "Acima do limite", tipo: "inteiro", valor: function (a) { return a.contagem.acima_do_limite; } },
@@ -335,7 +336,8 @@ var HISTORICO_SESSAO = (function () {
     topo.appendChild(el("span", "sessao-item__n", "#" + entrada.n));
     topo.appendChild(el("span", "sessao-item__hora", hora(entrada.quando)));
     var selo = el("span", "config__tag" + (entrada.no_historico ? "" : " config__tag--nota"),
-      entrada.no_historico ? "já simulada · " + entrada.configuracao_id : "configuração nova");
+      entrada.no_historico === null || entrada.no_historico === undefined ? "histórico indisponível"
+        : entrada.no_historico ? "já simulada · " + entrada.configuracao_id : "configuração nova");
     topo.appendChild(selo);
     if (atual) topo.appendChild(el("span", "sessao-item__atual", "em exibição"));
     li.appendChild(topo);

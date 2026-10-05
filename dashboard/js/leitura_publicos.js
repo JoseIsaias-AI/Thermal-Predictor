@@ -87,7 +87,7 @@ var LEITURA_PUBLICOS = (function () {
     limite: "Temperatura máxima que o componente pode atingir, definida na especificação do produto.",
     inconclusivo: "A estimativa ficou perto demais do limite para decidir sozinha. O componente vai para verificação, e não é descartado nem declarado conforme.",
     modelo: "Programa que aprendeu padrões nas simulações já feitas e, a partir deles, estima a temperatura de uma configuração nova sem precisar simular de novo.",
-    versao: "Identificador do preditor que gerou os números. Enquanto for de demonstração, os valores são sintéticos e não saem de um modelo treinado.",
+    versao: "Versão do modelo final que gerou as previsões exibidas.",
     treino: "Conjunto de simulações usado para o modelo aprender. Mudança de material ou de fornecedor posterior a essa data não está refletida na leitura.",
     simulacao: "Cálculo detalhado do comportamento térmico feito por dinâmica de fluidos computacional. Leva semanas e é o que esta ferramenta ajuda a priorizar, não a substituir.",
     subsistema: "Conjunto de componentes agrupados por região e função do produto, como os manípulos ou a placa de potência."
@@ -585,8 +585,7 @@ var LEITURA_PUBLICOS = (function () {
       configuracao_id: achada ? achada.id : null,
       rodadas: achada ? achada.rodadas : (lista ? 0 : null),
       versao_modelo: (dados && dados.versao_modelo) || null,
-      data_base_treino: (dados && dados.data_base_treino) || null,
-      ilustrativo: !dados || dados.preditor_e_stub !== false
+      data_base_treino: (dados && dados.data_base_treino) || null
     };
   }
 
@@ -679,7 +678,8 @@ var LEITURA_PUBLICOS = (function () {
       ["Abrangência", "Arquitetura única, sem distinção de mercado"],
       ["Modelo", (mat && mat.versao_modelo) || "não informado"],
       ["Data-base do treino", (mat && mat.data_base_treino) || "não declarada"],
-      ["Configuração", mat && mat.no_historico
+      ["Configuração", !mat || mat.no_historico === null ? "Histórico indisponível"
+        : mat.no_historico
         ? "Já simulada, " + mat.rodadas + (mat.rodadas === 1 ? " rodada" : " rodadas")
         : "Nova, sem rodada equivalente"],
       ["Gerado em", dataLegivel(new Date())]

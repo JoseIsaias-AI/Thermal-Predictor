@@ -222,19 +222,20 @@ var RESUMO_EXECUTIVO = (function () {
     return n.total > 0 ? "dentro_do_limite" : "monitoramento";
   }
 
+  /* RN-05 pelo catálogo do modelo. Sem o catálogo não há como dizer se a
+     combinação é nova: `null`, e o resumo sai sem selo. */
   function origemDaConfiguracao(config) {
+    if (!LP.catalogoDoModelo()) return null;
     var entrada = LP.configuracaoNoCatalogo(config);
     if (entrada) {
       return {
         selo: "Já simulada · " + entrada.id,
-        explicacao: "Esta combinação já foi simulada antes, então a leitura se apoia em rodada existente.",
-        nota: null
+        explicacao: "Esta combinação já foi simulada antes, então a leitura se apoia em rodada existente."
       };
     }
     return {
       selo: "Configuração nova",
-      explicacao: "Nenhuma rodada anterior combina estas escolhas. A leitura é uma projeção, e tende a mudar mais que a de uma configuração já simulada.",
-      nota: "Sem rodada equivalente no histórico: até existir modelo treinado, os números são os da configuração de referência."
+      explicacao: "Nenhuma rodada anterior combina estas escolhas. A leitura é uma projeção, e tende a mudar mais que a de uma configuração já simulada."
     };
   }
 
@@ -290,9 +291,11 @@ var RESUMO_EXECUTIVO = (function () {
     corpo.appendChild(lateral);
 
     var topo = el("p", "resumo-exec__kicker", "Resumo executivo");
-    var selo = el("span", "config__tag", origem.selo);
-    selo.title = origem.explicacao;
-    topo.appendChild(selo);
+    if (origem) {
+      var selo = el("span", "config__tag", origem.selo);
+      selo.title = origem.explicacao;
+      topo.appendChild(selo);
+    }
     leitura.appendChild(topo);
 
     var titulo = el("h2", "resumo-exec__titulo", r.titulo);
@@ -358,8 +361,6 @@ var RESUMO_EXECUTIVO = (function () {
         ? "Não entra na conta 1 ponto só monitorado, sem limite declarado."
         : "Não entram na conta " + n.monitorados + " pontos só monitorados, sem limite declarado.");
     }
-    if (origem.nota) notas.push(origem.nota);
-    if (dados.preditor_e_stub) notas.push("Valores de demonstração, ainda não saem de modelo treinado.");
     if (notas.length) extenso.appendChild(el("p", "resumo-exec__nota", notas.join(" ")));
 
     alvo.hidden = false;
