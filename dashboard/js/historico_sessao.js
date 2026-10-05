@@ -6,10 +6,12 @@
  * o descarta ao fechar a aba, e recarregar a página o apaga aqui mesmo. Nada
  * vai para disco pelo painel nem sai da máquina.
  *
- * Cada entrada guarda só a configuração, o horário e a contagem por estado.
- * Os pontos não são guardados: para revisitar ou exportar, a análise é
- * recalculada pela mesma LEITURA_PUBLICOS.fonte() que as telas usam, e é isso
- * que garante que o arquivo conta o mesmo que a tela.
+ * Cada entrada guarda a configuração, o horário, a contagem por estado e a
+ * resposta do modelo para ela: para revisitar ou exportar uma análise antiga,
+ * a leitura é refeita sobre essa resposta pelas mesmas funções das telas, e é
+ * isso que garante que o arquivo conta o mesmo que a tela contou. Sem a
+ * resposta guardada, a entrada fica fora da exportação — nenhuma outra fonte
+ * entra no lugar.
  *
  * Telas que recebem configuração pela URL registram sozinhas ao carregar. A
  * tela de consulta só lista, porque não carrega as leituras.
@@ -101,7 +103,9 @@ var HISTORICO_SESSAO = (function () {
     estado.entradas.forEach(function (e) { if (!existente && mesma(e.config, config)) existente = e; });
     if (existente) return existente;
 
-    var dados = LP.fonte(config);
+    // Só a previsão desta configuração entra no histórico.
+    var dados = LP.fonte();
+    if (!dados || !mesma(dados.configuracao, config)) return null;
     var pontos = LP.todosOsPontos(dados);
     var mat = LP.maturidade(dados, null, config);
 
@@ -114,7 +118,8 @@ var HISTORICO_SESSAO = (function () {
       configuracao_id: mat.configuracao_id,
       no_historico: mat.no_historico,
       versao_modelo: mat.versao_modelo,
-      contagem: LP.contarEstados(pontos)
+      contagem: LP.contarEstados(pontos),
+      resposta: dados
     };
 
     estado.entradas.push(entrada);
@@ -145,10 +150,20 @@ var HISTORICO_SESSAO = (function () {
 
   /* ----- Leitura recalculada ----- */
 
-  /* A análise completa de uma entrada, pelas mesmas funções das telas. */
+  /* A resposta do modelo para a entrada: a guardada com ela ou, para a
+     configuração aberta agora, a da tela. `null` sem nenhuma das duas. */
+  function dadosDaEntrada(entrada) {
+    if (entrada && entrada.resposta) return entrada.resposta;
+    var atual = LEITURA_PUBLICOS.fonte();
+    return atual && entrada && mesma(atual.configuracao, entrada.config) ? atual : null;
+  }
+
+  /* A análise completa de uma entrada, pelas mesmas funções das telas. `null`
+     quando a entrada não tem a resposta do modelo. */
   function analise(entrada) {
     var LP = LEITURA_PUBLICOS;
-    var dados = LP.fonte(entrada.config);
+    var dados = dadosDaEntrada(entrada);
+    if (!dados) return null;
     var pontos = LP.todosOsPontos(dados);
 
     return {
@@ -207,7 +222,7 @@ var HISTORICO_SESSAO = (function () {
      entram como número, para a planilha ordenar e somar. */
   function abaDaPlanilha(entradas) {
     var LP = LEITURA_PUBLICOS;
-    var analises = (entradas || listar()).map(analise);
+    var analises = (entradas || listar()).map(analise).filter(Boolean);
 
     function maisCritico(a) { return a.subsistemas[0] || null; }
     function piorPonto(a) { return a.reprovados[0] || LP.ordenarPorRisco(a.pontos)[0] || null; }
@@ -238,13 +253,15 @@ var HISTORICO_SESSAO = (function () {
   /* ----- PDF ----- */
 
   function exportarPdf(entrada) {
+    var a = analise(entrada);
+    if (!a) return;
     DOCUMENTO_PDF.baixar("thermal-predictor-analise-" + (entrada.n || "referencia") + ".pdf",
-      REGISTRO_PDF.analise(analise(entrada)).blob());
+      REGISTRO_PDF.analise(a).blob());
   }
 
   function exportarPdfDoHistorico() {
     DOCUMENTO_PDF.baixar("thermal-predictor-historico-sessao.pdf",
-      REGISTRO_PDF.historico(listar().map(analise)).blob());
+      REGISTRO_PDF.historico(listar().map(analise).filter(Boolean)).blob());
   }
 
   /* A análise em exibição. Sem configuração na URL, a tela mostra a

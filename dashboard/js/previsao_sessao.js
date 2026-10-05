@@ -1,36 +1,36 @@
-/* Troca os dados sintéticos pela previsão do modelo, quando houver uma.
+/* A previsão do modelo que todas as telas exibem.
  *
  * Rodar os testes:
  *   node --test dashboard/testes/previsao_sessao.test.js
  *
- * Carrega logo depois de `js/dados_triagem.js` e antes de qualquer tela, e
- * reatribui `DADOS_TRIAGEM`. A substituição acontece no lugar do dado, e não
- * em cada consumidor, porque as dez telas e módulos que leem esse objeto não
- * precisam saber de onde ele veio: a resposta de `POST /predicao` tem a mesma
- * forma do stub, campo por campo, e foi desenhada assim de propósito
- * (`dashboard/api/dominio/contratos.py`). Nenhum valor é convertido, arredondado
- * ou reordenado aqui — o que a API devolveu é o que a tela mostra.
+ * Carrega antes de qualquer tela e define `DADOS_TRIAGEM` com a resposta de
+ * `POST /predicao` para a configuração da URL. As telas e módulos que leem esse
+ * objeto não precisam saber de onde ele veio: a resposta tem a forma que elas
+ * consomem, campo por campo (`dashboard/api/dominio/contratos.py`). Nenhum valor
+ * é convertido, arredondado ou reordenado aqui — o que a API devolveu é o que a
+ * tela mostra.
  *
- * Três guardas antes de aceitar a previsão guardada:
+ * Não existe valor de reserva. A previsão vem da sessão, guardada pela consulta
+ * (`js/app.js`), ou é pedida à API aqui mesmo, quando a tela abre com uma
+ * configuração que a sessão ainda não tem — um link do menu, o botão "Ver na
+ * triagem" da comparação, um endereço colado. Enquanto a previsão não existe,
+ * `DADOS_TRIAGEM` fica indefinido, as telas não montam nada e o estado da tela
+ * fica com `js/estado_servico.js`:
  *
- *   1. A configuração dela tem de ser a da URL. Um link antigo, ou o botão
- *      voltar depois de outra consulta, traria a previsão errada para a
- *      configuração que a tela diz estar exibindo.
- *   2. O formato tem de estar completo. Resposta truncada no armazenamento
- *      vira stub, não vira tela meio preenchida.
- *   3. Qualquer falha de leitura cai no stub em silêncio. Por `file://` o
- *      navegador pode recusar `sessionStorage`, e nesse caso o painel segue
- *      funcionando como antes desta integração.
+ *   1. A configuração da previsão guardada tem de ser a da URL. Um link antigo,
+ *      ou o botão voltar depois de outra consulta, traria a previsão errada para
+ *      a configuração que a tela diz estar exibindo; nesse caso a tela pede a
+ *      previsão certa e recarrega com ela.
+ *   2. O formato tem de estar completo. Resposta truncada no armazenamento é
+ *      tratada como ausente, não vira tela meio preenchida.
+ *   3. Com a previsão em mãos, a tela ainda espera a API confirmar que está no
+ *      ar: sem o serviço, todas as telas mostram o estado indisponível.
  *
- * Quem decide o aviso da barra é o próprio dado: com a previsão real,
- * `preditor_e_stub` é falso e o rótulo de valores sintéticos some sozinho.
- *
- * Um campo a resposta tem e o stub não: `modelos`, a lista de qual modelo previu
+ * Um campo da resposta merece nota: `modelos`, a lista de qual modelo previu
  * cada subsistema. O modelo final é uma mescla — um algoritmo escolhido por área,
  * e dentro de cinco delas a média de dois —, e as áreas não têm todas a mesma
  * qualidade: `AC Blower Inlet` não teve modelo validado. `modeloDoPonto` e
- * `pontoAferido` dão às telas esse recorte por ponto. Nos dados de demonstração o
- * bloco não existe, e a ausência é tratada como desconhecida, nunca como aprovada.
+ * `pontoAferido` dão às telas esse recorte por ponto.
  */
 
 var PREVISAO_SESSAO = (function () {
@@ -65,10 +65,23 @@ var PREVISAO_SESSAO = (function () {
     "estado_rotulo"
   ];
 
+  /* Os fatores da configuração na query string. O resto da busca — a porta da
+     API, a seleção da comparação — não é configuração e fica de fora da
+     conferência, ou a previsão guardada nunca casaria com a URL dessas telas. */
+  var FATORES = [
+    "blower_direction",
+    "housing",
+    "board_position",
+    "run_case",
+    "deflector_hole",
+    "material_coil_support",
+    "losses"
+  ];
+
   /* Mesmo formato que `paraQueryString` escreve em `js/app.js`: ponto separa o
      aninhamento de `losses`. Parser próprio, e não o de `js/leitura_publicos.js`,
      porque aquele módulo carrega depois de parte dos consumidores e este
-     precisa rodar antes de todos. */
+     precisa rodar antes de todos. Devolve `null` sem nenhum fator. */
   function configuracaoDaBusca(busca) {
     var texto = (busca || "").replace(/^\?/, "");
 
@@ -84,6 +97,8 @@ var PREVISAO_SESSAO = (function () {
       var valor = corte < 0 ? "" : decodeURIComponent(par.slice(corte + 1).replace(/\+/g, " "));
       var partes = chave.split(".");
 
+      if (FATORES.indexOf(partes[0]) < 0) return;
+
       if (partes.length === 1) {
         config[partes[0]] = valor;
         return;
@@ -93,7 +108,29 @@ var PREVISAO_SESSAO = (function () {
       config[partes[0]][partes[1]] = valor;
     });
 
-    return config;
+    return Object.keys(config).length ? config : null;
+  }
+
+  /* O caminho inverso, para pôr na URL a configuração da previsão guardada. */
+  function buscaDaConfiguracao(config) {
+    var partes = [];
+
+    Object.keys(config || {}).forEach(function (chave) {
+      var valor = config[chave];
+
+      if (valor && typeof valor === "object") {
+        Object.keys(valor).forEach(function (sub) {
+          if (valor[sub] === null || valor[sub] === undefined || valor[sub] === "") return;
+          partes.push(encodeURIComponent(chave + "." + sub) + "=" + encodeURIComponent(valor[sub]));
+        });
+        return;
+      }
+
+      if (valor === null || valor === undefined || valor === "") return;
+      partes.push(encodeURIComponent(chave) + "=" + encodeURIComponent(valor));
+    });
+
+    return partes.join("&");
   }
 
   /* Compara só o que a configuração declara, dos dois lados. A query string não
@@ -149,38 +186,40 @@ var PREVISAO_SESSAO = (function () {
     }
   }
 
-  /* Resolve o que a tela deve exibir. Devolve sempre um objeto com `dados` e
-     `origem`, para quem quiser registrar ou depurar a escolha:
-       modelo            previsão real, conferida contra a configuração da URL
-       stub              nada guardado, ou armazenamento indisponível
-       outra_configuracao  havia previsão, mas de outra consulta
-       incompleta        a previsão guardada não tem o formato esperado */
+  /* Resolve o que a tela deve exibir. Devolve sempre um objeto com `origem`,
+     para quem quiser registrar ou depurar a escolha:
+       modelo            previsão guardada, conferida contra a configuração da URL
+       guardada          a URL não traz configuração, e vale a da última
+                         previsão da sessão (`configuracao` diz qual)
+       a_prever          a URL traz uma configuração sem previsão válida na
+                         sessão; `motivo` diz por quê (nada guardado, outra
+                         configuração, previsão incompleta, sem armazenamento)
+       sem_configuracao  nem a URL nem a sessão têm configuração */
   function resolver(opcoes) {
     opcoes = opcoes || {};
 
-    var stub = opcoes.stub;
     var armazenamento = opcoes.armazenamento;
-    var busca = opcoes.busca;
+    var daUrl = configuracaoDaBusca(opcoes.busca);
+    var guardado = armazenamento ? lerGuardado(armazenamento) : null;
+    var valido = !!(guardado && guardado.configuracao && respostaCompleta(guardado.resposta));
 
-    if (!armazenamento) return { dados: stub, origem: "stub" };
-
-    var guardado = lerGuardado(armazenamento);
-
-    if (!guardado || !guardado.resposta) return { dados: stub, origem: "stub" };
-
-    if (!respostaCompleta(guardado.resposta)) return { dados: stub, origem: "incompleta" };
-
-    var daUrl = configuracaoDaBusca(busca);
-
-    // Sem configuração na URL não há o que conferir, e exibir a previsão de
-    // outra consulta seria pior que exibir o stub declarado como tal.
-    if (!daUrl) return { dados: stub, origem: "stub" };
-
-    if (!mesmaConfiguracao(guardado.configuracao, daUrl)) {
-      return { dados: stub, origem: "outra_configuracao" };
+    if (!daUrl) {
+      if (valido) {
+        return { dados: guardado.resposta, origem: "guardada", configuracao: guardado.configuracao };
+      }
+      return { dados: null, origem: "sem_configuracao", configuracao: null };
     }
 
-    return { dados: guardado.resposta, origem: "modelo" };
+    if (valido && mesmaConfiguracao(guardado.configuracao, daUrl)) {
+      return { dados: guardado.resposta, origem: "modelo", configuracao: daUrl };
+    }
+
+    var motivo = !armazenamento ? "sem_armazenamento"
+      : !guardado ? "nada_guardado"
+      : !valido ? "incompleta"
+      : "outra_configuracao";
+
+    return { dados: null, origem: "a_prever", motivo: motivo, configuracao: daUrl };
   }
 
   /* Qual modelo previu este ponto. A busca é por `subsistema_modelo`, que a API
@@ -190,8 +229,8 @@ var PREVISAO_SESSAO = (function () {
      `Oven HMI` e `CT Knobs`. Casar por área atribuiria os dois pontos do único
      modelo não validado a um modelo validado, sem erro nenhum à vista.
 
-     Devolve `null` quando não há como saber: nos dados de demonstração, que não
-     têm bloco `modelos`, e em qualquer ponto cujo subsistema não esteja na lista. */
+     Devolve `null` quando não há como saber: resposta sem bloco `modelos`, ou
+     ponto cujo subsistema não esteja na lista. */
   function modeloDoPonto(dados, ponto) {
     if (!dados || !ponto || !Array.isArray(dados.modelos)) return null;
 
@@ -294,43 +333,126 @@ var PREVISAO_SESSAO = (function () {
     });
   }
 
-  /* Reatribui o global, se houver previsão para esta configuração. Chamado uma
-     vez, na carga; devolve a origem para os testes e para o console. */
+  var CHAVE_TENTATIVA = CHAVE + ".tentativa";
+
+  function lerArmazenamento(w) {
+    // Acessar `sessionStorage` já pode lançar quando o navegador bloqueia
+    // armazenamento ou a página veio de `file://`.
+    try {
+      return w.sessionStorage || null;
+    } catch (semArmazenamento) {
+      return null;
+    }
+  }
+
+  /* Pede à API a previsão da configuração da URL, guarda na sessão e recarrega a
+     tela, que então monta com ela. A marca de tentativa impede o ciclo: se a
+     previsão recém-guardada não casar com a URL depois de recarregar, a tela
+     para no estado indisponível em vez de pedir de novo para sempre. */
+  function preverEGuardar(w, configuracao, armazenamento) {
+    var busca = (w.location && w.location.search) || "";
+
+    if (!armazenamento) {
+      ESTADO_SERVICO.mostrar(w.document, "indisponivel", {
+        texto: "Este navegador recusou o armazenamento da sessão, onde a previsão " +
+          "fica entre as telas. Abra o painel pelo servidor local (Live Server) e tente de novo."
+      });
+      return Promise.resolve(null);
+    }
+
+    try {
+      if (armazenamento.getItem(CHAVE_TENTATIVA) === busca) {
+        armazenamento.removeItem(CHAVE_TENTATIVA);
+        ESTADO_SERVICO.mostrar(w.document, "indisponivel");
+        return Promise.resolve(null);
+      }
+    } catch (semLeitura) { /* segue sem a marca */ }
+
+    ESTADO_SERVICO.mostrar(w.document, "carregando");
+
+    return API_PREDICAO.prever(configuracao, { janela: w }).then(function (resultado) {
+      if (!resultado.ok) {
+        ESTADO_SERVICO.mostrar(w.document,
+          resultado.erro.tipo === "validacao" ? "configuracao_invalida" : "indisponivel");
+        return resultado;
+      }
+
+      try {
+        armazenamento.setItem(CHAVE, JSON.stringify({
+          configuracao: resultado.enviado,
+          resposta: resultado.dados
+        }));
+        armazenamento.setItem(CHAVE_TENTATIVA, busca);
+      } catch (semEscrita) {
+        ESTADO_SERVICO.mostrar(w.document, "indisponivel");
+        return resultado;
+      }
+
+      w.location.reload();
+      return resultado;
+    });
+  }
+
+  /* Telas que também servem sem configuração — a engenharia, com as métricas do
+     modelo, e a comparação, com o catálogo — declaram `data-previsao="opcional"`
+     no `body`. */
+  function previsaoOpcional(w) {
+    return !!(w.document && w.document.body && w.document.body.dataset &&
+      w.document.body.dataset.previsao === "opcional");
+  }
+
+  /* Define o global com a previsão desta configuração, ou põe a tela no estado
+     que explica por que não há previsão. Chamado uma vez, na carga; devolve a
+     escolha para os testes e para o console. */
   function aplicar(janela) {
     var w = janela || (typeof window !== "undefined" ? window : null);
 
-    if (!w) return { dados: null, origem: "stub" };
+    if (!w) return { dados: null, origem: "sem_configuracao" };
 
-    var armazenamento = null;
-
-    // Acessar `sessionStorage` já pode lançar quando o navegador bloqueia
-    // armazenamento de terceiros ou a página veio de `file://`.
-    try {
-      armazenamento = w.sessionStorage;
-    } catch (semArmazenamento) {
-      armazenamento = null;
-    }
-
+    var armazenamento = lerArmazenamento(w);
     var escolha = resolver({
-      stub: w.DADOS_TRIAGEM,
       armazenamento: armazenamento,
       busca: (w.location && w.location.search) || ""
     });
 
-    if (escolha.origem === "modelo") w.DADOS_TRIAGEM = escolha.dados;
+    /* Sem configuração na URL, a tela mostra a da última previsão e passa a
+       URL a dizer qual é: é dela que os links do menu partem. */
+    if (escolha.origem === "guardada") {
+      try {
+        var resto = (w.location.search || "").replace(/^\?/, "");
+        var busca = buscaDaConfiguracao(escolha.configuracao) + (resto ? "&" + resto : "");
+        w.history.replaceState(null, "", w.location.pathname + "?" + busca + (w.location.hash || ""));
+      } catch (semHistorico) { /* a tela segue com a previsão, a URL fica como veio */ }
+      if (typeof NAVEGACAO !== "undefined") NAVEGACAO.propagar(w.document);
+      escolha.origem = "modelo";
+    }
 
     w.PREVISAO_ORIGEM = escolha.origem;
 
-    verificarServico(w);
-
-    /* Os scripts ficam no fim do `body` e a barra está no topo, então ela já
-       existe. O ouvinte cobre a ordem que mudar depois, sem repetir a regra. */
-    if (!refletirNaBarra(w.document, escolha.dados) && w.document &&
-        w.document.addEventListener) {
-      w.document.addEventListener("DOMContentLoaded", function () {
-        refletirNaBarra(w.document, escolha.dados);
-      });
+    if (escolha.origem === "modelo") {
+      w.DADOS_TRIAGEM = escolha.dados;
+      try { if (armazenamento) armazenamento.removeItem(CHAVE_TENTATIVA); } catch (e) { /* sem escrita */ }
+      refletirNaBarra(w.document, escolha.dados);
+      verificarServico(w);
+      return escolha;
     }
+
+    if (typeof ESTADO_SERVICO === "undefined" || typeof API_PREDICAO === "undefined") return escolha;
+
+    if (escolha.origem === "a_prever") {
+      preverEGuardar(w, escolha.configuracao, armazenamento);
+      return escolha;
+    }
+
+    // Sem configuração: a tela opcional segue sem previsão; as demais pedem uma.
+    if (previsaoOpcional(w)) {
+      verificarServico(w);
+      return escolha;
+    }
+
+    API_PREDICAO.saude({ janela: w }).then(function (resultado) {
+      ESTADO_SERVICO.mostrar(w.document, resultado.ok ? "sem_configuracao" : "indisponivel");
+    });
 
     return escolha;
   }
@@ -339,7 +461,9 @@ var PREVISAO_SESSAO = (function () {
 
   return {
     CHAVE: CHAVE,
+    CHAVE_TENTATIVA: CHAVE_TENTATIVA,
     configuracaoDaBusca: configuracaoDaBusca,
+    buscaDaConfiguracao: buscaDaConfiguracao,
     mesmaConfiguracao: mesmaConfiguracao,
     respostaCompleta: respostaCompleta,
     modeloDoPonto: modeloDoPonto,
@@ -351,6 +475,7 @@ var PREVISAO_SESSAO = (function () {
     refletirNaBarra: refletirNaBarra,
     resolver: resolver,
     verificarServico: verificarServico,
+    preverEGuardar: preverEGuardar,
     aplicar: aplicar
   };
 })();

@@ -428,14 +428,9 @@
 
   /* ----- Montagem ----- */
 
-  if (typeof DADOS_TRIAGEM === "undefined" || typeof DADOS_COMPARACAO === "undefined") {
-    mostrarErro(
-      "js/dados_triagem.js ou js/dados_comparacao.js não foi carregado. Confira " +
-      "se os arquivos existem em dashboard/js/ e se as tags <script> que os " +
-      "carregam vêm antes desta."
-    );
-    return;
-  }
+  // Sem previsão do modelo a tela não monta nada: o estado da tela (carregando,
+  // indisponível) fica com js/previsao_sessao.js e js/estado_servico.js.
+  if (typeof DADOS_TRIAGEM === "undefined") return;
 
   var dados = LP.fonte();
   var configDaUrl = LP.configuracaoDaUrl();
@@ -447,7 +442,15 @@
   document.getElementById("model-version").textContent = dados.versao_modelo || "—";
   renderConfiguracao(configAtiva, configDaUrl !== null);
   renderContato(pecas);
-  renderFatores(DADOS_COMPARACAO, configAtiva);
-  renderAlternativas(LP.alternativasDeDesign(DADOS_COMPARACAO, configAtiva));
+  /* Efeito dos fatores e alternativas comparam configurações do catálogo
+     histórico com a previsão do modelo para cada uma. Sem o catálogo, os dois
+     painéis ficam fora e a tela diz por quê, em vez de mostrar outra fonte. */
+  var catalogo = typeof CATALOGO_MODELO === "undefined" ? null : CATALOGO_MODELO;
+  if (catalogo) {
+    renderFatores(catalogo, configAtiva);
+    renderAlternativas(LP.alternativasDeDesign(catalogo, configAtiva));
+  } else {
+    document.getElementById("catalogo-indisponivel").hidden = false;
+  }
   criarModelo(configAtiva);
 })();

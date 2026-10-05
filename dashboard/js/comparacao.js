@@ -20,15 +20,24 @@
     erroSecao.hidden = false;
   }
 
-  if (typeof DADOS_COMPARACAO === "undefined") {
+  /* A comparação justapõe configurações do catálogo histórico, cada uma com a
+     previsão do modelo. Sem o catálogo publicado pelo serviço, a tela diz isso e
+     não mostra número nenhum. */
+  if (typeof CATALOGO_MODELO === "undefined") {
+    document.getElementById("error-label").textContent = "Catálogo indisponível";
     mostrarErro(
-      "js/dados_comparacao.js não foi carregado. Confira se o arquivo existe " +
-      "em dashboard/js/ e se a tag <script> que o carrega vem antes desta."
+      "O serviço de predição não publicou o catálogo das configurações históricas " +
+      "com as previsões do modelo, e a comparação só mostra números do modelo."
     );
+    // Sem catálogo, os painéis de escolha e comparação ficariam vazios: saem.
+    Array.prototype.forEach.call(document.getElementById("conteudo").children, function (n) {
+      // O aviso do serviço (js/estado_servico.js) pode já estar na tela.
+      if (n !== erroSecao && n.id !== "notice" && !n.classList.contains("servico")) n.hidden = true;
+    });
     return;
   }
 
-  var D = DADOS_COMPARACAO;
+  var D = CATALOGO_MODELO;
   var PONTOS = D.pontos;
   var CFGS = D.configuracoes;
 

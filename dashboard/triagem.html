@@ -418,21 +418,15 @@
 
 </main>
 
-<!-- schema.js traduz a configuração da URL em rótulos legíveis.
-     dados_triagem.js precisa vir antes de triagem.js. -->
+<!-- schema.js traduz a configuração da URL em rótulos legíveis. -->
 <script src="js/schema.js?v=3"></script>
 <!-- Repassa a configuração da URL aos links do menu. -->
 <script src="js/navegacao.js?v=1"></script>
-<script src="js/dados_triagem.js?v=3"></script>
-<!-- Troca o stub pela previsão do modelo, quando houver uma para esta
-     configuração. Tem de vir logo aqui: todos os consumidores de
-     DADOS_TRIAGEM carregam depois. -->
+<!-- A previsão do modelo para a configuração da URL: todos os consumidores
+     de DADOS_TRIAGEM carregam depois. -->
 <script src="js/api_predicao.js?v=3"></script>
 <script src="js/estado_servico.js?v=1"></script>
 <script src="js/previsao_sessao.js?v=4"></script>
-<!-- Catálogo das configurações já simuladas: a triagem lê dele quando a
-     configuração da URL consta do histórico. -->
-<script src="js/dados_comparacao.js?v=3"></script>
 <script src="vendor/three.min.js"></script>
 <script src="js/fogao.js?v=8"></script>
 <script src="js/fogao3d.js?v=11"></script>

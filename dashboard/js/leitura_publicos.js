@@ -124,7 +124,7 @@ var LEITURA_PUBLICOS = (function () {
 
   // A entrada do catálogo com exatamente esta configuração, ou null.
   function configuracaoNoCatalogo(config, catalogo) {
-    var cat = catalogo || (typeof DADOS_COMPARACAO === "undefined" ? null : DADOS_COMPARACAO);
+    var cat = catalogo || catalogoDoModelo();
     var achada = null;
     ((cat && cat.configuracoes) || []).forEach(function (c) {
       if (!achada && mesmosSeteFatores(config, c.fatores)) achada = c;
@@ -132,8 +132,8 @@ var LEITURA_PUBLICOS = (function () {
     return achada;
   }
 
-  /* Monta, a partir de uma configuração do catálogo, o mesmo formato de
-     js/dados_triagem.js. Não reclassifica: o estado vem pronto no vetor `e`. */
+  /* Monta, a partir de uma configuração do catálogo, o mesmo formato da
+     resposta de `POST /predicao`. Não reclassifica: o estado vem pronto no vetor `e`. */
   function payloadDoCatalogo(catalogo, entrada) {
     var pontos = [];
     var monitorados = [];
@@ -175,21 +175,17 @@ var LEITURA_PUBLICOS = (function () {
     };
   }
 
-  /* O dado da configuração avaliada. Se ela consta do catálogo, sai dele; se é
-     nova, cai no payload de referência, como antes, até existir a API.
-     Sem argumento, lê a configuração da querystring: assim todas as telas
-     contam a mesma coisa para a mesma URL. */
-  function fonte(config) {
-    if (typeof DADOS_TRIAGEM === "undefined") return null;
+  /* O catálogo histórico com a previsão do modelo para cada configuração, quando
+     o serviço o publicou; `null` sem ele. */
+  function catalogoDoModelo() {
+    return typeof CATALOGO_MODELO === "undefined" ? null : CATALOGO_MODELO;
+  }
 
-    var cfg = config;
-    if (cfg === undefined && typeof window !== "undefined" && window.location) {
-      cfg = configuracaoDaUrl();
-    }
-    if (!cfg || mesmosSeteFatores(cfg, DADOS_TRIAGEM.configuracao)) return DADOS_TRIAGEM;
-
-    var entrada = configuracaoNoCatalogo(cfg);
-    return entrada ? payloadDoCatalogo(DADOS_COMPARACAO, entrada) : DADOS_TRIAGEM;
+  /* O dado da configuração avaliada: a previsão do modelo para a configuração
+     da URL, que `js/previsao_sessao.js` já conferiu antes de qualquer tela
+     montar. `null` sem previsão. */
+  function fonte() {
+    return typeof DADOS_TRIAGEM === "undefined" ? null : DADOS_TRIAGEM;
   }
 
   // Classificados e monitorados na mesma lista, para quem precisa dos 78.
@@ -325,8 +321,8 @@ var LEITURA_PUBLICOS = (function () {
 
   /* ----- Leitura do histórico para a tela de design -----
    *
-   * As funções abaixo leem js/dados_comparacao.js, que traz as configurações
-   * já rodadas. São leitura observacional: as rodadas não variam um fator de
+   * As funções abaixo leem o catálogo do modelo (`CATALOGO_MODELO`), que traz
+   * as configurações já rodadas com a previsão do modelo para cada uma. São leitura observacional: as rodadas não variam um fator de
    * cada vez, então o que sai daqui é o que se viu na base, e não o efeito
    * isolado de um fator. A tela diz isso em palavras. */
 
@@ -574,18 +570,20 @@ var LEITURA_PUBLICOS = (function () {
     // A configuração avaliada pode vir da querystring e ser outra que a do
     // payload; é ela que RN-05 localiza, não a do dado de exemplo.
     var cfg = configuracao || (dados && dados.configuracao);
-    var lista = (catalogo && catalogo.configuracoes) ||
-      (typeof DADOS_COMPARACAO === "undefined" ? [] : DADOS_COMPARACAO.configuracoes) || [];
+    var cat = catalogo || catalogoDoModelo();
+    var lista = (cat && cat.configuracoes) || null;
 
     var achada = null;
-    lista.forEach(function (c) {
+    (lista || []).forEach(function (c) {
       if (!achada && mesmaConfiguracao(cfg, c.fatores)) achada = c;
     });
 
+    // Sem catálogo não há como saber se a configuração já foi testada: `null`,
+    // e não "nova", que seria uma afirmação sem base.
     return {
-      no_historico: achada !== null,
+      no_historico: lista ? achada !== null : null,
       configuracao_id: achada ? achada.id : null,
-      rodadas: achada ? achada.rodadas : 0,
+      rodadas: achada ? achada.rodadas : (lista ? 0 : null),
       versao_modelo: (dados && dados.versao_modelo) || null,
       data_base_treino: (dados && dados.data_base_treino) || null,
       ilustrativo: !dados || dados.preditor_e_stub !== false
@@ -733,6 +731,7 @@ var LEITURA_PUBLICOS = (function () {
     leituraDeContato: leituraDeContato,
     efeitoDoFator: efeitoDoFator,
     alternativasDeDesign: alternativasDeDesign,
+    catalogoDoModelo: catalogoDoModelo,
     traduzirEstado: traduzirEstado,
     maturidade: maturidade,
     configuracaoDaUrl: configuracaoDaUrl,

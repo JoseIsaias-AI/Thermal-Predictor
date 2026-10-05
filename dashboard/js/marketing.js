@@ -253,13 +253,9 @@
 
   /* ----- Montagem ----- */
 
-  if (typeof DADOS_TRIAGEM === "undefined") {
-    mostrarErro(
-      "js/dados_triagem.js não foi carregado. Confira se o arquivo existe " +
-      "em dashboard/js/ e se a tag <script> que o carrega vem antes desta."
-    );
-    return;
-  }
+  // Sem previsão do modelo a tela não monta nada: o estado da tela (carregando,
+  // indisponível) fica com js/previsao_sessao.js e js/estado_servico.js.
+  if (typeof DADOS_TRIAGEM === "undefined") return;
 
   var dados = LP.fonte();
   var configDaUrl = LP.configuracaoDaUrl();

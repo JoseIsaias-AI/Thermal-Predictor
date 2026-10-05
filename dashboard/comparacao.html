@@ -23,7 +23,7 @@
   <link rel="stylesheet" href="css/acessibilidade.css?v=2">
   <script src="js/acessibilidade.js?v=2"></script>
 </head>
-<body>
+<body data-previsao="opcional">
 
 <!-- Primeiro item do Tab: pula cabeçalho e navegação (WCAG 2.4.1). -->
 <a class="pular-conteudo" href="#conteudo">Pular para o conteúdo</a>
@@ -126,7 +126,7 @@
   </details>
 
   <section class="error" id="error" hidden>
-    <span class="error__label">Comparação indisponível</span>
+    <span class="error__label" id="error-label">Comparação indisponível</span>
     <span id="error-message"></span>
   </section>
 
@@ -484,11 +484,14 @@
 </main>
 
 <!-- schema.js traduz os fatores em rótulos legíveis; fogao.js dá a escala de
-     folga; dados_comparacao.js precisa vir antes de comparacao.js. -->
+     folga. -->
 <script src="js/schema.js?v=3"></script>
 <!-- Repassa a configuração da URL aos links do menu. -->
 <script src="js/navegacao.js?v=1"></script>
-<script src="js/dados_comparacao.js?v=3"></script>
+<script src="js/api_predicao.js?v=3"></script>
+<script src="js/estado_servico.js?v=1"></script>
+<!-- A previsão do modelo para a configuração da URL, quando houver uma. -->
+<script src="js/previsao_sessao.js?v=4"></script>
 <script src="js/fogao.js?v=8"></script>
 <script src="js/grafico.js?v=4"></script>
 <script src="js/segura_proxima.js?v=1"></script>
@@ -497,7 +500,7 @@
 <script src="js/fogao3d.js?v=11"></script>
 <script src="js/painel_peca.js?v=7"></script>
 <script src="js/diff_termico.js?v=1"></script>
-<script src="js/comparacao.js?v=7"></script>
+<script src="js/comparacao.js?v=8"></script>
 <script src="js/chat.js?v=5"></script>
 </body>
 </html>

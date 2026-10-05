@@ -195,6 +195,18 @@
     <div id="fatores-blocos"></div>
   </section>
 
+  <!-- Sem o catálogo histórico, efeito dos fatores e alternativas ficam fora. -->
+  <section class="panel" id="catalogo-indisponivel" hidden>
+    <div class="panel__head">
+      <h2 class="panel__title">Efeito dos fatores e alternativas</h2>
+    </div>
+    <p class="panel__note">
+      Estas leituras comparam a consulta com as configurações históricas, cada uma
+      com a previsão do modelo. O serviço de predição não publicou esse catálogo,
+      e por isso elas não aparecem aqui.
+    </p>
+  </section>
+
   <!-- Mesmas condições de operação, variando só o que o design decide. -->
   <section class="panel" id="alternativas-panel" hidden>
     <div class="panel__head">
@@ -230,14 +242,11 @@
 <script src="js/schema.js?v=3"></script>
 <!-- Repassa a configuração da URL aos links do menu. -->
 <script src="js/navegacao.js?v=1"></script>
-<script src="js/dados_triagem.js?v=3"></script>
-<!-- Troca o stub pela previsão do modelo, quando houver uma para esta
-     configuração. Tem de vir logo aqui: todos os consumidores de
-     DADOS_TRIAGEM carregam depois. -->
+<!-- A previsão do modelo para a configuração da URL: todos os consumidores
+     de DADOS_TRIAGEM carregam depois. -->
 <script src="js/api_predicao.js?v=3"></script>
 <script src="js/estado_servico.js?v=1"></script>
 <script src="js/previsao_sessao.js?v=4"></script>
-<script src="js/dados_comparacao.js?v=3"></script>
 <script src="vendor/three.min.js"></script>
 <script src="js/fogao.js?v=8"></script>
 <script src="js/fogao3d.js?v=11"></script>
