@@ -487,17 +487,16 @@
             return url;
           }
 
-          /* Configuração fora do contrato ou falha do servidor param aqui:
-             seguir mostraria número de demonstração como se fosse resposta do
-             modelo. Já API fora do ar é o caso normal de abrir o painel por
-             `file://`, e aí a consulta segue com os valores sintéticos e o
-             aviso que a barra já exibe. */
+          /* Configuração fora do contrato ou falha do servidor param aqui, com
+             a mensagem da API. Sem resposta do serviço, não há previsão para
+             mostrar em tela nenhuma: a consulta passa ao estado indisponível. */
           if (resultado.erro.tipo === "validacao" || resultado.erro.tipo === "falha") {
             showError(resultado.erro.mensagem);
             return null;
           }
 
-          return url;
+          ESTADO_SERVICO.mostrar(document, "indisponivel", { aoTentar: verificarServico });
+          return null;
         });
       },
       totalDePontos: function () { return totalPrevisto; },
@@ -528,11 +527,20 @@
 
   redesenhar();
 
-  /* O chip mostra a versão do modelo que o serviço carregou, e só ela: sem
-     resposta de `GET /saude`, ele continua oculto. */
-  API_PREDICAO.saude().then(function (resultado) {
-    if (!resultado.ok) return;
-    document.getElementById("model-version").textContent = resultado.versao;
-    document.getElementById("model-chip").hidden = false;
-  });
+  /* A consulta abre conferindo o serviço: com ele no ar, o chip mostra a versão
+     do modelo carregado; sem ele, a tela fica no estado indisponível, porque
+     nenhuma configuração teria previsão. "Tentar de novo" refaz só a conferência. */
+  function verificarServico() {
+    return API_PREDICAO.saude().then(function (resultado) {
+      if (!resultado.ok) {
+        ESTADO_SERVICO.mostrar(document, "indisponivel", { aoTentar: verificarServico });
+        return;
+      }
+      ESTADO_SERVICO.limpar(document);
+      document.getElementById("model-version").textContent = resultado.versao;
+      document.getElementById("model-chip").hidden = false;
+    });
+  }
+
+  verificarServico();
 })();

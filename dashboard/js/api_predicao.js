@@ -97,7 +97,7 @@ var API_PREDICAO = (function () {
       "Revise os campos e tente de novo.",
     indisponivel:
       "O modelo preditivo não está disponível nesta execução. " +
-      "Os números exibidos seguem sendo de demonstração.",
+      "Inicie a API de predição e tente de novo.",
     falha: "O servidor de previsão falhou ao processar a configuração.",
     rede:
       "Não foi possível falar com o servidor de previsão. " +

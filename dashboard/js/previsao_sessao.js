@@ -279,6 +279,21 @@ var PREVISAO_SESSAO = (function () {
     return true;
   }
 
+  /* A tela monta com a previsão guardada, mas só aparece depois que a API
+     confirma que está no ar: sem o serviço, o painel mostra o estado
+     indisponível e nenhum número, mesmo com uma previsão na sessão. */
+  function verificarServico(w) {
+    if (typeof ESTADO_SERVICO === "undefined" || typeof API_PREDICAO === "undefined") return null;
+
+    ESTADO_SERVICO.mostrar(w.document, "verificando");
+
+    return API_PREDICAO.saude({ janela: w }).then(function (resultado) {
+      if (resultado.ok) ESTADO_SERVICO.limpar(w.document);
+      else ESTADO_SERVICO.mostrar(w.document, "indisponivel");
+      return resultado;
+    });
+  }
+
   /* Reatribui o global, se houver previsão para esta configuração. Chamado uma
      vez, na carga; devolve a origem para os testes e para o console. */
   function aplicar(janela) {
@@ -305,6 +320,8 @@ var PREVISAO_SESSAO = (function () {
     if (escolha.origem === "modelo") w.DADOS_TRIAGEM = escolha.dados;
 
     w.PREVISAO_ORIGEM = escolha.origem;
+
+    verificarServico(w);
 
     /* Os scripts ficam no fim do `body` e a barra está no topo, então ela já
        existe. O ouvinte cobre a ordem que mudar depois, sem repetir a regra. */
@@ -333,6 +350,7 @@ var PREVISAO_SESSAO = (function () {
     marcaDeSubsistemas: marcaDeSubsistemas,
     refletirNaBarra: refletirNaBarra,
     resolver: resolver,
+    verificarServico: verificarServico,
     aplicar: aplicar
   };
 })();
