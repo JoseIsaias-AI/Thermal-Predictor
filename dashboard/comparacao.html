@@ -4,6 +4,9 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Comparação de configurações — Thermal Predictor</title>
+  <!-- O símbolo da Whirlpool na aba do navegador, como nos sites da marca. -->
+  <link rel="icon" type="image/png" sizes="48x48" href="../assets/dashboard/favicon-whirlpool.png">
+  <link rel="apple-touch-icon" href="../assets/dashboard/favicon-whirlpool.png">
 
   <!-- Fontes hospedadas localmente em css/tokens.css (@font-face), sem
        dependência de rede (RNF-02 e RNF-04, Tabela 48 da documentação). -->
@@ -16,8 +19,14 @@
   <link rel="stylesheet" href="css/chat.css?v=5">
   <!-- Antes de pintar: a página já abre no tema da sessão. -->
   <script src="js/tema.js?v=1"></script>
+  <!-- Recursos assistivos: fonte, contraste e cor escolhidos já valem antes de pintar. -->
+  <link rel="stylesheet" href="css/acessibilidade.css?v=2">
+  <script src="js/acessibilidade.js?v=2"></script>
 </head>
 <body>
+
+<!-- Primeiro item do Tab: pula cabeçalho e navegação (WCAG 2.4.1). -->
+<a class="pular-conteudo" href="#conteudo">Pular para o conteúdo</a>
 
 <header class="masthead">
   <div class="masthead__inner">
@@ -59,7 +68,7 @@
   </div>
 </header>
 
-<main class="page page--wide">
+<main class="page page--wide" id="conteudo" tabindex="-1">
 
   <!-- RF-15 e RN-07: fixo e visível nesta tela. A frase que enquadra a leitura
        fica sempre à vista; o desdobramento da regra vai para o expansível, em
@@ -477,12 +486,12 @@
      folga; dados_comparacao.js precisa vir antes de comparacao.js. -->
 <script src="js/schema.js?v=3"></script>
 <script src="js/dados_comparacao.js?v=3"></script>
-<script src="js/fogao.js?v=6"></script>
+<script src="js/fogao.js?v=8"></script>
 <script src="js/grafico.js?v=4"></script>
 <script src="js/segura_proxima.js?v=1"></script>
 <!-- Passo 4: o mesmo viewport e o mesmo painel de peça da triagem. -->
 <script src="vendor/three.min.js"></script>
-<script src="js/fogao3d.js?v=10"></script>
+<script src="js/fogao3d.js?v=11"></script>
 <script src="js/painel_peca.js?v=7"></script>
 <script src="js/diff_termico.js?v=1"></script>
 <script src="js/comparacao.js?v=7"></script>

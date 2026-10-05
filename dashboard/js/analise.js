@@ -42,9 +42,10 @@ var ANALISE = (function () {
   var DURACAO = 4600;
   var ESPERA_NO_FIM = 800;
 
-  var movimentoReduzido = window.matchMedia
-    ? window.matchMedia("(prefers-reduced-motion: reduce)")
-    : { matches: false };
+  // No sistema ou nos recursos assistivos (js/acessibilidade.js).
+  var movimentoReduzido = typeof ACESSIBILIDADE !== "undefined"
+    ? ACESSIBILIDADE.movimentoReduzido
+    : (window.matchMedia ? window.matchMedia("(prefers-reduced-motion: reduce)") : { matches: false });
 
   function elemento(id) { return document.getElementById(id); }
 

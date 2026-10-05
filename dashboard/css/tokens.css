@@ -42,6 +42,24 @@
   src: url("../fonts/source-sans-3-bold.woff2") format("woff2");
 }
 
+/* Atkinson Hyperlegible, do Braille Institute: letras que não se confundem
+ * (I, l e 1; O e 0; b e d espelhados), para baixa visão e dislexia. Só é
+ * baixada quando o recurso "Fonte legível" está ligado (acessibilidade.css).
+ * Local, subconjunto latino, licença OFL. */
+@font-face {
+  font-family: "Atkinson Hyperlegible";
+  font-weight: 400;
+  font-display: swap;
+  src: url("../fonts/atkinson-hyperlegible-regular.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Atkinson Hyperlegible";
+  font-weight: 700;
+  font-display: swap;
+  src: url("../fonts/atkinson-hyperlegible-bold.woff2") format("woff2");
+}
+
 :root {
   /* Neutros frios, com um fio de azul para conversar com a marca. */
   --wp-gray-extra-light: #f4f6f9;
