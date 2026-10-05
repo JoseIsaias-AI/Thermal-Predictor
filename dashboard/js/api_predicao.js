@@ -240,9 +240,28 @@ var API_PREDICAO = (function () {
       .catch(function () { return erro("rede"); });
   }
 
+  /* `GET /modelos`, com o mesmo contrato: os metadados e as métricas de teste de
+     cada subsistema, de onde sai a confiança da previsão (`js/confianca.js`). */
+  function modelos(opcoes) {
+    opcoes = opcoes || {};
+
+    var buscar = opcoes.fetch || (typeof fetch !== "undefined" ? fetch : null);
+    var base = opcoes.base || baseDaApi(opcoes.janela);
+
+    if (!buscar) return Promise.resolve(erro("rede", null, "Este navegador não suporta requisições."));
+
+    return buscar(base + "/modelos")
+      .then(function (resposta) {
+        if (!resposta.ok) return erro(tipoDoStatus(resposta.status), resposta.status);
+        return resposta.json().then(function (dados) { return { ok: true, dados: dados }; });
+      })
+      .catch(function () { return erro("rede"); });
+  }
+
   return {
     baseDaApi: baseDaApi,
     saude: saude,
+    modelos: modelos,
     versaoDaSaude: versaoDaSaude,
     montarCorpo: montarCorpo,
     prever: prever,

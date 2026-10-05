@@ -320,16 +320,28 @@ var PREVISAO_SESSAO = (function () {
 
   /* A tela monta com a previsão guardada, mas só aparece depois que a API
      confirma que está no ar: sem o serviço, o painel mostra o estado
-     indisponível e nenhum número, mesmo com uma previsão na sessão. */
+     indisponível e nenhum número, mesmo com uma previsão na sessão. Na mesma
+     ida, `GET /modelos` traz as métricas de teste de cada subsistema, que a
+     confiança da previsão usa (`js/confianca.js`); elas ficam em `MODELOS_API`
+     antes de a tela aparecer. */
   function verificarServico(w) {
     if (typeof ESTADO_SERVICO === "undefined" || typeof API_PREDICAO === "undefined") return null;
 
     ESTADO_SERVICO.mostrar(w.document, "verificando");
 
-    return API_PREDICAO.saude({ janela: w }).then(function (resultado) {
-      if (resultado.ok) ESTADO_SERVICO.limpar(w.document);
+    return Promise.all([
+      API_PREDICAO.saude({ janela: w }),
+      API_PREDICAO.modelos({ janela: w })
+    ]).then(function (respostas) {
+      var saude = respostas[0];
+      var modelos = respostas[1];
+
+      if (modelos.ok) w.MODELOS_API = modelos.dados;
+
+      if (saude.ok) ESTADO_SERVICO.limpar(w.document);
       else ESTADO_SERVICO.mostrar(w.document, "indisponivel");
-      return resultado;
+
+      return saude;
     });
   }
 

@@ -1287,7 +1287,7 @@ var FOGAO3D = (function () {
        Disco translúcido atrás do ponto selecionado e do ponto sob o cursor.
        O raio vem de `op.haloDoPonto(ponto)`, em unidades de marcador; sem a
        função, ou com 0, não há halo. O viewport não sabe de onde o número
-       sai — na triagem é o stub de CONFIANCA — nem o mistura à cor ou à
+       sai — na triagem é a confiança calculada de CONFIANCA — nem o mistura à cor ou à
        forma do marcador, que continuam sendo só o estado de risco. */
     function criarHalo() {
       var g = new T.Group();

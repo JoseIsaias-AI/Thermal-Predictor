@@ -762,41 +762,61 @@
     return "<dt>" + rotulo + "</dt><dd" + (vazio ? " class=\"is-empty\"" : "") + ">" + valor + "</dd>";
   }
 
-  /* Cartão de confiança: temperatura prevista ao lado do nível e do glifo com
-     halo, na mesma escala do 3D. Lê só o contrato de CONFIANCA — o aviso de
-     ilustrativo depende de `conf.ilustrativo`, então some sozinho quando a
-     métrica real entrar. Não toca no estado de risco, que segue logo acima. */
+  /* Cartão de confiança: temperatura prevista, faixa provável e nível, com o
+     glifo e o halo na mesma escala do 3D. Tudo sai de CONFIANCA, que calcula
+     pela folga contra o MAE de teste do modelo do ponto. Não toca no estado de
+     risco, que segue logo acima. */
+  function notaDaConfianca(p, conf) {
+    var area = p.subsistema_modelo || p.Key_Area;
+    var mae = conf.mae_c === null ? "" : " (" + grausC(conf.mae_c) + " °C)";
+
+    if (conf.nivel === "sem_modelo") {
+      return "Nenhum modelo foi validado para " + area + ": sem erro medido, não há faixa nem nível. ";
+    }
+    if (conf.nivel === "desconhecida") {
+      return "As métricas de teste do modelo não chegaram do serviço de predição. ";
+    }
+    if (conf.nivel === "sem_limite") {
+      return "Faixa: previsto ± MAE de teste de " + area + mae + ". Sem limite declarado, não há folga para medir a confiança. ";
+    }
+    return "Faixa: previsto ± MAE de teste de " + area + mae + ". A previsão fica a " +
+      fmt(conf.folga_em_mae, 1) + " MAE do limite, de um lado ou do outro: alta a partir de 2, média a partir de 1. ";
+  }
+
   function cartaoConfianca(p, cor) {
     var conf = CONFIANCA.doPonto(p);
     // Marcador de 4,4 px como nos gráficos; caixa de 60 px cabe até o halo de incerteza total.
     var PX_MARCA = 4.4, C = 30;
     var raio = CONFIANCA.raioHalo(conf) * PX_MARCA;
     var marca = FOGAO.formaDoPonto(C, C, p.estado, p.is_monitor_only);
-    // Três passos: alta acende três, baixa acende um.
-    var acesos = CONFIANCA.ORDEM.length - CONFIANCA.ORDEM.indexOf(conf.nivel);
+    // Três passos para os níveis calculados: alta acende três, baixa acende um.
+    var indice = CONFIANCA.ORDEM.indexOf(conf.nivel);
+    var acesos = indice < 0 ? 0 : CONFIANCA.ORDEM.length - indice;
     var passos = CONFIANCA.ORDEM.map(function (n, i) {
       return "<span class=\"conf__passo" + (i < acesos ? " is-on" : "") + "\"></span>";
     }).join("");
+    var faixa = conf.faixa_c
+      ? "<div><dt>Faixa provável</dt><dd class=\"conf__faixa\">" + grausC(conf.faixa_c[0]) + " a " + grausC(conf.faixa_c[1]) + " °C</dd></div>"
+      : "";
 
-    return "<section class=\"conf conf--" + conf.nivel + (conf.ilustrativo ? " conf--ilustrativo" : "") + "\" aria-label=\"Confiança da previsão\">" +
+    return "<section class=\"conf conf--" + conf.nivel + "\" aria-label=\"Confiança da previsão\">" +
       "<div class=\"conf__head\">" +
         "<h4 class=\"conf__title\">Confiança da previsão</h4>" +
-        (conf.ilustrativo ? "<span class=\"conf__tag\">Ilustrativo · preliminar</span>" : "") +
       "</div>" +
       "<div class=\"conf__body\">" +
         "<svg class=\"conf__glifo\" width=\"" + 2 * C + "\" height=\"" + 2 * C + "\" viewBox=\"0 0 " + 2 * C + " " + 2 * C + "\" aria-hidden=\"true\">" +
-          "<circle class=\"conf__halo\" cx=\"" + C + "\" cy=\"" + C + "\" r=\"" + raio.toFixed(1) + "\"></circle>" +
+          (raio > 0 ? "<circle class=\"conf__halo\" cx=\"" + C + "\" cy=\"" + C + "\" r=\"" + raio.toFixed(1) + "\"></circle>" : "") +
           "<path d=\"" + marca + "\" fill=\"" + (p.is_monitor_only ? "var(--color-surface)" : cor) + "\" stroke=\"" + (p.is_monitor_only ? "var(--color-glyph-line-mono)" : "var(--color-glyph-line)") + "\" stroke-width=\"0.8\"" +
             (p.is_monitor_only ? " stroke-dasharray=\"2.5 2\"" : "") + "></path>" +
         "</svg>" +
         "<dl class=\"conf__dados\">" +
           "<div><dt>Temperatura prevista</dt><dd class=\"conf__temp\">" + grausC(p.temperatura_prevista_c) + " °C</dd></div>" +
-          "<div><dt>Confiança</dt><dd class=\"conf__nivel\"><span class=\"conf__passos\" aria-hidden=\"true\">" + passos + "</span>" + conf.rotulo + "</dd></div>" +
+          faixa +
+          "<div><dt>Confiança</dt><dd class=\"conf__nivel\">" + (acesos ? "<span class=\"conf__passos\" aria-hidden=\"true\">" + passos + "</span>" : "") + conf.rotulo + "</dd></div>" +
         "</dl>" +
       "</div>" +
-      "<p class=\"conf__nota\">" +
-        (conf.ilustrativo ? "Atribuído sem cálculo: não é métrica do modelo e não altera o estado de risco. " : "") +
-        "Halo maior, menor confiança." +
+      "<p class=\"conf__nota\">" + notaDaConfianca(p, conf) +
+        "Não altera o estado de risco (RN-01)." + (raio > 0 ? " Halo maior, menor confiança." : "") +
       "</p>" +
     "</section>";
   }
