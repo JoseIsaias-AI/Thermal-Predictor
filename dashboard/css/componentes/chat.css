@@ -1,9 +1,4 @@
-/* Robertão, o assistente, como widget fixo no canto.
- *
- * Fica fora do fluxo da página de propósito: as quatro telas já ocupam a
- * largura toda, e abrir espaço para uma coluna de conversa empurraria o
- * modelo 3D e as tabelas. Flutuando, o painel aparece só quando chamado.
- */
+/* Robertão, o assistente, como widget fixo no canto, fora do fluxo da página. */
 
 .chat-launcher {
   position: fixed;

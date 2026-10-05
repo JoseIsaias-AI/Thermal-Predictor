@@ -1,7 +1,4 @@
-/* Histórico da sessão: botão nas ações da tela e painel suspenso com a lista.
- *
- * Carrega depois de css/telas/triagem.css e reaproveita .btn e .config__tag. Mesmas
- * cores de estado das tabelas: vermelho só para o que passa do limite. */
+/* Histórico da sessão: botão nas ações da tela e painel suspenso com a lista. */
 
 .sessao-botao { padding-right: 6px; }
 .sessao-botao[aria-expanded="true"] { border-color: var(--color-accent); color: var(--color-accent); }

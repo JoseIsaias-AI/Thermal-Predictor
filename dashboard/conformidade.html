@@ -4,33 +4,24 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Conformidade — Thermal Predictor</title>
-  <!-- O símbolo da Whirlpool na aba do navegador, como nos sites da marca. -->
   <link rel="icon" type="image/png" sizes="48x48" href="../assets/dashboard/favicon-whirlpool.png">
   <link rel="apple-touch-icon" href="../assets/dashboard/favicon-whirlpool.png">
 
-  <!-- triagem.css vem junto: .page-head, .config, .data-table, .state e .btn
-       são os mesmos componentes das telas anteriores, e é o que impede esta
-       parecer outro sistema. publicos.css só acrescenta o que falta. -->
   <link rel="stylesheet" href="css/base/tokens.css?v=5">
   <link rel="stylesheet" href="css/base/app.css?v=8">
   <link rel="stylesheet" href="css/telas/triagem.css?v=6">
   <link rel="stylesheet" href="css/telas/publicos.css?v=9">
   <link rel="stylesheet" href="css/componentes/historico.css?v=3">
-  <!-- Antes de pintar: a página já abre no tema da sessão. -->
   <script src="js/nucleo/tema.js?v=1"></script>
-  <!-- Recursos assistivos: fonte, contraste e cor escolhidos já valem antes de pintar. -->
   <link rel="stylesheet" href="css/base/acessibilidade.css?v=2">
   <script src="js/acessibilidade/acessibilidade.js?v=2"></script>
 </head>
 <body>
 
-<!-- Primeiro item do Tab: pula cabeçalho e navegação (WCAG 2.4.1). -->
 <a class="pular-conteudo" href="#conteudo">Pular para o conteúdo</a>
 
 <header class="masthead">
   <div class="masthead__inner">
-    <!-- O amarelo do anel é da marca e não se recolore. A proibição de
-         misturar paletas vale para a interface, não para o logotipo. -->
     <img class="masthead__logo" src="../assets/dashboard/logo-whirlpool.png"
          alt="Whirlpool Corporation" width="1259" height="419">
 
@@ -51,15 +42,10 @@
 
     <span class="masthead__push"></span>
 
-    <!-- Versão do modelo que gerou os números da tela, lida da resposta da
-         API. Fica oculto até a versão chegar: sem previsão não há o que
-         identificar. Fica na barra, e não no corpo da página, para valer nas
-         sete telas. -->
     <p class="model-chip termo" title="Versão do modelo final que gerou as previsões desta tela." id="model-chip" hidden>
       <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.3" aria-hidden="true"><circle cx="7" cy="7" r="5.6"></circle><path d="M7 4.2v3.4"></path><circle cx="7" cy="9.9" r="0.6" fill="currentColor" stroke="none"></circle></svg>
       <span><strong>Modelo <span id="model-version">—</span></strong></span>
     </p>
-    <!-- Tema claro ou escuro, só nesta sessão (js/nucleo/tema.js). -->
     <button class="tema-toggle" type="button" data-tema-alternar aria-pressed="false"
             aria-label="Tema escuro" title="Usar tema escuro">
       <svg class="tema-toggle__lua" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round" aria-hidden="true"><path d="M13.6 10.1A6 6 0 0 1 5.9 2.4a6 6 0 1 0 7.7 7.7z"></path></svg>
@@ -72,8 +58,6 @@
 
   <div class="page-head">
     <div class="page-head__text">
-      <!-- O nome da tela vira sobretítulo; o título é a conclusão, preenchido
-           por conformidade.js com a contagem da própria tabela. -->
       <p class="page-head__kicker">Conformidade térmica</p>
       <h2 class="page-head__title" id="page-title">Conformidade térmica</h2>
       <p class="page-head__sub">Leitura por componente contra o limite admissível · insumo para decidir quando iniciar a validação formal</p>
@@ -99,16 +83,10 @@
           </p>
         </div>
       </details>
-      <!-- As duas exportações e a opção da planilha num controle só: três
-           controles soltos disputavam a linha com a leitura. -->
       <details class="scope-notice exportar">
         <summary>Exportar</summary>
         <div class="scope-notice__body exportar__corpo">
-          <!-- RF-22. Rotulado no próprio botão, e não só no arquivo: é onde a
-               pessoa decide exportar. -->
           <button class="btn btn--ghost" type="button" id="export-csv" disabled>Exportar planilha</button>
-          <!-- A aba do histórico é opcional: por padrão sai só a análise em
-               exibição, como antes. -->
           <label class="export-opcao" title="Acrescenta à planilha uma aba com uma linha por configuração analisada nesta sessão">
             <input type="checkbox" id="export-historico" disabled>
             <span>Incluir histórico da sessão (<span id="export-historico-n">0 análises</span>)</span>
@@ -120,9 +98,6 @@
     </div>
   </div>
 
-  <!-- RF-15, RF-16 e RF-17 continuam à vista nesta tela, e não atrás do
-       "Como ler": é aqui que a saída mais tenderia a ser lida como parecer.
-       Os três avisos ficam numa linha; o texto por extenso abre a um clique. -->
   <details class="ressalva">
     <summary>
       <strong>Triagem pré-simulação</strong> ·
@@ -151,7 +126,6 @@
     <span id="error-message"></span>
   </section>
 
-  <!-- RF-24: o componente que reprova, e não o resultado do conjunto. -->
   <section class="panel" id="reprovados-panel" hidden>
     <div class="panel__head">
       <h2 class="panel__title">Componentes que travam a decisão</h2>
@@ -178,7 +152,6 @@
     </div>
   </section>
 
-  <!-- RN-02: pior estado por subsistema, com o componente que o sustenta. -->
   <section class="panel" id="subsistemas-panel" hidden>
     <div class="panel__head">
       <h2 class="panel__title">Onde antecipar a checagem</h2>
@@ -207,17 +180,11 @@
 
 </main>
 
-<!-- schema.js traduz a configuração em rótulos legíveis, antes de
-     leitura_publicos.js. -->
 <script src="js/nucleo/schema.js?v=3"></script>
-<!-- Repassa a configuração da URL aos links do menu. -->
 <script src="js/nucleo/navegacao.js?v=1"></script>
-<!-- A previsão do modelo para a configuração da URL: todos os consumidores
-     de DADOS_TRIAGEM carregam depois. -->
 <script src="js/nucleo/api_predicao.js?v=5"></script>
 <script src="js/nucleo/estado_servico.js?v=1"></script>
 <script src="js/nucleo/previsao_sessao.js?v=5"></script>
-<!-- Catálogo das configurações históricas com a previsão de cada uma. -->
 <script src="js/nucleo/catalogo_modelo.js?v=1"></script>
 <script src="js/exportacao/planilha.js?v=2"></script>
 <script src="js/leitura/leitura_publicos.js?v=8"></script>

@@ -1,10 +1,5 @@
-/* Primitivas dos desenhos em SVG, comuns à triagem e à comparação.
- *
- * Ficam aqui, e não na folha de cada tela, porque o eixo de folga é o mesmo
- * nas duas: a fronteira do limite, a banda de incerteza e a escala precisam
- * ter exatamente a mesma aparência, ou a leitura de uma tela não transfere
- * para a outra. Cores e tipografia vêm de tokens.css.
- */
+/* Primitivas de SVG comuns à triagem e à comparação: eixo de folga, fronteira do limite e
+ * banda de incerteza com a mesma aparência nas duas telas. */
 
 /* ----- Barra de alternância de vista ----- */
 

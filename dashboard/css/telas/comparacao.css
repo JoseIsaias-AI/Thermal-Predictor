@@ -1,13 +1,5 @@
-/* Tela de comparação lado a lado (RF-11). Complementa app.css e triagem.css;
-   cores e tipografia vêm de tokens.css.
-
-   Nenhuma cor nova entra aqui. As colunas se distinguem por letra e por tom
-   da paleta do guia; a divergência usa a mesma rampa de folga da triagem,
-   servida por fogao.js. Amarelo, laranja e verde continuam fora.
-
-   A tela tem três etapas numeradas, e cada uma cabe em uma frase. O texto que
-   explica a regra por extenso mora nos blocos expansíveis: ele precisa estar
-   na tela, não precisa estar aberto o tempo todo. */
+/* Tela de comparação (RF-11). As colunas se distinguem por letra e tom, e a divergência
+   usa a mesma rampa de folga da triagem. */
 
 /* A comparação sai da largura de leitura da página: quatro colunas de quatro
    campos não cabem em 68rem sem virar rolagem horizontal permanente. */
@@ -33,9 +25,8 @@
 }
 
 /* ----- Resposta de abertura -----
-   A tela abre respondendo o que ela existe para responder, e não com o
-   catálogo de 32 cartões: qual configuração do histórico estoura menos
-   pontos, com quanto, e um caminho direto para a triagem dela. */
+   A configuração do catálogo com menos pontos acima do limite, com atalho para a triagem
+   dela. */
 
 /* Mesmo cartão das outras telas: superfície branca e filete do pior estado
    (há pontos acima do limite em toda configuração da base). O azul da marca
@@ -295,9 +286,8 @@
 }
 
 /* ----- Perfil de folga -----
-   Os pontos com limite, do mais crítico ao mais folgado, como um degradê
-   de paradas duras. Um elemento só: 68 nós por cartão, em 32 cartões,
-   custaria mais em DOM do que a informação vale. */
+   Os pontos com limite, do mais crítico ao mais folgado, num degradê de paradas duras em
+   um elemento só. */
 
 .profile {
   display: block;

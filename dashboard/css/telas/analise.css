@@ -1,9 +1,5 @@
-/* Passagem da consulta para a triagem.
- *
- * O véu escurece o fundo para o modelo 3D, que é o mesmo do formulário, ficar
- * sendo a única coisa na tela. Cores da paleta do painel: o azul de acento
- * marca a varredura, e nada aqui usa verde nem amarelo.
- */
+/* Passagem da consulta para a triagem: um véu escuro com o modelo 3D do formulário no
+ * centro. */
 
 .analise {
   position: fixed;
@@ -47,10 +43,8 @@ body.analisando { overflow: hidden; }
   background: var(--color-stage-dark);
 }
 
-/* O palco recebe o #fogao-3d movido do formulário, e precisa desfazer o que
-   aquele contexto impunha: a largura máxima e a proporção fixa deixavam uma
-   faixa vazia à direita, e o fundo claro recortava um retângulo branco dentro
-   do véu. O renderer é criado com alpha, então o fundo do palco atravessa. */
+/* O palco recebe o #fogao-3d do formulário e desfaz a largura máxima e o fundo claro de
+   lá; o renderer tem alpha, então o fundo do palco atravessa. */
 .analise__palco > .viewport__3d {
   position: absolute;
   inset: 0;

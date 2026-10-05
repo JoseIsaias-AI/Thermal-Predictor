@@ -211,9 +211,7 @@ h1, h2, h3, h4 { font-family: var(--font-display); letter-spacing: -0.01em; }
 }
 
 /* ----- Blocos expansíveis -----
- *
- * O texto que explica a regra por extenso precisa estar na tela; não precisa
- * estar aberto o tempo todo. Usado nas quatro telas, por isso mora aqui. */
+ * Texto que explica a regra por extenso, fechado até ser pedido. */
 
 .more { margin-top: var(--space-3); }
 
@@ -245,9 +243,7 @@ h1, h2, h3, h4 { font-family: var(--font-display); letter-spacing: -0.01em; }
 .more p:last-child { margin-bottom: 0; }
 
 /* ----- Ressalva em uma linha -----
- *
- * A ressalva fica perto do dado, numa linha; o texto por extenso abre a um
- * clique. Sem caixa colorida: o vermelho é só de estado. */
+ * Perto do dado, com o texto completo a um clique; sem caixa colorida. */
 
 .ressalva {
   margin: 0 0 var(--space-4);
@@ -384,10 +380,8 @@ h1, h2, h3, h4 { font-family: var(--font-display); letter-spacing: -0.01em; }
   opacity: 0.5;
 }
 
-/* Coluna do formulário mais larga que as 22rem definidas em fogao.css: com
-   22rem a grade `auto-fit` de `.field-grid` só resolvia uma coluna, e os sete
-   fatores viravam uma pilha de sete linhas. O painel do modelo não muda.
-   Seletor com o pai para vencer fogao.css, que é carregado depois. */
+/* Coluna do formulário mais larga que a de componentes/fogao.css, para a grade dos sete
+   fatores ter duas colunas; o seletor com o pai vence a folha carregada depois. */
 .split > .split__form { flex: 0 0 34rem; }
 
 @media (max-width: 64rem) {
@@ -605,10 +599,7 @@ h1, h2, h3, h4 { font-family: var(--font-display); letter-spacing: -0.01em; }
 }
 
 /* ----- Glossário em tela -----
- *
- * Termo técnico que sobra na interface carrega a explicação no próprio
- * elemento. Mora aqui, e não na folha das áreas por público, porque o chip do
- * modelo usa o mesmo recurso nas sete telas. */
+ * Termo técnico com a explicação no próprio elemento, usado também no chip do modelo. */
 
 .termo {
   border-bottom: 1px dotted var(--color-text-subtle);
@@ -624,11 +615,9 @@ h1, h2, h3, h4 { font-family: var(--font-display); letter-spacing: -0.01em; }
 /* Dentro do chip do modelo o pontilhado competiria com a borda da pílula. */
 .model-chip .termo { border-bottom: 0; }
 
-/* ----- Estado do serviço de predição (js/nucleo/estado_servico.js) -----
-   Sem previsão do modelo, a tela mostra só o aviso: o resto do conteúdo e o
-   chip do modelo saem, para nenhum número aparecer sem ter vindo da API.
-   `verificando` segura o conteúdo invisível, mas no lugar, enquanto a API
-   confirma que está no ar — o 3D mede o palco ao montar. */
+/* ----- Estado do serviço de predição (nucleo/estado_servico.js) -----
+   Sem previsão, só o aviso aparece: o conteúdo e o chip do modelo saem. Em `verificando`
+   o conteúdo fica invisível, mas no lugar, porque o 3D mede o palco ao montar. */
 body[data-servico="verificando"] #conteudo { visibility: hidden; }
 body[data-servico]:not([data-servico="verificando"]) #conteudo > :not(.servico),
 body[data-servico]:not([data-servico="verificando"]) .analise { display: none !important; }

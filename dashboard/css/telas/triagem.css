@@ -352,10 +352,8 @@
   line-height: 1.3;
 }
 
-/* Procedência do número, e não estado de risco: o modelo final é uma mescla por
- * área e `AC Blower Inlet` não teve modelo validado. Por isso a marca é de
- * contorno tracejado em texto discreto, e não colorida — cor forte nesta tela
- * significa "exige ação", que não é o caso aqui. */
+/* Marca de procedência (modelo não validado): contorno tracejado discreto, porque cor
+ * forte nesta tela significa "exige ação". */
 
 .point__unvalidated {
   display: inline-block;
@@ -371,10 +369,8 @@
 }
 
 /* ----- Estados de risco -----
- * Três canais que concordam: rótulo textual, forma (triângulo acima, losango
- * na banda, círculo dentro, quadrado tracejado sem limite — as mesmas marcas
- * dos gráficos e do modelo 3D) e cor. Só o estado que exige ação tem cor
- * forte; o azul da marca não entra aqui. */
+ * Rótulo, forma (triângulo acima, losango na banda, círculo dentro, quadrado tracejado
+ * sem limite) e cor concordam; só o estado que exige ação tem cor forte. */
 
 .state {
   display: inline-flex;

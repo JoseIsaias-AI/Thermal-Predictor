@@ -1,11 +1,6 @@
-/* Recursos assistivos: a aba na borda direita e o painel que ela abre.
- *
- * A aba fica no meio da borda, e não num canto: o canto inferior direito é do
- * Robertão. O painel flutua sem cobrir a página com véu, porque quem liga um
- * recurso precisa ver o efeito na tela enquanto escolhe.
- *
- * As regras de cada recurso (html[data-a11y-…]) ficam no fim do arquivo.
- */
+/* Recursos assistivos: a aba no meio da borda direita (o canto é do Robertão) e o
+ * painel que ela abre, sem véu, para o efeito aparecer enquanto se escolhe. As regras
+ * de cada recurso (html[data-a11y-…]) ficam no fim do arquivo. */
 
 /* ----- Aba ----- */
 
@@ -278,19 +273,14 @@
 /* ===== Regras de cada recurso ===== */
 
 /* ----- Tamanho da fonte -----
- * Na raiz: o painel inteiro está em rem, e o texto cresce junto com o
- * espaço em volta. O texto dos gráficos fica em unidade do SVG, que já
- * acompanha a largura do gráfico; em rem ele cresceria dentro do mesmo
- * viewBox e os rótulos se sobreporiam. */
+ * Na raiz, porque o painel está em rem. O texto dos gráficos fica em unidade do SVG,
+ * que já acompanha a largura do gráfico. */
 html[data-a11y-fonte="1"] { font-size: 115%; }
 html[data-a11y-fonte="2"] { font-size: 130%; }
 html[data-a11y-fonte="3"] { font-size: 150%; }
 
-/* Cabeçalho em duas linhas arrumadas: identidade, estado do modelo e tema em
-   cima, as sete telas numa linha só embaixo. Sem isso as abas quebravam em
-   duas ou três linhas espremidas dentro da barra. O cabeçalho deixa de
-   grudar no topo: com a fonte grande, cada linha de tela conta. Vale também
-   para a fonte legível, mais larga: a barra já estava no limite em 1280px. */
+/* Com fonte maior ou mais larga, o cabeçalho passa a duas linhas (identidade, modelo e
+   tema em cima; as sete telas embaixo) e deixa de grudar no topo. */
 :root:is([data-a11y-fonte], [data-a11y-legivel], [data-a11y-letras], [data-a11y-linhas]) .masthead { position: static; }
 :root:is([data-a11y-fonte], [data-a11y-legivel], [data-a11y-letras], [data-a11y-linhas]) .masthead__inner { flex-wrap: wrap; row-gap: 0; }
 :root:is([data-a11y-fonte], [data-a11y-legivel], [data-a11y-letras], [data-a11y-linhas]) .nav {
@@ -308,9 +298,7 @@ html[data-a11y-fonte="3"] { font-size: 150%; }
 }
 
 /* ----- Texto que não cabe -----
- * Com qualquer recurso de texto ligado, o que hoje vira reticências quebra
- * linha: quem aumentou ou trocou a fonte é quem mais precisa do texto
- * inteiro. Cada recurso de texto entra na lista do :is(). */
+ * Com qualquer recurso de texto ligado, o que viraria reticências quebra linha. */
 :root:is([data-a11y-fonte], [data-a11y-legivel], [data-a11y-letras], [data-a11y-linhas]) :is(
   .hint,
   .kpi__nota,
@@ -338,9 +326,8 @@ html[data-a11y-fonte="3"] { font-size: 150%; }
 }
 
 /* ----- Fonte legível -----
- * Troca as duas famílias pelos papéis, e não elemento por elemento: título,
- * corpo, tabela e controle mudam juntos. A Atkinson é mais larga que a Source
- * Sans 3; os ajustes abaixo seguram o que estava no limite da largura. */
+ * Troca as famílias pelos papéis; a Atkinson é mais larga que a Source Sans 3, e os
+ * ajustes abaixo seguram o que estava no limite da largura. */
 html[data-a11y-legivel] {
   --font-display: "Atkinson Hyperlegible", "Segoe UI", Arial, sans-serif;
   --font-body:    "Atkinson Hyperlegible", "Segoe UI", Arial, sans-serif;
@@ -354,10 +341,8 @@ html[data-a11y-legivel] select,
 html[data-a11y-legivel] textarea { font-family: var(--font-body); }
 
 /* ----- Espaço entre linhas -----
- * Só nos blocos de texto corrido: parágrafo, item, célula, legenda. Botão,
- * chip, alternador e barra do 3D têm altura desenhada para uma linha e ficam
- * como estão. O nível 3 chega ao 2x da fonte (WCAG 1.4.12 pede ao menos
- * 1,5 sem perda de conteúdo). */
+ * Só no texto corrido; controles de uma linha ficam como estão. O nível 3 chega a 2x a
+ * fonte (WCAG 1.4.12). */
 html[data-a11y-linhas="1"] { --a11y-entrelinha: 1.75; }
 html[data-a11y-linhas="2"] { --a11y-entrelinha: 2; }
 html[data-a11y-linhas="3"] { --a11y-entrelinha: 2.3; }
@@ -371,9 +356,8 @@ html[data-a11y-linhas] :is(p, li, dd, dt, td, th, summary, figcaption, legend, .
 }
 
 /* ----- Espaço entre letras -----
- * Letras e palavras afastam juntas, para a palavra não se desfazer. O texto
- * dos gráficos fica de fora: cada rótulo do SVG tem posição calculada, e
- * afastado ele invadiria o vizinho. */
+ * Letras e palavras afastam juntas; o texto do SVG fica de fora, porque tem posição
+ * calculada. */
 html[data-a11y-letras="1"] { --a11y-letras: 0.04em; --a11y-palavras: 0.08em; }
 html[data-a11y-letras="2"] { --a11y-letras: 0.08em; --a11y-palavras: 0.12em; }
 html[data-a11y-letras="3"] { --a11y-letras: 0.12em; --a11y-palavras: 0.16em; }
@@ -412,10 +396,7 @@ html[data-a11y-letras] body :not(svg, svg *) {
 main:focus { outline: none; }
 
 /* ----- Destaque de links e foco -----
- * O que leva a outro lugar ou abre um texto ganha sublinhado; os botões de
- * alternância, que só têm cara de texto, ficam como estão. O anel de foco
- * engrossa em todos os controles, mantendo o afastamento que cada um já tem
- * (alguns ficam dentro de um contêiner que recorta). */
+ * Links ganham sublinhado e o anel de foco engrossa em todos os controles. */
 html[data-a11y-links] :is(
   main a:not(.button, .btn),
   .ver-tabela,
@@ -459,10 +440,8 @@ html[data-a11y-links="2"] .nav__link:not([aria-current="page"]) {
 }
 
 /* ----- Pausar animações -----
- * A mesma regra que app.css aplica a quem pede menos movimento no sistema:
- * transição vira troca instantânea e nada fica em loop (o Robertão para de
- * flutuar, a varredura da análise para). O 3D e a passagem para a triagem
- * consultam ACESSIBILIDADE.movimentoReduzido e saltam direto ao fim. */
+ * A mesma regra de prefers-reduced-motion; o 3D e a passagem para a triagem consultam
+ * ACESSIBILIDADE.movimentoReduzido. */
 html[data-a11y-animacoes] *,
 html[data-a11y-animacoes] *::before,
 html[data-a11y-animacoes] *::after {
@@ -473,14 +452,8 @@ html[data-a11y-animacoes] *::after {
 }
 
 /* ----- Alto contraste -----
- * Remapeia os mesmos papéis de cor de tokens.css, como o tema escuro faz:
- * nenhum componente conhece o contraste. O seletor separa os dois temas
- * (`:not([data-tema="escuro"])`) para o contraste do claro não vencer o
- * escuro por ordem de carga.
- *
- * Reforçado: a paleta da marca, com todo texto a pelo menos 7:1 (WCAG AAA,
- * 1.4.6) sobre cartão, tela e destaque, e borda a pelo menos 3:1 (1.4.11).
- * Máximo: preto e branco puros, borda cheia, sem sombra. */
+ * Remapeia os papéis de cor de tokens.css, separado por tema. Reforçado: texto a pelo
+ * menos 7:1 (WCAG 1.4.6) e borda a 3:1 (1.4.11). Máximo: preto e branco puros. */
 
 :root:not([data-tema="escuro"])[data-a11y-contraste="1"] {
   --color-text:          #10151f;  /* 18,3:1 sobre o cartão */
@@ -604,9 +577,8 @@ html[data-a11y-animacoes] *::after {
 }
 
 /* ----- Modo daltônico: filtro da página -----
- * Na raiz, para valer em tudo, inclusive no 3D e neste painel. Os filtros
- * moram num <svg> que o acessibilidade.js injeta; o atributo data-a11y-filtros
- * só aparece depois que ele existe. */
+ * Os filtros ficam num <svg> injetado por acessibilidade.js; data-a11y-filtros só
+ * aparece depois dele. */
 .a11y-filtros { position: absolute; width: 0; height: 0; overflow: hidden; }
 
 html[data-a11y-filtros][data-a11y-daltonico="1"] { filter: url(#a11y-deuteranopia); }
@@ -614,11 +586,8 @@ html[data-a11y-filtros][data-a11y-daltonico="2"] { filter: url(#a11y-protanopia)
 html[data-a11y-filtros][data-a11y-daltonico="3"] { filter: url(#a11y-tritanopia); }
 
 /* ----- Modo daltônico: estados -----
- * As rampas mudam em js/visual/fogao.js. Aqui, o estado "acima do limite" acompanha
- * a rampa de folga: o vermelho vira laranja-queimado, que não se confunde com
- * o azul de "com folga" em nenhum tipo de daltonismo. O estado continua com
- * forma e rótulo, como sempre. Depois do bloco de contraste e com o mesmo
- * peso de seletor, para valer também com ele ligado. */
+ * "Acima do limite" passa a laranja-queimado, como a rampa de folga (visual/fogao.js);
+ * vale também com o alto contraste ligado. */
 :root:not([data-tema="escuro"])[data-a11y-daltonico] {
   --wp-red:               #df8a3c;
   --wp-red-deep:          #8a4206;
@@ -637,9 +606,7 @@ html[data-a11y-filtros][data-a11y-daltonico="3"] { filter: url(#a11y-tritanopia)
 }
 
 /* ----- Leitor de voz -----
- * O bloco sendo lido ganha o mesmo anel do foco e o fundo de destaque: quem
- * ouve acompanha onde está. Com o leitor ligado, o cursor avisa que o texto
- * pode ser clicado para ouvir. */
+ * O bloco sendo lido ganha o anel de foco e o fundo de destaque. */
 .a11y-lendo {
   outline: 3px solid var(--color-focus-ring) !important;
   outline-offset: 3px;
@@ -704,9 +671,7 @@ html[data-a11y-guia="2"] .a11y-guia {
 .a11y-mascara--abaixo { bottom: 0; }
 
 /* ----- Tradutor de Libras -----
- * O botão flutuante do VLibras fica escondido: ele ocuparia o meio da borda
- * direita, onde já está a aba dos recursos. O cartão do painel abre o
- * tradutor; a janela do avatar é a do próprio VLibras. */
+ * O botão flutuante do VLibras fica escondido; o cartão do painel abre o tradutor. */
 #vlibras-access-wrapper { display: none !important; }
 
 /* A aba do tradutor: mesma cor e mesmo desenho, logo abaixo da dos recursos. */

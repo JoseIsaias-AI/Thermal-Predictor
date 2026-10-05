@@ -1,15 +1,8 @@
-/* Estilos das áreas por público: conformidade, design e marketing.
- *
- * Carrega depois de css/telas/triagem.css e reaproveita o que já existe lá:
- * .page-head, .panel, .config, .data-table, .state, .tally e .btn. Aqui só
- * entra o que essas telas têm e as quatro anteriores não têm. Nenhuma cor
- * nova: "acima do limite" precisa ser a mesma coisa nas sete telas.
- */
+/* Telas de conformidade, design e marketing. Reaproveitam os componentes de
+ * css/telas/triagem.css e não trazem cor nova. */
 
 /* ----- Cartões de leitura (design e marketing) -----
- *
- * Substituem a tabela onde o público não lê dado bruto (RF-25, RF-27). Mesma
- * regra de cor da triagem: só o estado que exige ação recebe cor forte. */
+ * No lugar da tabela, onde o público não lê dado bruto (RF-25, RF-27). */
 
 .cards {
   display: grid;
@@ -82,10 +75,7 @@
 .card--monitoramento { border-left-style: dashed; }
 
 /* ----- Faixa de avisos (conformidade) -----
- *
- * RF-15, RF-16 e RF-17 ficam abertos nesta tela. O .scope-notice da triagem é
- * recolhível, e é justamente aqui que a saída mais tenderia a ser lida como
- * parecer de conformidade. */
+ * RF-15 a RF-17 ficam abertos nesta tela, para a saída não ser lida como parecer. */
 
 .avisos {
   margin: 0 0 var(--space-4);

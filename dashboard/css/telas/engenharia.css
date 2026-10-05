@@ -1,10 +1,5 @@
-/* Tela de engenharia: memória de cálculo da triagem.
- * Complementa app.css e triagem.css; cores e tipografia vêm de tokens.css.
- *
- * A tela é de leitura, não de operação: não há controle nem seleção aqui.
- * Por isso o vocabulário é o de documento, e reaproveita `panel`,
- * `panel__note` e `data-table` das outras telas em vez de criar equivalentes.
- */
+/* Tela de engenharia: memória de cálculo da triagem, com o vocabulário de documento e os
+ * componentes `panel`, `panel__note` e `data-table` das outras telas. */
 
 /* ----- Abertura da tela -----
  * O título diz a conclusão; o estado do modelo fica à direita. Cabeçalho,
@@ -213,11 +208,8 @@
 .hyp .table-scroll { margin-bottom: var(--space-3); }
 
 /* ----- Desempenho do modelo final -----
- *
- * Um cartão por métrica, no mesmo vocabulário dos números de destaque: filete
- * em cima, valor grande, e a situação do alvo escrita por extenso. A cor só
- * marca o alvo não atingido, o número que trava a entrega; atingido não ganha
- * verde, que seria lido como aprovação (RN-07). */
+ * Um cartão por métrica. Só o alvo não atingido tem cor; atingido não ganha verde, que
+ * seria lido como aprovação (RN-07). */
 
 .metric-grid {
   display: grid;
@@ -314,12 +306,8 @@
 .chart-pair .chart-figure { margin: 0; min-width: 0; }
 
 /* ----- Gráficos -----
- *
- * Desenhados em SVG por js/telas/engenharia.js. Sem preenchimento decorativo, sem
- * sombra e sem gradiente: cada traço do gráfico carrega um valor. As cores
- * saem dos mesmos tokens do restante do painel, e a paleta do guia não admite
- * amarelo, laranja nem verde em destaque.
- */
+ * SVG desenhado por telas/engenharia.js e leitura/desempenho_modelo.js, sem efeito
+ * decorativo: cada traço carrega um valor. */
 
 .chart-figure {
   margin: 0 0 var(--space-4);
@@ -346,10 +334,8 @@
 .chart-figure figcaption .more { margin-top: var(--space-2); }
 .chart-figure figcaption .table-scroll { max-width: 34rem; }
 
-/* Três papéis de texto dentro do gráfico: rótulo de eixo, rótulo de série e
-   valor. O valor é o único em peso semibold, para a leitura cair nele. Nada
-   abaixo de 12px: o viewBox tem 520 de largura e o gráfico nunca passa de
-   34rem, então a unidade do SVG sai com pelo menos o mesmo tamanho em tela. */
+/* Três papéis de texto no gráfico: rótulo de eixo, rótulo de série e valor, este em
+   semibold. Nada abaixo de 12px. */
 .chart__label {
   font-family: var(--font-body);
   font-size: 12px;

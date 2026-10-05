@@ -4,12 +4,9 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Comparação de configurações — Thermal Predictor</title>
-  <!-- O símbolo da Whirlpool na aba do navegador, como nos sites da marca. -->
   <link rel="icon" type="image/png" sizes="48x48" href="../assets/dashboard/favicon-whirlpool.png">
   <link rel="apple-touch-icon" href="../assets/dashboard/favicon-whirlpool.png">
 
-  <!-- Fontes hospedadas localmente em css/base/tokens.css (@font-face), sem
-       dependência de rede (RNF-02 e RNF-04, Tabela 48 da documentação). -->
   <link rel="stylesheet" href="css/base/tokens.css?v=5">
   <link rel="stylesheet" href="css/base/app.css?v=8">
   <link rel="stylesheet" href="css/telas/triagem.css?v=6">
@@ -17,21 +14,16 @@
   <link rel="stylesheet" href="css/componentes/grafico.css?v=5">
   <link rel="stylesheet" href="css/telas/comparacao.css?v=7">
   <link rel="stylesheet" href="css/componentes/chat.css?v=5">
-  <!-- Antes de pintar: a página já abre no tema da sessão. -->
   <script src="js/nucleo/tema.js?v=1"></script>
-  <!-- Recursos assistivos: fonte, contraste e cor escolhidos já valem antes de pintar. -->
   <link rel="stylesheet" href="css/base/acessibilidade.css?v=2">
   <script src="js/acessibilidade/acessibilidade.js?v=2"></script>
 </head>
 <body data-previsao="opcional">
 
-<!-- Primeiro item do Tab: pula cabeçalho e navegação (WCAG 2.4.1). -->
 <a class="pular-conteudo" href="#conteudo">Pular para o conteúdo</a>
 
 <header class="masthead">
   <div class="masthead__inner">
-    <!-- O amarelo do anel é da marca e não se recolore. A proibição de
-         misturar paletas vale para a interface, não para o logotipo. -->
     <img class="masthead__logo" src="../assets/dashboard/logo-whirlpool.png"
          alt="Whirlpool Corporation" width="1259" height="419">
 
@@ -52,15 +44,10 @@
 
     <span class="masthead__push"></span>
 
-    <!-- Versão do modelo que gerou os números da tela, lida da resposta da
-         API. Fica oculto até a versão chegar: sem previsão não há o que
-         identificar. Fica na barra, e não no corpo da página, para valer nas
-         sete telas. -->
     <p class="model-chip termo" title="Versão do modelo final que gerou as previsões desta tela." id="model-chip" hidden>
       <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.3" aria-hidden="true"><circle cx="7" cy="7" r="5.6"></circle><path d="M7 4.2v3.4"></path><circle cx="7" cy="9.9" r="0.6" fill="currentColor" stroke="none"></circle></svg>
       <span><strong>Modelo <span id="model-version">—</span></strong></span>
     </p>
-    <!-- Tema claro ou escuro, só nesta sessão (js/nucleo/tema.js). -->
     <button class="tema-toggle" type="button" data-tema-alternar aria-pressed="false"
             aria-label="Tema escuro" title="Usar tema escuro">
       <svg class="tema-toggle__lua" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round" aria-hidden="true"><path d="M13.6 10.1A6 6 0 0 1 5.9 2.4a6 6 0 1 0 7.7 7.7z"></path></svg>
@@ -71,11 +58,6 @@
 
 <main class="page page--wide" id="conteudo" tabindex="-1">
 
-  <!-- RF-15 e RN-07: fixo e visível nesta tela. A frase que enquadra a leitura
-       fica sempre à vista; o desdobramento da regra vai para o expansível, em
-       vez de três parágrafos que ninguém lê duas vezes. -->
-  <!-- A pergunta que a tela existe para responder, respondida antes do
-       catálogo: qual configuração do histórico estoura menos pontos. -->
   <section class="lead-card" id="lead-card" hidden>
     <div class="lead-card__id">
       <span class="lead-card__kicker">Menos pontos acima do limite</span>
@@ -97,8 +79,6 @@
     </a>
   </section>
 
-  <!-- A frase de enquadramento continua sempre à vista, agora como ressalva
-       de uma linha, sem caixa; o desdobramento, a um clique. -->
   <details class="ressalva ressalva--quebra" id="notice">
     <summary>
       <span id="notice-title"><strong>Filtro de triagem pré-CFD.</strong> Ajuda a escolher o que enviar
@@ -153,8 +133,6 @@
 
     <div class="cmp-grid" id="cfg-grid"></div>
 
-    <!-- A faixa do cartão se explica pelo próprio eixo; não precisa de um
-         parágrafo dizendo o que é da esquerda para a direita. -->
     <div class="axis-key">
       <span class="axis-key__bar" id="axis-sample"></span>
       <span>◀ mais crítico</span>
@@ -163,8 +141,6 @@
       <b>folga dos pontos com limite</b>
     </div>
 
-    <!-- O mesmo catálogo, desenhado. Cada linha é uma configuração; arrastar
-         sobre um eixo apaga o que fica fora da restrição. -->
     <div class="viz">
       <h3 class="viz__titulo">
         Que combinações sobrevivem às restrições
@@ -181,7 +157,6 @@
       </div>
 
       <p class="chart__note" id="pc-conta"></p>
-      <!-- A grade de cartões acima é a leitura exata do mesmo catálogo. -->
       <details class="more">
         <summary>Como ler este gráfico</summary>
         <p>
@@ -196,9 +171,6 @@
   </section>
 
   <!-- ---------- Configuração mais próxima dentro do limite ---------- -->
-  <!-- Não é "what-if": combinação fora da base não ganha predição aqui. E não
-       diz "segura", que soaria como aprovação. A sugestão é sempre uma
-       configuração da base, com predição já calculada. -->
 
   <section class="panel" id="wf-panel" aria-labelledby="wf-title">
     <h2 class="panel__title" id="wf-title">
@@ -272,8 +244,6 @@
 
       <div class="cmp-heads" id="cmp-heads"></div>
 
-      <!-- RN-02 continua exibida, mas dita em uma linha: ela é constante na
-           base e não separa uma configuração da outra. -->
       <p class="legend-note">
         A severidade é o pior estado entre os pontos com limite. Quando ela se
         repete entre configurações, quem distingue uma da outra é a contagem
@@ -332,8 +302,6 @@
         </table>
       </div>
 
-      <!-- As duas vistas gráficas dos mesmos dados: nada é acrescentado à
-           pilha, a alternância troca o que ocupa este lugar. -->
       <div class="chart" id="cmp-chart" hidden>
         <div class="chart__frame">
           <div class="chart__scroll">
@@ -383,8 +351,6 @@
     </section>
 
     <!-- ---------- 4 · No modelo 3D ---------- -->
-    <!-- Lê a mesma bandeja de cima: A é a referência, B uma das outras. Não
-         há seletor próprio de configuração aqui. -->
 
     <section class="panel" id="cmp3d-panel" aria-labelledby="cmp3d-title">
       <h2 class="panel__title" id="cmp3d-title">
@@ -406,8 +372,6 @@
             <span class="toggle toggle--mini" id="cmp3d-b" role="group" aria-label="Configuração B"></span>
           </div>
 
-          <!-- O modo ativo dito por extenso, em cima do modelo: a cor muda de
-               sentido entre os dois e não pode ser lida sem saber qual é. -->
           <p class="cmp3d__modo" id="cmp3d-rotulo" role="status" aria-live="polite"></p>
 
           <div class="viewport__frame">
@@ -457,7 +421,6 @@
       </details>
     </section>
 
-    <!-- RN-03: sem colunas de limite, folga ou estado. -->
     <section class="panel panel--monitoring" id="mono-panel">
       <h2 class="panel__title">
         Pontos apenas monitorados
@@ -483,21 +446,15 @@
 
 </main>
 
-<!-- schema.js traduz os fatores em rótulos legíveis; fogao.js dá a escala de
-     folga. -->
 <script src="js/nucleo/schema.js?v=3"></script>
-<!-- Repassa a configuração da URL aos links do menu. -->
 <script src="js/nucleo/navegacao.js?v=1"></script>
 <script src="js/nucleo/api_predicao.js?v=5"></script>
 <script src="js/nucleo/estado_servico.js?v=1"></script>
-<!-- A previsão do modelo para a configuração da URL, quando houver uma. -->
 <script src="js/nucleo/previsao_sessao.js?v=5"></script>
-<!-- Catálogo das configurações históricas com a previsão de cada uma. -->
 <script src="js/nucleo/catalogo_modelo.js?v=1"></script>
 <script src="js/visual/fogao.js?v=8"></script>
 <script src="js/visual/grafico.js?v=4"></script>
 <script src="js/leitura/segura_proxima.js?v=1"></script>
-<!-- Passo 4: o mesmo viewport e o mesmo painel de peça da triagem. -->
 <script src="vendor/three.min.js"></script>
 <script src="js/visual/fogao3d.js?v=11"></script>
 <script src="js/visual/painel_peca.js?v=7"></script>

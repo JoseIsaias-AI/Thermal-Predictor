@@ -4,7 +4,6 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Triagem térmica — Thermal Predictor</title>
-  <!-- O símbolo da Whirlpool na aba do navegador, como nos sites da marca. -->
   <link rel="icon" type="image/png" sizes="48x48" href="../assets/dashboard/favicon-whirlpool.png">
   <link rel="apple-touch-icon" href="../assets/dashboard/favicon-whirlpool.png">
 
@@ -16,21 +15,16 @@
   <link rel="stylesheet" href="css/componentes/executivo.css?v=4">
   <link rel="stylesheet" href="css/componentes/historico.css?v=3">
   <link rel="stylesheet" href="css/componentes/chat.css?v=5">
-  <!-- Antes de pintar: a página já abre no tema da sessão. -->
   <script src="js/nucleo/tema.js?v=1"></script>
-  <!-- Recursos assistivos: fonte, contraste e cor escolhidos já valem antes de pintar. -->
   <link rel="stylesheet" href="css/base/acessibilidade.css?v=2">
   <script src="js/acessibilidade/acessibilidade.js?v=2"></script>
 </head>
 <body>
 
-<!-- Primeiro item do Tab: pula cabeçalho e navegação (WCAG 2.4.1). -->
 <a class="pular-conteudo" href="#conteudo">Pular para o conteúdo</a>
 
 <header class="masthead">
   <div class="masthead__inner">
-    <!-- O amarelo do anel é da marca e não se recolore. A proibição de
-         misturar paletas vale para a interface, não para o logotipo. -->
     <img class="masthead__logo" src="../assets/dashboard/logo-whirlpool.png"
          alt="Whirlpool Corporation" width="1259" height="419">
 
@@ -51,15 +45,10 @@
 
     <span class="masthead__push"></span>
 
-    <!-- Versão do modelo que gerou os números da tela, lida da resposta da
-         API. Fica oculto até a versão chegar: sem previsão não há o que
-         identificar. Fica na barra, e não no corpo da página, para valer nas
-         sete telas. -->
     <p class="model-chip termo" title="Versão do modelo final que gerou as previsões desta tela." id="model-chip" hidden>
       <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.3" aria-hidden="true"><circle cx="7" cy="7" r="5.6"></circle><path d="M7 4.2v3.4"></path><circle cx="7" cy="9.9" r="0.6" fill="currentColor" stroke="none"></circle></svg>
       <span><strong>Modelo <span id="model-version">—</span></strong></span>
     </p>
-    <!-- Tema claro ou escuro, só nesta sessão (js/nucleo/tema.js). -->
     <button class="tema-toggle" type="button" data-tema-alternar aria-pressed="false"
             aria-label="Tema escuro" title="Usar tema escuro">
       <svg class="tema-toggle__lua" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round" aria-hidden="true"><path d="M13.6 10.1A6 6 0 0 1 5.9 2.4a6 6 0 1 0 7.7 7.7z"></path></svg>
@@ -72,14 +61,11 @@
 
   <div class="page-head">
     <div class="page-head__text">
-      <!-- O nome da tela vira sobretítulo; o título é a conclusão, preenchida
-           por triagem.js com a contagem da própria tabela. -->
       <p class="page-head__kicker">Triagem térmica</p>
       <h2 class="page-head__title" id="page-title">Triagem térmica</h2>
       <p class="page-head__sub">Pontos de medição ordenados por risco estimado · apoio à fila de simulação, não substitui CFD</p>
     </div>
     <div class="page-head__actions">
-      <!-- RF-15 e RN-07: o enquadramento continua inteiro, a um clique. -->
       <details class="scope-notice">
         <summary>Como ler</summary>
         <div class="scope-notice__body">
@@ -99,7 +85,6 @@
           </p>
         </div>
       </details>
-      <!-- Executiva: só o resumo e o que decide. Técnica: a tela inteira. -->
       <div class="leitura">
         <span class="leitura__rotulo" id="modo-leitura-rotulo">Leitura</span>
         <span class="leitura-toggle" id="modo-leitura" role="group" aria-labelledby="modo-leitura-rotulo">
@@ -112,7 +97,6 @@
     </div>
   </div>
 
-  <!-- Primeiro elemento do modo executivo, antes de qualquer tabela ou gráfico. -->
   <section id="resumo-exec" data-leitura="executiva" data-titulo-na-pagina hidden></section>
 
   <div class="kpis" id="kpis" data-leitura="tecnica" hidden></div>
@@ -130,7 +114,6 @@
     <span id="error-message"></span>
   </section>
 
-  <!-- Nasce explodido: assentado, 48 dos 78 pontos ficam ocultos. -->
   <section class="heat" id="heat" data-leitura="tecnica" hidden>
 
     <aside class="heat__side">
@@ -159,7 +142,6 @@
         </details>
       </div>
 
-      <!-- Só no campo térmico: aí a cor é temperatura, não risco. -->
       <div class="heat__block" id="field-legend" hidden>
         <h3 class="heat__label">Temperatura prevista <span>°C</span></h3>
         <div class="field-scale"><span class="field-scale__bar" id="field-bar"></span>
@@ -183,7 +165,6 @@
         </label>
         <div class="chips" id="filter-state"></div>
         <div class="chips chips--echo" id="filter-bands"></div>
-        <!-- RN-03: monitorado não é um quarto estado. -->
         <label class="check">
           <input type="checkbox" id="filter-mono" checked>
           <span>Incluir pontos sem limite</span>
@@ -205,12 +186,10 @@
 
     <div class="heat__main">
       <div class="viewport__bar">
-        <!-- Botões levam aos extremos; o slider regula qualquer ponto entre eles. -->
         <span class="toggle" id="heat-montagem" role="group" aria-label="Montagem">
           <button type="button" data-explode="0" aria-pressed="false">Assentado</button>
           <button type="button" data-explode="100" aria-pressed="true">Explodido</button>
         </span>
-        <!-- Explosão e raio-X combinam: um mexe na posição, o outro na opacidade. -->
         <label class="explode" for="heat-explode">
           <span class="bar-label">Explosão</span>
           <input type="range" id="heat-explode" min="0" max="100" step="1" value="100"
@@ -240,7 +219,6 @@
         </span>
       </div>
 
-      <!-- Paradas vêm do estado já calculado; o tour só ordena e navega. -->
       <div class="viewport__bar viewport__bar--tour" id="tour-bar" role="group" aria-label="Tour pelos pontos críticos">
         <span class="bar-label">Tour</span>
         <button type="button" class="vbtn" id="tour-iniciar"
@@ -282,7 +260,6 @@
     </div>
 
     <aside class="heat__side heat__side--right">
-      <!-- Resumo da peça clicada no modelo; só lê o que a tabela já mostra. -->
       <div class="heat__block">
         <h3 class="heat__label">Peça selecionada</h3>
         <label class="filter part__pick">
@@ -302,7 +279,6 @@
 
   </section>
 
-  <!-- Leem o mesmo recorte da tabela e apontam para a mesma seleção. -->
   <section class="panel" id="visuais" data-leitura="tecnica" hidden>
     <div class="panel__head">
       <h2 class="panel__title">Onde está o risco</h2>
@@ -394,7 +370,6 @@
     </div>
   </section>
 
-  <!-- RN-03: sem colunas de limite, folga ou estado. -->
   <section class="panel panel--monitoring" id="monitoring-panel" data-leitura="tecnica" hidden>
     <div class="panel__head">
       <h2 class="panel__title">Pontos só monitorados</h2>
@@ -417,23 +392,17 @@
 
 </main>
 
-<!-- schema.js traduz a configuração da URL em rótulos legíveis. -->
 <script src="js/nucleo/schema.js?v=3"></script>
-<!-- Repassa a configuração da URL aos links do menu. -->
 <script src="js/nucleo/navegacao.js?v=1"></script>
-<!-- A previsão do modelo para a configuração da URL: todos os consumidores
-     de DADOS_TRIAGEM carregam depois. -->
 <script src="js/nucleo/api_predicao.js?v=5"></script>
 <script src="js/nucleo/estado_servico.js?v=1"></script>
 <script src="js/nucleo/previsao_sessao.js?v=5"></script>
-<!-- Catálogo das configurações históricas com a previsão de cada uma. -->
 <script src="js/nucleo/catalogo_modelo.js?v=1"></script>
 <script src="vendor/three.min.js"></script>
 <script src="js/visual/fogao.js?v=8"></script>
 <script src="js/visual/fogao3d.js?v=11"></script>
 <script src="js/visual/painel_peca.js?v=7"></script>
 <script src="js/visual/tour.js?v=1"></script>
-<!-- Confiança por ponto, pela folga contra o MAE de teste do modelo da área. -->
 <script src="js/leitura/confianca.js?v=5"></script>
 <script src="js/visual/grafico.js?v=4"></script>
 <script src="js/leitura/leitura_publicos.js?v=8"></script>

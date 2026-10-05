@@ -1,9 +1,5 @@
-/* Tokens de design do painel.
- *
- * Base no style guide da Whirlpool: azul core como acento, branco e neutros
- * frios como superfície, sem amarelo, laranja ou verde em destaque. Vermelho
- * só para o que está acima do limite.
- */
+/* Tokens de design do painel, a partir do guia da Whirlpool: azul core como acento,
+ * neutros frios como superfície e vermelho só para o que está acima do limite. */
 
 /* Work Sans nos títulos e números; Source Sans 3 no texto e nas tabelas.
  * Hospedadas localmente (RNF-02 e RNF-04), subconjunto latino, licença OFL. */
@@ -42,10 +38,8 @@
   src: url("../../fonts/source-sans-3-bold.woff2") format("woff2");
 }
 
-/* Atkinson Hyperlegible, do Braille Institute: letras que não se confundem
- * (I, l e 1; O e 0; b e d espelhados), para baixa visão e dislexia. Só é
- * baixada quando o recurso "Fonte legível" está ligado (acessibilidade.css).
- * Local, subconjunto latino, licença OFL. */
+/* Atkinson Hyperlegible (Braille Institute, OFL), baixada só com o recurso "Fonte
+ * legível" ligado. */
 @font-face {
   font-family: "Atkinson Hyperlegible";
   font-weight: 400;
@@ -227,15 +221,9 @@
 }
 
 /* ----- Tema escuro -----
- *
- * Os mesmos papéis semânticos, remapeados; nenhum componente conhece o tema.
- * Os neutros são os mesmos da marca em ordem inversa (preto como tela,
- * quase-preto como cartão, grafite como borda), e o azul e o vermelho sobem
- * de luminosidade até o contraste que tinham sobre o branco. A hierarquia se
- * mantém: tela < cartão < destaque, texto > secundário > nota. Contrastes
- * sobre o cartão (#1b2230), todos AA: texto 13,4:1 · secundário 6,8:1 ·
- * nota 5,3:1 (4,7:1 no fundo mais claro, #232b39) · acento 7,3:1 ·
- * crítico 7,4:1 · série de dado 6,2:1. */
+ * Os mesmos papéis remapeados, mantendo a hierarquia tela < cartão < destaque. Contrastes
+ * sobre o cartão (#1b2230), todos AA: texto 13,4:1, secundário 6,8:1, nota 5,3:1, acento
+ * 7,3:1, crítico 7,4:1, série de dado 6,2:1. */
 :root[data-tema="escuro"] {
   --color-canvas:         var(--wp-black);
   --color-surface:        var(--wp-near-black);

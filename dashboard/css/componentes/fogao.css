@@ -460,11 +460,9 @@
 
 .detail__empty { color: var(--color-text-subtle); font-size: var(--size-small); margin: 0; }
 
-/* ----- Cartão de confiança -----
- * Calculada pela folga contra o MAE de teste do modelo (js/leitura/confianca.js).
- * Paleta neutra de propósito — verde para "alta" seria lido como aprovação
- * (RN-07). Sem modelo validado, a borda tracejada é a mesma convenção do
- * "sem limite declarado": o que está ali não tem erro medido. */
+/* ----- Cartão de confiança (leitura/confianca.js) -----
+ * Paleta neutra, porque verde em "alta" seria lido como aprovação (RN-07); sem modelo
+ * validado, borda tracejada. */
 
 .conf {
   border: var(--border-width) solid var(--color-border);
