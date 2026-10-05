@@ -260,21 +260,21 @@ var PREVISAO_SESSAO = (function () {
     );
   }
 
-  /* A barra diz de onde vem o número, e quem decide é o próprio dado: com a
-     previsão real o aviso de valores sintéticos some e o chip passa a mostrar a
-     versão do modelo. A regra mora aqui, e não em cada tela, porque vale para as
-     cinco e depende só de `preditor_e_stub`. Deixar isso a cargo das telas foi o
-     que fez o aviso de demonstração aparecer sobre previsão de verdade. */
+  /* O chip da barra diz qual modelo gerou os números, e quem decide é o próprio
+     dado: ele só aparece com a versão de uma previsão do modelo. A regra mora
+     aqui, e não em cada tela, porque vale para todas. */
   function refletirNaBarra(documento, dados) {
-    if (!documento || !dados) return false;
+    if (!documento) return false;
 
-    var chip = documento.getElementById("model-version");
-    var aviso = documento.getElementById("stub-banner");
+    var chip = documento.getElementById("model-chip");
+    var versao = documento.getElementById("model-version");
 
-    if (!chip && !aviso) return false;
+    if (!chip) return false;
 
-    if (chip) chip.textContent = dados.versao_modelo || "—";
-    if (aviso) aviso.hidden = !dados.preditor_e_stub;
+    var temVersao = !!(dados && dados.versao_modelo && dados.preditor_e_stub === false);
+
+    if (versao) versao.textContent = temVersao ? dados.versao_modelo : "—";
+    chip.hidden = !temVersao;
 
     return true;
   }

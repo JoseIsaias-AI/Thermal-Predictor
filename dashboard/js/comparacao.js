@@ -1966,7 +1966,7 @@
   document.getElementById("run-total").textContent = D.total_rodadas;
 
   document.getElementById("model-version").textContent = D.versao_modelo;
-  document.getElementById("stub-banner").hidden = !D.preditor_e_stub;
+  document.getElementById("model-chip").hidden = D.preditor_e_stub !== false;
 
   montarFacetas();
 

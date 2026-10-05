@@ -53,12 +53,13 @@
 
     <span class="masthead__push"></span>
 
-    <!-- Sai quando houver modelo treinado. Até lá, é o que impede que um
-         número sintético seja lido como previsão. Fica na barra, e não no
-         corpo da página, para valer nas sete telas. -->
-    <p class="model-chip termo" title="Identificador do preditor que gerou os números. Enquanto for de demonstração, os valores são sintéticos e não saem de um modelo treinado." id="stub-banner">
+    <!-- Versão do modelo que gerou os números da tela, lida da resposta da
+         API. Fica oculto até a versão chegar: sem previsão não há o que
+         identificar. Fica na barra, e não no corpo da página, para valer nas
+         sete telas. -->
+    <p class="model-chip termo" title="Versão do modelo final que gerou as previsões desta tela." id="model-chip" hidden>
       <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.3" aria-hidden="true"><circle cx="7" cy="7" r="5.6"></circle><path d="M7 4.2v3.4"></path><circle cx="7" cy="9.9" r="0.6" fill="currentColor" stroke="none"></circle></svg>
-      <span><strong>Modelo <span id="model-version">—</span></strong> · valores sintéticos, não previsões</span>
+      <span><strong>Modelo <span id="model-version">—</span></strong></span>
     </p>
     <!-- Tema claro ou escuro, só nesta sessão (js/tema.js). -->
     <button class="tema-toggle" type="button" data-tema-alternar aria-pressed="false"
