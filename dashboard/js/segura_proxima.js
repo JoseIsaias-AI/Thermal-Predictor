@@ -2,9 +2,9 @@
  *
  * Sem DOM: a tela de comparação chama, os testes em dashboard/testes/ também.
  *
- * Escopo fechado nas configurações conhecidas de js/dados_comparacao.js. Não
+ * Escopo fechado nas configurações do catálogo do modelo (`GET /catalogo`). Não
  * há otimização no espaço contínuo dos fatores: a sugestão é sempre uma
- * configuração que existe na base, com predição já calculada.
+ * configuração que existe na base, com a previsão do modelo já calculada.
  *
  * Métrica: distância euclidiana sobre os fatores na mesma codificação one-hot
  * dos modelos (dashboard/api/predicao/codificacao.py, 13 colunas), com cada

@@ -2,10 +2,10 @@
  *
  * Sem DOM: a tela de comparação chama, os testes em dashboard/testes/ também.
  *
- * Não há predição nova aqui. As temperaturas são as de `t` em
- * js/dados_comparacao.js, a mesma camada que a tela já exibe (CFG-19
- * reproduz a triagem ponto a ponto); a diferença é B − A sobre esses dois
- * vetores, nada além de uma subtração por ponto. Estado e folga vêm prontos
+ * Não há predição nova aqui. As temperaturas são as de `t` no catálogo do
+ * modelo (`GET /catalogo`), as mesmas que a triagem mostraria para cada
+ * configuração; a diferença é B − A sobre esses dois vetores, nada além de
+ * uma subtração por ponto. Estado e folga vêm prontos
  * no dado e só entram no modo absoluto: a diferença não tem estado.
  */
 
@@ -38,7 +38,7 @@ var DIFF_TERMICO = (function () {
     return com.concat(sem);
   }
 
-  // Ponto no formato de js/dados_triagem.js, lido da configuração sem recalcular nada.
+  // Ponto no formato da resposta de `POST /predicao`, lido da configuração sem recalcular nada.
   function ponto(D, cfg, i) {
     var p = D.pontos[i];
     return {
