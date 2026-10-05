@@ -44,14 +44,6 @@ var NAVEGACAO = (function () {
     }).join("&");
   }
 
-  // Se a busca traz algum fator: só a porta da API não é configuração.
-  function temConfiguracao(busca) {
-    return buscaQueViaja(busca).split("&").some(function (par) {
-      var chave = decodeURIComponent(par.split("=")[0]);
-      return CHAVES_DA_CONFIGURACAO.indexOf(chave) >= 0;
-    });
-  }
-
   /* O destino com a configuração no lugar da query que ele tinha. Âncora e
      endereços de fora do painel ficam como estão. */
   function comConfiguracao(destino, busca) {
@@ -91,7 +83,6 @@ var NAVEGACAO = (function () {
   return {
     CHAVES_DA_CONFIGURACAO: CHAVES_DA_CONFIGURACAO,
     buscaQueViaja: buscaQueViaja,
-    temConfiguracao: temConfiguracao,
     comConfiguracao: comConfiguracao,
     propagar: propagar
   };

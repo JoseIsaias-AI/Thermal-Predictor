@@ -125,49 +125,6 @@ var LEITURA_PUBLICOS = (function () {
     return achada;
   }
 
-  /* Monta, a partir de uma configuração do catálogo, o mesmo formato da
-     resposta de `POST /predicao`. Não reclassifica: o estado vem pronto no vetor `e`. */
-  function payloadDoCatalogo(catalogo, entrada) {
-    var pontos = [];
-    var monitorados = [];
-
-    catalogo.pontos.forEach(function (ponto, i) {
-      var par = catalogo.estados[entrada.e[i]];
-      var mono = ponto.mono || par[0] === "monitoramento";
-      var p = {
-        measurement_id: ponto.id,
-        TC_Name: ponto.nome,
-        Key_Area: ponto.area,
-        temperatura_prevista_c: entrada.t[i],
-        limit_c: mono ? null : ponto.limite,
-        is_monitor_only: mono,
-        margem_c: mono ? null : entrada.m[i],
-        margem_percentual: mono ? null : entrada.m[i] / ponto.limite,
-        estado: par[0],
-        estado_rotulo: par[1]
-      };
-      (mono ? monitorados : pontos).push(p);
-    });
-
-    // A ordem que a triagem espera pronta no dado: estado, depois folga.
-    pontos.sort(function (a, b) {
-      return indiceEstado(a.estado) - indiceEstado(b.estado) || a.margem_c - b.margem_c;
-    });
-
-    return {
-      versao_modelo: catalogo.versao_modelo,
-      preditor_e_stub: catalogo.preditor_e_stub,
-      configuracao: entrada.fatores,
-      configuracao_id: entrada.id,
-      tolerancia_fracao: catalogo.tolerancia_fracao,
-      pontos: pontos,
-      monitoramento: monitorados,
-      total_pontos: pontos.length + monitorados.length,
-      total_classificados: pontos.length,
-      total_monitoramento: monitorados.length
-    };
-  }
-
   /* O catálogo histórico com a previsão do modelo para cada configuração, quando
      o serviço o publicou; `null` sem ele. */
   function catalogoDoModelo() {
@@ -698,7 +655,6 @@ var LEITURA_PUBLICOS = (function () {
     mesmosSeteFatores: mesmosSeteFatores,
     leiturasDeMarketing: leiturasDeMarketing,
     configuracaoNoCatalogo: configuracaoNoCatalogo,
-    payloadDoCatalogo: payloadDoCatalogo,
     subsistemasPorCriticidade: subsistemasPorCriticidade,
     subsistemaMaisCritico: subsistemaMaisCritico,
     percentual: percentual,

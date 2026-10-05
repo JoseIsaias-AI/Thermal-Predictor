@@ -13,6 +13,7 @@
 "use strict";
 
 var test = require("node:test");
+var payloadDoCatalogo = require("./apoio/previsao_do_catalogo.js");
 var assert = require("node:assert/strict");
 var fs = require("node:fs");
 var path = require("node:path");
@@ -64,7 +65,7 @@ function carregar(opcoes) {
      js/nucleo/previsao_sessao.js, que define DADOS_TRIAGEM antes de a tela montar. */
   function previsao(cfg) {
     var entrada = LP.configuracaoNoCatalogo(cfg, CATALOGO);
-    if (entrada) return LP.payloadDoCatalogo(CATALOGO, entrada);
+    if (entrada) return payloadDoCatalogo(CATALOGO, entrada);
     var copia = JSON.parse(JSON.stringify(FIXTURE));
     copia.configuracao = JSON.parse(JSON.stringify(cfg));
     return copia;

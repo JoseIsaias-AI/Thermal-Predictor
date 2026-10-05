@@ -104,8 +104,6 @@ test("o botão da comparação para a triagem também leva a configuração", fu
 test("só viajam os fatores e a porta da API; a seleção da comparação fica", function () {
   assert.equal(NAV.buscaQueViaja("?" + CONFIG + "&cfg=CFG-01&predicao=8010&x=1"), CONFIG + "&predicao=8010");
   assert.equal(NAV.buscaQueViaja(""), "");
-  assert.equal(NAV.temConfiguracao("?predicao=8010"), false);
-  assert.equal(NAV.temConfiguracao("?" + CONFIG), true);
 });
 
 test("propagar duas vezes não acumula query, e âncora e endereço externo ficam", function () {
