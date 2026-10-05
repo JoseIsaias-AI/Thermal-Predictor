@@ -143,6 +143,93 @@ class RespostaModelos(BaseModel):
     modelos: list[ModeloPublicado]
 
 
+class ReferenciaDesempenho(BaseModel):
+    estrategia: str = Field(description="A previsão sem modelo: a média histórica do ponto.")
+    mae_teste_c: float
+    mae_40_divisoes_c: float
+
+
+class WilcoxonDesempenho(BaseModel):
+    descricao: str
+    pares: int
+    estatistica: float
+    p: float
+    divisoes_em_que_o_modelo_erra_menos: int
+
+
+class MetricasDesempenho(BaseModel):
+    """Métricas de teste e das 40 divisões, de um dataset ou das seis áreas juntas."""
+
+    mae_teste_c: float
+    rmse_teste_c: float
+    r2_teste: float
+    pontos_aprovados: int
+    pontos_com_limite: int
+    aprovacao_teste_pct: float
+    mae_40_divisoes_c: float
+    aprovacao_mediana_40_divisoes_pct: float
+    excedencias_teste: int
+    sensibilidade_pct: float | None = Field(
+        None, description="Sem excedência no teste isolado, a sensibilidade não é definida."
+    )
+    falsos_negativos: int
+    falsos_positivos: int
+
+
+class DesempenhoGlobal(MetricasDesempenho):
+    aprovacao_teste_wilson_pct: list[float] = Field(description="Intervalo de Wilson a 95%.")
+    divisoes: int
+    divisoes_no_piso: int = Field(description="Divisões com aprovação de pelo menos o piso.")
+    referencia: ReferenciaDesempenho
+    wilcoxon: WilcoxonDesempenho
+
+
+class DesempenhoDataset(BaseModel):
+    dataset: str
+    modelo_final: str | None = None
+    validado: bool
+    motivo: str | None = None
+    mae_teste_c: float | None = None
+    rmse_teste_c: float | None = None
+    r2_teste: float | None = None
+    pontos_aprovados: int | None = None
+    pontos_com_limite: int | None = None
+    aprovacao_teste_pct: float | None = None
+    mae_40_divisoes_c: float | None = None
+    aprovacao_mediana_40_divisoes_pct: float | None = None
+    excedencias_teste: int | None = None
+    sensibilidade_pct: float | None = None
+    falsos_negativos: int | None = None
+    falsos_positivos: int | None = None
+    referencia_mae_teste_c: float | None = None
+    referencia_mae_40_divisoes_c: float | None = None
+
+
+class DesempenhoFaixa(BaseModel):
+    faixa: str
+    limite_min_c: float
+    limite_max_c: float
+    pontos: int
+    aprovados: int
+    aprovacao_pct: float | None = None
+    mae_medio_c: float | None = None
+
+
+class RespostaDesempenho(BaseModel):
+    """Desempenho agregado do modelo final, sem nenhuma medição nem previsão por ponto."""
+
+    versao_modelo: str
+    origem: str
+    observacao: str
+    piso_aprovacao_pct: float
+    tolerancia_fracao: float
+    global_: DesempenhoGlobal = Field(alias="global")
+    por_dataset: list[DesempenhoDataset]
+    por_faixa_de_limite: list[DesempenhoFaixa]
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
 class PerdasDaConfiguracao(BaseModel):
     """Bloco `losses`, decomposto em presença, arranjo e ordem das perdas (Seção 4.2.2d)."""
 
@@ -233,8 +320,8 @@ class CampoInvalido(BaseModel):
 class DetalheDoErro(BaseModel):
     erro: str = Field(
         description=(
-            "`configuracao_invalida`, `modelo_indisponivel`, `catalogo_indisponivel` ou "
-            "`falha_na_inferencia`."
+            "`configuracao_invalida`, `modelo_indisponivel`, `catalogo_indisponivel`, "
+            "`desempenho_indisponivel` ou `falha_na_inferencia`."
         )
     )
     mensagem: str = Field(description="Explicação em português, pronta para exibir.")

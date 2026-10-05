@@ -7,6 +7,10 @@ from pathlib import Path
 PASTA_API = Path(__file__).resolve().parent
 RAIZ_REPOSITORIO = PASTA_API.parent.parent
 
+# Métricas agregadas do modelo de cada família, gravadas pelo notebook que a exporta, na pasta
+# dos modelos e não dentro da família: lá, todo `.json` é lido como metadado de um modelo.
+MODELO_DESEMPENHO = "desempenho_{familia}.json"
+
 # Dataset auditado de onde sai o limite de cada ponto. Não é versionado (dado do parceiro).
 NOME_CATALOGO_PONTOS = "dataset_completo_com_flags_de_auditoria.csv"
 
