@@ -26,10 +26,10 @@ var DIFF_TERMICO = (function () {
     return 10 * base;
   }
 
-  /* Ordem dos termopares no 3D: a de severidade da triagem na configuração
-     de referência. `FOGAO.posicionarPontos` distribui os slots de cada área
-     pela ordem da lista, então A, B e a diferença usam uma ordem só — o
-     mesmo termopar fica no mesmo lugar nos três modos. */
+  /* Ordem dos termopares na lista: a de severidade da triagem na configuração
+     de referência. O lugar no 3D não depende dela — `FOGAO.posicionarPontos`
+     tem posição fixa por termopar —, e A, B e a diferença põem o mesmo
+     termopar no mesmo lugar. */
   function ordem(D, cfg) {
     var idx = D.pontos.map(function (_, i) { return i; });
     var com = idx.filter(function (i) { return !D.pontos[i].mono; });

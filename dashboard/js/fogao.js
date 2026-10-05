@@ -219,25 +219,112 @@ var FOGAO = (function () {
     return s;
   }
 
-  /* `Bobina FL` e `Suporte FL` casam pelo sufixo de posição, e não pela
-     ordem em que chegam — a ordem do dado é por severidade, não geométrica. */
+  /* Lugar fixo de cada termopar: área do slot e índice dentro dela. Antes o
+     slot saía da ordem de chegada, e a ordem do dado é a de risco — o mesmo
+     termopar trocava de lugar a cada configuração, e a sonda do campo lia a
+     temperatura de um ponto no lugar de outro. Cobre os 78 pontos do catálogo:
+     os 77 que o modelo prevê e `IPC Cooling P05`, que nunca foi
+     medido. As bobinas e placas de `Coil Temps` casam pelo sufixo de posição
+     (FL, FR, RL, RR) e ficam fora da tabela.
+
+     A fidelidade é a do esquema por zona, não a de CAD: dentro de cada área os
+     pontos seguem a ordem canônica do catálogo (`js/schema.js`, semicondutores de potência em ordem
+     numérica), e onde a área tem geometria legível o nome decide o lugar —
+     encoders no painel na ordem esquerda → direita, ambientes entre eles acima;
+     dutos de `Main Vent Sys` no duto; superfície da tampa da IPC em cima, saída
+     do alojamento na lateral. */
+  var POSICAO_DO_TERMOPAR = {
+    "IPC P01 | IPC Comp": ["IPC Comp", 0],
+    "IPC P02 | IPC Comp": ["IPC Comp", 1],
+    "IPC P03 | IPC Comp": ["IPC Comp", 2],
+    "IPC P04 | IPC Comp": ["IPC Comp", 3],
+    "IPC P05 | IPC Comp": ["IPC Comp", 4],
+    "IPC P06 | IPC Comp": ["IPC Comp", 5],
+    "IPC P07 | IPC Comp": ["IPC Comp", 6],
+    "IPC P08 | IPC Comp": ["IPC Comp", 7],
+    "IPC P09 | IPC Comp": ["IPC Comp", 8],
+    "IPC P10 | IPC Comp": ["IPC Comp", 9],
+    "IPC P11 | IPC Comp": ["IPC Comp", 10],
+    "IPC P12 | IPC Comp": ["IPC Comp", 11],
+    "IPC P13 | IPC Comp": ["IPC Comp", 12],
+    "IPC P14 | IPC Comp": ["IPC Comp", 13],
+    "IPC P15 | IPC Comp": ["IPC Comp", 14],
+    "IPC P16 | IPC Comp": ["IPC Comp", 15],
+    "IPC P17 | IPC Comp": ["IPC Comp", 16],
+    "IPC P18 | IPC Comp": ["IPC Comp", 17],
+    "IPC P19 | IPC Comp": ["IPC Comp", 18],
+    "IPC P20 | IPC Comp": ["IPC Comp", 19],
+    "IPC P21 | IPC Comp": ["IPC Comp", 20],
+    "IPC P22 | IPC Comp": ["IPC Comp", 21],
+    "IPC P23 | IPC Comp": ["IPC Comp", 22],
+    "IPC P24 | IPC Comp": ["IPC Comp", 23],
+    "IPC P25 | IPC Comp": ["IPC Comp", 24],
+    "IPC P26 | IPC Comp": ["IPC Comp", 25],
+    "IPC P27 | IPC Comp": ["IPC Comp", 26],
+    "IPC P28 | IPC Comp": ["IPC Comp", 27],
+    "IPC P29 | IPC Comp": ["IPC Comp", 28],
+    "IPC P30 | IPC Comp": ["IPC Comp", 29],
+    "IPC P31 | IPC Comp": ["IPC Comp", 30],
+    "IPC P32 | IPC Comp": ["IPC Comp", 31],
+    "IPC P33 | IPC Comp": ["IPC Comp", 32],
+    "IPC P34 | IPC Comp": ["IPC Comp", 33],
+    "IPC P35 | IPC Comp": ["IPC Comp", 34],
+    "IPC P36 | IPC Comp": ["IPC Comp", 35],
+    "IPC P37 | IPC Comp": ["IPC Comp", 36],
+    "Mainback P01 | Mainback": ["Mainback", 0],
+    "Mainback P02 | Mainback": ["Mainback", 1],
+    "Mainback P03 | Mainback": ["Mainback", 2],
+    "Mainback P04 | Mainback": ["Mainback", 3],
+    "Mainback P05 | Mainback": ["Mainback", 4],
+    "Mainback P06 | Mainback": ["Mainback", 5],
+    "Mainback P07 | Mainback": ["Mainback", 6],
+    "Mainback P08 | Mainback": ["Mainback", 7],
+    "Mainback P09 | Mainback": ["Mainback", 8],
+    "Mainback P10 | Mainback": ["Mainback", 9],
+    "Mainback P11 | Mainback": ["Mainback", 10],
+    "Soprador P01 | Main Vent Sys": ["Main Vent Sys", 0],
+    "Soprador P02 | Main Vent Sys": ["Main Vent Sys", 1],
+    "Entrada do soprador P01 | Main Vent Sys": ["Main Vent Sys", 2],
+    "Entrada do soprador P02 | Main Vent Sys": ["Main Vent Sys", 3],
+    "Soprador P03 | Main Vent Sys": ["Main Vent Sys", 4],
+    "Duto P01 | Main Vent Sys": ["dutos", 0],
+    "Duto P02 | Main Vent Sys": ["dutos", 1],
+    "Knobs P05 | CT Knobs": ["CT Knobs", 4],
+    "Knobs P06 | CT Knobs": ["CT Knobs", 5],
+    "Knobs P02 | CT Knobs": ["CT Knobs", 1],
+    "Knobs P01 | CT Knobs": ["CT Knobs", 0],
+    "Knobs P03 | CT Knobs": ["CT Knobs", 2],
+    "Knobs P04 | CT Knobs": ["CT Knobs", 3],
+    "IPC Cooling P02 | IPC Cooling": ["IPC Cooling", 1],
+    "IPC Cooling P03 | IPC Cooling": ["IPC Cooling", 2],
+    "IPC Cooling P01 | IPC Cooling": ["IPC Cooling", 0],
+    "IPC Cooling P04 | IPC Cooling": ["IPC Cooling", 3],
+    "IPC Cooling P05 | IPC Cooling": ["IPC Cooling", 4],
+    "HMI P01 | Oven HMI": ["Oven HMI", 0],
+    "HMI P02 | Oven HMI": ["Oven HMI", 1],
+    "HMI P03 | Oven HMI": ["Oven HMI", 2],
+    "HMI P04 | Oven HMI": ["Oven HMI", 3]
+  };
+
+  function slotDoPonto(pt, slots) {
+    if (pt.Key_Area === "Coil Temps") {
+      var m = /\b(FL|FR|RL|RR)\s*$/.exec(pt.TC_Name || "");
+      if (!m) return null;
+      return /^Coil\b/.test(pt.TC_Name) ? slots.bobinas[m[1]] : slots.placas[m[1]];
+    }
+
+    var fixo = POSICAO_DO_TERMOPAR[pt.measurement_id];
+    if (!fixo || !slots[fixo[0]]) return null;
+
+    return slots[fixo[0]][fixo[1]] || null;
+  }
+
+  /* O lugar de cada ponto não depende da lista nem da ordem em que ela vem:
+     ponto fora do catálogo não ganha lugar emprestado de outro. */
   function posicionarPontos(pontos, lista) {
-    var slots = slotsPorArea(lista), fila = {}, saida = [];
+    var slots = slotsPorArea(lista), saida = [];
     pontos.forEach(function (pt) {
-      var slot = null;
-      if (pt.Key_Area === "Coil Temps") {
-        var m = /\b(FL|FR|RL|RR)\s*$/.exec(pt.TC_Name);
-        if (m) slot = /^Coil\b/.test(pt.TC_Name) ? slots.bobinas[m[1]] : slots.placas[m[1]];
-      }
-      if (!slot) {
-        var chave = pt.Key_Area === "Main Vent Sys" && EH_DUTO.test(pt.TC_Name) ? "dutos" : pt.Key_Area;
-        var disp = slots[chave];
-        if (disp) {
-          var k = fila[chave] || 0;
-          slot = disp[k % disp.length];
-          fila[chave] = k + 1;
-        }
-      }
+      var slot = slotDoPonto(pt, slots);
       if (slot) saida.push({ ponto: pt, g: slot.g, peca: slot.peca, haste: slot.haste });
     });
     return saida;
@@ -450,6 +537,7 @@ var FOGAO = (function () {
     MANIPULOS: MANIPULOS,
     pecas: pecas,
     acharPeca: acharPeca,
+    POSICAO_DO_TERMOPAR: POSICAO_DO_TERMOPAR,
     posicionarPontos: posicionarPontos,
     PECA_DA_AREA: PECA_DA_AREA,
     ZONAS: ZONAS,
