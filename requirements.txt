@@ -1,25 +1,30 @@
 # Bibliotecas usadas pelos notebooks (pasta notebooks/).
 # Instale com:  pip install -r requirements.txt
 #
+# As versões são fixas para que qualquer máquina reproduza os números da documentação. O
+# scikit-learn, em especial, sorteia as árvores de forma diferente a cada versão: com outra versão,
+# Random Forest, Extra Trees e Gradient Boosting mudam na segunda casa decimal, e os modelos de
+# `modelos/` precisam da 1.7.x para serem abertos pelo chatbot.
+#
 # O chatbot (pasta llm/) e a API do painel (pasta dashboard/api/) têm ambientes e
 # dependências próprios; veja a seção "Como executar o projeto" do README.md.
 
 # Leitura e tratamento dos dados
-pandas>=2.2
-numpy>=2.0
-openpyxl>=3.1
-tabulate>=0.9            # usado por DataFrame.to_markdown() nos notebooks 04 e 05
+pandas==3.0.6
+numpy==2.5.3
+openpyxl==3.1.5
+tabulate==0.10.0         # usado por DataFrame.to_markdown() nos notebooks 2.2 e 2.3
 
 # Gráficos
-matplotlib>=3.8
-seaborn>=0.13
+matplotlib==3.11.2
+seaborn==0.13.2
 
 # Estatística e modelagem
-scipy>=1.13
-scikit-learn>=1.7
-joblib>=1.4
-torch>=2.4
-shap>=0.46
+scipy==1.18.1
+scikit-learn==1.7.2
+joblib==1.6.0
+torch==2.14.1
+shap==0.52.0
 
 # Execução dos notebooks no VS Code / Jupyter
-ipykernel>=6.29
+ipykernel==7.4.0

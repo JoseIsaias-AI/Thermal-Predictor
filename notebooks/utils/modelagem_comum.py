@@ -276,18 +276,82 @@ def resumo_divisao(base, treino, teste):
     return pd.DataFrame(linhas).set_index("Conjunto")
 
 
+def _ordem_quicksort_classico(valores):
+    """Ordem crescente de `valores` pelo quicksort clássico do numpy, com o mesmo desempate.
+
+    É uma transcrição da introsort de `numpy/_core/src/npysort/quicksort.cpp` (mediana de três,
+    inserção abaixo de 17 elementos), sem as versões vetorizadas por SIMD. O numpy 2 usa essas
+    versões em processadores x86 com AVX2 ou AVX-512, e elas desempatam valores iguais em outra
+    ordem; a transcrição devolve sempre a ordem do algoritmo clássico, a mesma do numpy 1 e do
+    numpy 2 em processadores ARM, com que os registros da Seção 4.4 foram gerados.
+    """
+    v = [int(x) for x in valores]
+    ordem = list(range(len(v)))
+    pilha, inicio, fim = [], 0, len(v) - 1
+    profundidade = 2 * (len(v).bit_length() - 1)
+
+    while True:
+        if profundidade < 0:
+            raise RuntimeError("Ordenação degenerada: aumente a profundidade ou use heapsort.")
+
+        while fim - inicio > 15:
+            meio = inicio + ((fim - inicio) >> 1)
+            if v[ordem[meio]] < v[ordem[inicio]]:
+                ordem[meio], ordem[inicio] = ordem[inicio], ordem[meio]
+            if v[ordem[fim]] < v[ordem[meio]]:
+                ordem[fim], ordem[meio] = ordem[meio], ordem[fim]
+            if v[ordem[meio]] < v[ordem[inicio]]:
+                ordem[meio], ordem[inicio] = ordem[inicio], ordem[meio]
+            pivo = v[ordem[meio]]
+            i, j = inicio, fim - 1
+            ordem[meio], ordem[j] = ordem[j], ordem[meio]
+
+            while True:
+                i += 1
+                while v[ordem[i]] < pivo:
+                    i += 1
+                j -= 1
+                while pivo < v[ordem[j]]:
+                    j -= 1
+                if i >= j:
+                    break
+                ordem[i], ordem[j] = ordem[j], ordem[i]
+
+            ordem[i], ordem[fim - 1] = ordem[fim - 1], ordem[i]
+            profundidade -= 1
+
+            if i - inicio < fim - i:
+                pilha.append((i + 1, fim, profundidade))
+                fim = i - 1
+            else:
+                pilha.append((inicio, i - 1, profundidade))
+                inicio = i + 1
+
+        for i in range(inicio + 1, fim + 1):
+            atual, j = ordem[i], i
+            while j > inicio and v[atual] < v[ordem[j - 1]]:
+                ordem[j] = ordem[j - 1]
+                j -= 1
+            ordem[j] = atual
+
+        if not pilha:
+            return np.array(ordem, dtype=np.intp)
+
+        inicio, fim, profundidade = pilha.pop()
+
+
 def particoes_de_validacao(base, indices, n_particoes=PARTICOES_VALIDACAO):
     """Validação cruzada dentro de `indices`, agrupada por configuração, em índices globais.
 
     Segue a regra do `GroupKFold` do scikit-learn: as configurações entram da maior para a menor, e
-    cada uma vai para a partição com menos medições até ali. A regra fica escrita aqui porque as
-    versões recentes do scikit-learn trocaram a ordem de desempate entre configurações com o mesmo
-    número de medições, que são comuns nesta base, e passaram a montar outras partições, com outras
-    métricas de validação. O desempate abaixo é o da versão em que os notebooks foram executados, e
-    mantém as partições iguais em qualquer versão instalada. Com as mesmas partições, Ridge e média do
-    termopar reproduzem as métricas publicadas; Random Forest e Gradient Boosting, que sorteiam
-    amostras internamente, ainda podem variar em milésimos a centésimos de grau entre versões do
-    scikit-learn.
+    cada uma vai para a partição com menos medições até ali. Configurações com o mesmo número de
+    medições são comuns nesta base, e a ordem entre elas muda a composição das partições. Por isso
+    o desempate é explícito, pelo quicksort clássico do numpy (`_ordem_quicksort_classico`), e não
+    depende da versão do numpy, do scikit-learn nem do processador: as partições são as mesmas em
+    qualquer máquina, e Ridge e média do termopar reproduzem as métricas registradas. Random Forest e
+    Gradient Boosting, que sorteiam amostras internamente, ainda podem variar em milésimos a
+    centésimos de grau entre versões do scikit-learn, por isso a versão é fixada no
+    `requirements.txt`.
     """
     grupos = base["configuracao"].to_numpy()[indices]
     configuracoes, grupo_de = np.unique(grupos, return_inverse=True)
@@ -295,7 +359,7 @@ def particoes_de_validacao(base, indices, n_particoes=PARTICOES_VALIDACAO):
     carga = np.zeros(n_particoes)
     particao_da_configuracao = np.zeros(len(configuracoes), dtype=int)
 
-    for configuracao in np.argsort(tamanhos, kind="quicksort")[::-1]:
+    for configuracao in _ordem_quicksort_classico(tamanhos)[::-1]:
         destino = int(np.argmin(carga))
         carga[destino] += tamanhos[configuracao]
         particao_da_configuracao[configuracao] = destino
