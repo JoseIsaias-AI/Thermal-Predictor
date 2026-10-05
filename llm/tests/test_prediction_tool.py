@@ -369,3 +369,34 @@ def test_status_relata_modelos_e_termopares(tmp_path: Path) -> None:
 
     assert pronto is True
     assert "1 modelos (gb-1.0) cobrindo 3 termopares" in detalhe
+
+
+def test_carrega_o_modelo_final_com_algoritmo_por_conjunto(tmp_path: Path) -> None:
+    modelos = escrever_modelo(tmp_path)
+    # O modelo final grava `null` nas métricas do conjunto sem modelo validado.
+    (modelos / "ac_blower_inlet.json").write_text(
+        json.dumps({
+            "conjunto": "AC Blower Inlet",
+            "algoritmo": "Média RF e GB adotada",
+            "versao": "gb-1.0",
+            "colunas_entrada": COLUNAS_ENTRADA,
+            "codigo_por_termopar": {},
+            "metricas_validacao": None,
+            "validado": False,
+        }),
+        encoding="utf-8",
+    )
+    (modelos / "ac_blower_inlet.joblib").write_bytes(b"")
+    preditor = ThermalPredictor(
+        modelos,
+        Dataset(escrever_dataset(tmp_path)),
+        loader=lambda _: FakeEstimator({0: 120.0, 1: 80.0, 2: 45.0}),
+    )
+
+    resultado = asyncio.run(ThermalPredictionTool(preditor).run(CONFIGURACAO, fallback_query=""))
+
+    assert resultado.found is True
+    assert resultado.data["conjuntos_sem_validacao"] == ["AC Blower Inlet"]
+    assert resultado.data["algoritmo"] == (
+        "AC Blower Inlet: Média RF e GB adotada; Main Vent Sys: Gradient Boosting"
+    )

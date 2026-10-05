@@ -20,7 +20,8 @@ class Settings(BaseModel):
     # custava cerca de 25 s por pergunta em máquina sem GPU.
     ollama_keep_alive: str = Field(default="30m", min_length=1)
     chatbot_allowed_origins: str = (
-        "http://127.0.0.1:5500,http://localhost:5500"
+        "http://127.0.0.1:5500,http://localhost:5500,"
+        "http://127.0.0.1:5501,http://localhost:5501"
     )
     rag_enabled: bool = True
     rag_database_url: str = (
@@ -34,7 +35,7 @@ class Settings(BaseModel):
     dataset_enabled: bool = True
     dataset_path: str = "../dataset_completo_com_flags_de_auditoria.csv"
     prediction_enabled: bool = True
-    models_dir: str = "../modelos/gradient_boosting"
+    models_dir: str = "../modelos/modelo_final"
 
     model_config = ConfigDict(extra="forbid", validate_default=True)
 
