@@ -325,6 +325,7 @@ var DESEMPENHO_MODELO = (function () {
       avaliar(d).forEach(function (m) { grade.appendChild(cartao(m)); });
     }
     if (corpo) tabelaPorDataset(corpo, d, modelos);
+    preencherTextos(d);
     graficoPorDataset(d);
     graficoPorFaixa(d);
     tabelaPorFaixa(d);
@@ -337,6 +338,46 @@ var DESEMPENHO_MODELO = (function () {
       painel.hidden = false;
     }
     if (typeof opcoes.aoMontar === "function") opcoes.aoMontar(d, modelos);
+  }
+
+  /* Os textos da tela que dependem do resultado: título, situação de cada
+     critério e o porquê da leitura executiva. Escritos daqui, com os números da
+     API, para nenhum deles ficar fixo no HTML e divergir do modelo. */
+  function textosDaTela(d) {
+    var g = d.global;
+    var cartoes = {};
+    avaliar(d).forEach(function (m) { cartoes[m.id] = m; });
+    var cobre = cartoes.cobertura.situacao === "atingido";
+    var bate = cartoes.wilcoxon.situacao === "atingido";
+    var cobertura = fmt(g.aprovacao_teste_pct, 1) + "% (" + g.pontos_aprovados + " de " + g.pontos_com_limite +
+      ") no teste isolado e " + fmt(g.aprovacao_mediana_40_divisoes_pct, 1) + "% na mediana das divisões";
+
+    return {
+      titulo: (bate ? "O modelo final erra menos que a média histórica" : "O modelo final não bate a média histórica") +
+        (cobre ? " e cobre o critério de " : ", mas cobre " + fmt(g.aprovacao_teste_pct, 1) +
+          "% dos pontos e o critério exige ") + fmt(d.piso_aprovacao_pct, 0) + "%",
+      criterios: "Duas exigências independentes: " +
+        (bate ? "a estatística é cumprida" : "a estatística não é cumprida") + ", " +
+        (cobre ? "a de engenharia também" : "a de engenharia não"),
+      engenharia: (cobre ? "Atingida: " : "Não atingida: ") + cobertura,
+      estatistica: (bate ? "Atingida: " : "Não atingida: ") + "p = " + fmtP(g.wilcoxon.p) + ", erro menor em " +
+        g.wilcoxon.divisoes_em_que_o_modelo_erra_menos + " de " + g.wilcoxon.pares + " divisões",
+      porque: "O modelo erra " + fmt(g.mae_teste_c, 2) + " °C no teste isolado e " + fmt(g.mae_40_divisoes_c, 2) +
+        " °C nas divisões, contra " + fmt(g.referencia.mae_teste_c, 2) + " °C e " +
+        fmt(g.referencia.mae_40_divisoes_c, 2) + " °C da média histórica, e sinaliza " +
+        (g.excedencias_teste - g.falsos_negativos) + " das " + g.excedencias_teste + " excedências do teste. " +
+        "Para aprovar componente, o critério pede erro de até 10% do limite em " + fmt(d.piso_aprovacao_pct, 0) +
+        "% dos pontos, e o modelo chega a " + cobertura + "."
+    };
+  }
+
+  function preencherTextos(d) {
+    var t = textosDaTela(d);
+    [["page-title", t.titulo], ["criterios-titulo", t.criterios], ["criterio-engenharia", t.engenharia],
+      ["criterio-estatistica", t.estatistica], ["exec-porque", t.porque]].forEach(function (par) {
+      var alvo = document.getElementById(par[0]);
+      if (alvo) alvo.textContent = par[1];
+    });
   }
 
   /* Busca `GET /desempenho` e `GET /modelos` e monta. Sem o desempenho, a tela
@@ -359,6 +400,7 @@ var DESEMPENHO_MODELO = (function () {
     fmt: fmt,
     fmtP: fmtP,
     avaliar: avaliar,
+    textosDaTela: textosDaTela,
     ROTULO_SITUACAO: ROTULO_SITUACAO,
     montar: montar,
     iniciar: iniciar
