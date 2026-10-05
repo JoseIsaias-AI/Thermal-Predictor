@@ -1,12 +1,5 @@
-/* Tela de design.
- *
- * Público que decide acabamento e material sem manipular os fatores de
- * engenharia: o que trava a decisão é saber se a peça que a pessoa encosta
- * passa do limite e o que as escolhas do próprio design fizeram nas rodadas já
- * simuladas.
- *
- * Recorte e leitura vêm de js/leitura/leitura_publicos.js; aqui só há formatação e
- * montagem de DOM, como em js/telas/triagem.js.
+/* Tela de design: se as peças de contato passam do limite e o que defletor e material
+ * fizeram nas configurações do catálogo. Recortes de leitura_publicos.js.
  */
 
 (function () {

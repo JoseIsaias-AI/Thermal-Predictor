@@ -1,13 +1,6 @@
-/* Leitura da triagem para os públicos que consomem o resultado sem operar o
- * painel: conformidade (RF-23, RF-24), design (RF-25, RF-26) e marketing
- * (RF-27, RF-28).
- *
- * Nenhuma tela que lê daqui recalcula estado de risco: RN-01 já foi aplicado
- * na origem e `estado` vem pronto em cada ponto, como em js/telas/triagem.js. O que
- * este módulo faz é recortar, agrupar e traduzir.
- *
- * Ponto único de substituição: `fonte`. Quando existir o endpoint de predição,
- * troca-se o corpo dela e as telas seguem sem alteração.
+/* Leitura da previsão para conformidade (RF-23, RF-24), design (RF-25, RF-26) e
+ * marketing (RF-27, RF-28): recorta, agrupa e traduz, sem recalcular o estado da RN-01,
+ * que já vem em cada ponto.
  */
 
 var LEITURA_PUBLICOS = (function () {
@@ -319,12 +312,9 @@ var LEITURA_PUBLICOS = (function () {
     }));
   }
 
-  /* ----- Leitura do histórico para a tela de design -----
-   *
-   * As funções abaixo leem o catálogo do modelo (`CATALOGO_MODELO`), que traz
-   * as configurações já rodadas com a previsão do modelo para cada uma. São leitura observacional: as rodadas não variam um fator de
-   * cada vez, então o que sai daqui é o que se viu na base, e não o efeito
-   * isolado de um fator. A tela diz isso em palavras. */
+  /* ----- Leitura do catálogo para a tela de design -----
+   * Leitura observacional das configurações já rodadas: elas não variam um fator de cada
+   * vez, então o resultado é o que se viu na base, e não o efeito isolado do fator. */
 
   // Posição, em `catalogo.pontos`, dos pontos de contato com limite declarado.
   function indicesDeContato(catalogo) {
@@ -408,14 +398,9 @@ var LEITURA_PUBLICOS = (function () {
     return ordem.map(function (nivel) { return porNivel[nivel]; });
   }
 
-  /* As alternativas que mudam só o que o design decide: os outros quatro
-     fatores categóricos ficam parados e variam apenas a abertura do defletor e
-     o material do suporte. É a comparação que se lê sem pedir tradução, porque
-     a diferença entre as linhas é a escolha do próprio design.
-
-     Agrupa por par de fatores: rodadas que diferem só no arranjo de bobinas
-     descrevem a mesma escolha de design e viravam linhas repetidas. Dentro do
-     grupo vale a mesma regra de RN-02, o pior estado. */
+  /* Alternativas que mudam só o que o design decide (defletor e material do suporte), com
+     os outros quatro fatores categóricos fixos. Agrupa por par de fatores e, dentro do
+     grupo, vale o pior estado (RN-02). */
   function alternativasDeDesign(catalogo, fatores) {
     var fixos = FATORES_CATEGORICOS.filter(function (chave) {
       return FATORES_DE_DESIGN.indexOf(chave) < 0;
@@ -468,10 +453,8 @@ var LEITURA_PUBLICOS = (function () {
   }
 
   /* ----- Temas da tela de marketing -----
-   *
-   * Cada tema é um assunto que a campanha poderia tocar, amarrado aos
-   * subsistemas que sustentam a afirmação. Moram aqui, e não em
-   * js/telas/marketing.js, porque o registro em PDF da sessão lê os mesmos temas. */
+   * Cada tema é amarrado aos subsistemas que o sustentam. Ficam aqui porque o registro em
+   * PDF lê os mesmos temas. */
   var TEMAS_MARKETING = [
     {
       nome: "Segurança ao toque nos comandos",
@@ -561,11 +544,8 @@ var LEITURA_PUBLICOS = (function () {
     return FATORES_CATEGORICOS.every(function (chave) { return a[chave] === b[chave]; });
   }
 
-  /* RN-05: a consulta consta do histórico de rodadas ou é nova. É o que
-     marketing precisa antes de prometer (RF-28) e o que validação anexa ao
-     registro (RF-23).
-     `data_base_treino` fica nulo até existir modelo treinado: a tela mostra o
-     traço, não uma data inventada (RF-18, RNF-06). */
+  /* RN-05: a consulta consta do histórico de rodadas ou é nova (RF-23, RF-28). Sem data de
+     treino declarada, a tela mostra o traço (RF-18, RNF-06). */
   function maturidade(dados, catalogo, configuracao) {
     // A configuração avaliada pode vir da querystring e ser outra que a do
     // payload; é ela que RN-05 localiza.

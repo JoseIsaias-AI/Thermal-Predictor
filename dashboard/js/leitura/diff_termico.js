@@ -1,12 +1,7 @@
-/* Diferença térmica ponto a ponto entre duas configurações.
+/* Diferença térmica ponto a ponto entre duas configurações do catálogo (B − A).
  *
- * Sem DOM: a tela de comparação chama, os testes em dashboard/testes/ também.
- *
- * Não há predição nova aqui. As temperaturas são as de `t` no catálogo do
- * modelo (`GET /catalogo`), as mesmas que a triagem mostraria para cada
- * configuração; a diferença é B − A sobre esses dois vetores, nada além de
- * uma subtração por ponto. Estado e folga vêm prontos
- * no dado e só entram no modo absoluto: a diferença não tem estado.
+ * As temperaturas são as do catálogo do modelo; estado e folga só entram no modo
+ * absoluto, porque a diferença não tem estado.
  */
 
 var DIFF_TERMICO = (function () {

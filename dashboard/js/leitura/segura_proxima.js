@@ -1,17 +1,8 @@
-/* Busca da configuração segura mais próxima de uma configuração de referência.
+/* Configuração segura mais próxima de uma referência, dentro do catálogo do modelo.
  *
- * Sem DOM: a tela de comparação chama, os testes em dashboard/testes/ também.
- *
- * Escopo fechado nas configurações do catálogo do modelo (`GET /catalogo`). Não
- * há otimização no espaço contínuo dos fatores: a sugestão é sempre uma
- * configuração que existe na base, com a previsão do modelo já calculada.
- *
- * Métrica: distância euclidiana sobre os fatores na mesma codificação one-hot
- * dos modelos (dashboard/api/predicao/codificacao.py, 13 colunas), com cada
- * coluna padronizada em z-score pelo desvio padrão populacional das
- * configurações conhecidas. Sem a padronização, um nível raro pesaria o mesmo
- * que um nível presente em metade da base; com ela, trocar para um nível raro
- * custa mais, porque afasta a configuração do que a base cobre.
+ * Distância euclidiana na mesma codificação dos modelos (13 colunas de
+ * api/predicao/codificacao.py), com cada coluna padronizada em z-score: trocar para um
+ * nível raro custa mais, porque afasta a configuração do que a base cobre.
  */
 
 var SEGURA_PROXIMA = (function () {

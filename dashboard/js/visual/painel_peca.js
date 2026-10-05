@@ -1,9 +1,5 @@
-/* Painel de resumo da peça selecionada no modelo 3D.
- *
- * Não calcula estado, folga nem ordem: tudo vem pronto em DADOS_TRIAGEM, o
- * mesmo dado da tabela. O painel só recorta os pontos da zona (FOGAO.ZONAS),
- * conta os estados que já vieram rotulados e escolhe como referência o ponto
- * que a triagem já pôs primeiro.
+/* Painel de resumo da peça selecionada no 3D: recorta os pontos da zona, conta os
+ * estados e usa como referência o ponto que a triagem já pôs primeiro.
  */
 
 var PAINEL_PECA = (function () {
@@ -12,13 +8,8 @@ var PAINEL_PECA = (function () {
   var ESTADOS = ["acima_do_limite", "banda_de_incerteza", "dentro_do_limite"];
   var ROTULO_CURTO = { acima_do_limite: "acima", banda_de_incerteza: "na banda", dentro_do_limite: "dentro", monitoramento: "monitorados" };
 
-  /* Resumo de uma zona. Puro: sem DOM, para rodar também nos testes em Node.
-
-     A referência é o primeiro ponto com limite da zona. `pontos` chega
-     ordenado do mais crítico para o menos, então o primeiro é o que governa
-     a peça — escolher, e não recalcular. Zona só de monitorados não tem
-     ponto que governe: a referência vira o mais quente, e o estado dela
-     segue sendo "monitoramento". */
+  /* Resumo de uma zona, sem DOM. A referência é o primeiro ponto com limite (os pontos já
+     vêm do mais crítico ao menos); zona só de monitorados usa o mais quente. */
   function resumir(zona, dados) {
     var classificados = FOGAO.pontosDaZona(zona, dados.pontos);
     var monitorados = FOGAO.pontosDaZona(zona, dados.monitoramento);
@@ -280,10 +271,8 @@ var PAINEL_PECA = (function () {
   }
 
   /* ----- Modo diferença -----
-     Mesma peça, outra pergunta: quanto cada termopar muda de A para B. As
-     linhas vêm de DIFF_TERMICO.diferenca, com `a`, `b` e `diferenca_c`
-     prontos; aqui só se recorta a zona e se escolhe o ponto de maior
-     variação. Estado e limite não entram: diferença não é risco. */
+     Quanto cada termopar muda de A para B (DIFF_TERMICO.diferenca); estado e limite não
+     entram. */
 
   function mediana(v) {
     var s = v.slice().sort(function (x, y) { return x - y; }), m = s.length >> 1;

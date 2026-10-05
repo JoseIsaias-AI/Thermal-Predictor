@@ -1,9 +1,8 @@
-/* Modelo do fogão: peças, posições dos termopares e escalas de cor.
+/* Modelo do fogão: peças, posição fixa de cada termopar e escalas de cor.
  *
- * Não desenha nada. O viewport 3D (fogao3d.js) monta a cena a partir daqui, e
- * os gráficos 2D das telas usam as rampas e os marcadores. Unidades do modelo:
- * x da esquerda para a direita (0 a 320), y da frente para o fundo (0 a 240) e
- * z para cima; o topo do cooktop fica em 298.
+ * Não desenha. fogao3d.js monta a cena a partir daqui e os gráficos 2D usam as rampas e
+ * os marcadores. Unidades: x de 0 a 320 (esquerda → direita), y de 0 a 240 (frente →
+ * fundo), z para cima.
  */
 
 var FOGAO = (function () {
@@ -13,12 +12,9 @@ var FOGAO = (function () {
   // Centro do modelo: origem dos vetores radiais do explodido.
   var CENTRO = { x: CAIXA.x / 2, y: CAIXA.y / 2, z: CAIXA.z / 2 };
 
-  /* Duas rampas para a mesma folga, expostas na interface como "Cor" e "Tons
-     de cinza". A divergente codifica o sinal da folga na matiz, e o cinza
-     neutro do meio cai sobre a faixa de 0 a +10%, que e a banda de incerteza
-     de RN-01: inconclusivo nao puxa para lado nenhum. A monocromatica codifica
-     so a ordem, e existe porque azul-vermelho convida a ler azul como
-     aprovado — leitura que RN-07 proibe. */
+  /* Duas rampas para a folga: a divergente ("Cor"), com cinza neutro sobre a banda de
+     incerteza da RN-01, e a monocromática ("Tons de cinza"), que só codifica a ordem e
+     evita ler azul como aprovado (RN-07). */
   var RAMPA_A = ["#0d436b", "#3f7aa3", "#9dbdd2", "#d1d3d4", "#dd9a92", "#c04b3d", "#8f2419", "#5e120b"];
   var RAMPA_B = ["#eef0f1", "#cfd2d5", "#a6aaae", "#7c8189", "#5b616b", "#3e444d", "#262b32", "#12151a"];
 
@@ -32,19 +28,9 @@ var FOGAO = (function () {
      por isso nem a RAMPA_A, que também vai de azul a vermelho, nem a do campo. */
   var RAMPA_DIFF = ["#053061", "#2166ac", "#4393c3", "#92c5de", "#f7f7f7", "#f4a582", "#d6604d", "#b2182b", "#67001f"];
 
-  /* Variantes do tema escuro para as duas escalas calibradas sobre fundo
-     claro. As de folga (A e B) não mudam: são lidas sobre o modelo 3D, cuja
-     luz é a mesma nos dois temas, e a legenda tem de bater com o marcador.
-
-     Campo: mesmas matizes na mesma ordem; só as paradas que sumiam no palco
-     escuro (#232b39) — o violeta e o azul frios e o vermelho do topo — sobem
-     em luminosidade (OKLCH, matiz e croma mantidos) até 3:1 contra ele.
-
-     Diferença: a luminosidade espelhada em torno do fundo, como a "berlin"
-     de Crameri. No claro o meio neutro é o que mais se parece com o fundo e
-     os extremos os que mais se afastam; no escuro também, então o neutro
-     vira cinza-escuro e os extremos clareiam. Azul continua frio em B e
-     vermelho quente em B. */
+  /* Variantes do tema escuro. As rampas de folga não mudam (o 3D tem a mesma luz nos dois
+     temas). No campo, as paradas que sumiam no fundo escuro sobem em luminosidade (OKLCH)
+     até 3:1; na diferença, a luminosidade é espelhada em torno do fundo. */
   var ESCURO = {
     RAMPA_CAMPO: ["#8463ba", "#406be3", "#1f9fd8", "#35c4c0", "#8ecf5c", "#dcd247", "#e8912f", "#d43d2b"],
     RAMPA_DIFF: ["#a8ceff", "#70aff4", "#3999cf", "#437993", "#4d4d4d", "#9e5f48", "#d76a58", "#f68482", "#feb3b9"]
@@ -52,17 +38,8 @@ var FOGAO = (function () {
   var CLARO = { RAMPA_CAMPO: RAMPA_CAMPO.slice(), RAMPA_DIFF: RAMPA_DIFF.slice() };
   var RAMPA_A_ORIGINAL = RAMPA_A.slice();
 
-  /* Modo daltônico (recursos assistivos). Uma paleta para os três tipos, e não
-     um filtro por tipo: as escalas mudam de fato, e a ordem continua legível
-     em deuteranopia, protanopia e tritanopia (simulação de Machado et al.,
-     2009, severidade total; testes/acessibilidade.test.js).
-     - Folga: o azul segue "com folga" e o vermelho vira laranja-queimado; o
-       laranja não se confunde com o azul em nenhum dos três tipos.
-     - Campo: cividis, feita para daltonismo. O arco-íris sobe e desce de
-       luminosidade e, sem a matiz, duas temperaturas diferentes pareciam a
-       mesma; a cividis só sobe, e a ordem sobrevive à perda de cor.
-     - Diferença: PuOr do ColorBrewer no lugar do RdBu, roxo mais frio em B e
-       laranja mais quente em B. O escuro espelha a luminosidade como o RdBu. */
+  /* Modo daltônico: uma paleta que mantém a ordem nos três tipos (simulação de Machado et
+     al., 2009). Folga: azul e laranja-queimado; campo: cividis; diferença: PuOr. */
   var DALTONICO = {
     RAMPA_A: ["#0b3c6e", "#2f6ea8", "#8fb3d6", "#d1d3d4", "#f2bd84", "#df8a3c", "#b05f12", "#6b3606"],
     CLARO: {
@@ -103,22 +80,10 @@ var FOGAO = (function () {
   var FAIXAS = ["≥ +50%", "+30 a +50%", "+10 a +30%", "0 a +10%", "−10 a 0%", "−30 a −10%", "−50 a −30%", "< −50%"];
 
   /* ----- Peças -----
-   *
-   * `b` é a caixa assentada [x, y, z, largura, profundidade, altura] e `ex` o
-   * deslocamento com o slider no máximo; no meio do curso a peça anda
-   * `ex · t`, sem deformar. Cada componente de `ex` aponta para fora do
-   * CENTRO, no lado em que a peça mora (radial), e os vetores foram escolhidos
-   * para que nenhum par de caixas se intercepte em t algum de 0 a 1 — o teste
-   * explosao_raio_x.test.js verifica isso por intervalo exato, não amostrado.
-   * Soprador e duto saem pelos lados, e não pela frente: pela frente
-   * atravessariam o rodapé no meio do curso.
-   *
-   * `lvl` é o estágio de montagem em que a peça aparece (1 chassi, 2
-   * ventilação, 3 eletrônica, 4 cooktop). `casca` marca o que fecha o produto
-   * por fora e vira fantasma no explodido, para não tapar o miolo. `externa`
-   * é o que o raio-X torna transparente: a casca, o vidro do cooktop e a
-   * cavidade, que escondem a eletrônica e a ventilação. Nenhuma delas tem
-   * termopar, então o raio-X não tira nenhuma zona clicável de alcance. */
+   * `b` é a caixa assentada [x, y, z, largura, profundidade, altura] e `ex` o deslocamento
+   * no explodido máximo, radial, escolhido para nenhum par de caixas se interceptar
+   * (explosao_raio_x.test.js). `lvl` é o estágio de montagem; `casca` vira fantasma no
+   * explodido; `externa` fica transparente no raio-X e não tem termopar. */
   function pecas(op) {
     op = op || {};
     var nivel = op.nivel == null ? 4 : op.nivel;
@@ -219,20 +184,10 @@ var FOGAO = (function () {
     return s;
   }
 
-  /* Lugar fixo de cada termopar: área do slot e índice dentro dela. Antes o
-     slot saía da ordem de chegada, e a ordem do dado é a de risco — o mesmo
-     termopar trocava de lugar a cada configuração, e a sonda do campo lia a
-     temperatura de um ponto no lugar de outro. Cobre os 78 pontos do catálogo:
-     os 77 que o modelo prevê e `IPC Cooling P05`, que nunca foi
-     medido. As bobinas e placas de `Coil Temps` casam pelo sufixo de posição
-     (FL, FR, RL, RR) e ficam fora da tabela.
-
-     A fidelidade é a do esquema por zona, não a de CAD: dentro de cada área os
-     pontos seguem a ordem canônica do catálogo (`js/nucleo/schema.js`, semicondutores de potência em ordem
-     numérica), e onde a área tem geometria legível o nome decide o lugar —
-     encoders no painel na ordem esquerda → direita, ambientes entre eles acima;
-     dutos de `Main Vent Sys` no duto; superfície da tampa da IPC em cima, saída
-     do alojamento na lateral. */
+  /* Lugar fixo de cada termopar ([área do slot, índice]), para o mesmo termopar ficar no
+     mesmo lugar em qualquer configuração. Cobre os 78 pontos do catálogo; bobinas e placas
+     de Coil Temps casam pelo sufixo de posição (FL, FR, RL, RR). Esquema por zona, não CAD:
+     ordem canônica de nucleo/schema.js, com o nome decidindo onde a geometria é legível. */
   var POSICAO_DO_TERMOPAR = {
     "IPC P01 | IPC Comp": ["IPC Comp", 0],
     "IPC P02 | IPC Comp": ["IPC Comp", 1],
@@ -344,19 +299,9 @@ var FOGAO = (function () {
   };
 
   /* ----- Peças clicáveis -----
-   *
-   * Cada zona liga uma peça do modelo a um recorte dos pontos: a Key_Area e,
-   * quando a peça divide a área com outra, o nome do termopar. As zonas
-   * particionam os 78 pontos — cada um cai em exatamente uma — e cada zona
-   * aponta para uma peça só. A fidelidade é a da especificação: esquema por
-   * zona, não posição de CAD.
-   *
-   * Bobinas e suporte guardam uma zona por posição (FL, FR, RL, RR). O clique
-   * nessas peças escolhe a zona pela posição mais próxima do ponto atingido,
-   * e `regiao` é o círculo, em planta, que o destaque acende.
-   *
-   * Peça fora desta lista (laterais, porta, cavidade, cooktop, defletor,
-   * bandeja) não tem termopar no conjunto de dados. */
+   * Cada zona liga uma peça a um recorte dos pontos (Key_Area e, quando a peça divide a área,
+   * o nome do termopar), e as zonas particionam os 78 pontos. Bobinas e suporte têm uma zona
+   * por posição, escolhida pelo ponto mais próximo do clique. */
   var EH_DUTO = /\bDuct\b/;
 
   var ZONAS = [
@@ -452,12 +397,8 @@ var FOGAO = (function () {
     ];
   }
 
-  /* Interpolação por distância inversa no volume.
-
-     `k` comprime um eixo. Os termopares estão dentro do produto, e a distância
-     atravessando a chapa dominaria a distância ao longo dela: comprimir a
-     direção normal à face faz o que está logo atrás de um ponto da superfície
-     pesar mais do que o que está longe de lado. */
+  /* Interpolação por distância inversa. `k` comprime o eixo normal à face, para o que está
+     logo atrás de um ponto da superfície pesar mais que o que está longe de lado. */
   function valorEm(amostras, x, y, z, k) {
     var kx = k ? k[0] : 1, ky = k ? k[1] : 1, kz = k ? k[2] : 1;
     var soma = 0, peso = 0;
@@ -473,15 +414,8 @@ var FOGAO = (function () {
     return soma / peso;
   }
 
-  /* Amostra o campo numa grade regular da caixa inteira, já normalizado em
-     0-255 pelo equalizador. O 3D sobe isso como textura de volume: em vez de
-     refazer a soma de 78 termos a cada pixel, cada superfície lê o valor por
-     interpolação trilinear, e a mesma grade serve à pele das peças, aos cortes
-     e às linhas de fluxo.
-
-     Aqui a distância não é comprimida em eixo nenhum: a compressão do
-     `valorEm` das faces existe para a amostragem rasante de uma casca, e num
-     volume ela deformaria o campo. */
+  /* Amostra o campo numa grade regular da caixa, já normalizado em 0-255, que o 3D usa
+     como textura de volume; aqui a distância não é comprimida. */
   function grade3D(amostras, eq, nx, ny, nz) {
     var dados = new Uint8Array(nx * ny * nz), i = 0;
     for (var iz = 0; iz < nz; iz++) {

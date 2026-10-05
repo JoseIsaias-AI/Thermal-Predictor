@@ -1,9 +1,5 @@
-/* Tela de conformidade (RF-23, RF-24).
- *
- * Público de verificação e validação e de qualidade: o que trava a decisão é
- * saber qual componente reprova e com que folga, não o resultado do conjunto.
- * Recorte, agrupamento e tradução vêm de js/leitura/leitura_publicos.js; aqui só há
- * formatação e montagem de DOM, como em js/telas/triagem.js.
+/* Tela de conformidade (RF-23, RF-24): qual componente reprova e com que folga.
+ * Recortes de leitura_publicos.js; aqui há formatação e montagem do DOM.
  */
 
 (function () {
@@ -61,13 +57,8 @@
     document.getElementById("page-title").textContent = texto;
   }
 
-  /* Marca o ponto previsto por modelo que o grupo não validou.
-
-     Existe porque o modelo final é uma mescla por área e as áreas não têm a
-     mesma qualidade: `AC Blower Inlet` não teve modelo aprovado. Sem a marca, os
-     seus pontos apareceriam com o mesmo peso visual dos validados. A pergunta é
-     feita a `PREVISAO_SESSAO`, que casa ponto e modelo por `subsistema_modelo`;
-     numa resposta sem o bloco `modelos`, nada é marcado. */
+  /* Marca o ponto previsto por modelo não validado (AC Blower Inlet), pela regra de
+     PREVISAO_SESSAO; sem o bloco `modelos`, nada é marcado. */
   function marcaDeModelo(ponto) {
     if (typeof PREVISAO_SESSAO === "undefined") return null;
 

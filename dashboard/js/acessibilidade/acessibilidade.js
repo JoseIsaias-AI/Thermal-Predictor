@@ -1,15 +1,8 @@
-/* Recursos assistivos: aba na lateral direita das sete telas.
+/* Recursos assistivos: painel lateral presente em todas as telas.
  *
- * Cada recurso mora num atributo `html[data-a11y-<id>]` com o nível escolhido
- * (1, 2, 3…), e o css/base/acessibilidade.css faz o resto: nenhuma tela conhece os
- * recursos, como nenhuma conhece o tema. Carregado no <head>, logo depois do
- * tema.js, para a página já abrir com a fonte e as cores escolhidas.
- *
- * A escolha vale para todas as telas e sobrevive ao fechar o navegador
- * (localStorage): quem precisa de fonte maior precisa dela sempre.
- *
- * O painel monta a si mesmo, como o do Robertão: cada tela só inclui este
- * arquivo e o css/base/acessibilidade.css.
+ * Cada recurso vira um atributo `html[data-a11y-<id>]` com o nível escolhido, e
+ * css/base/acessibilidade.css aplica o efeito. Carrega no <head> para a página já
+ * abrir com a escolha, que vale para todas as telas (localStorage).
  */
 
 var ACESSIBILIDADE = (function () {
@@ -325,12 +318,9 @@ var ACESSIBILIDADE = (function () {
      controle juntos, e a grade reflui em vez de cortar. */
   var ESCALAS = [1, 1.15, 1.3, 1.5];
 
-  /* Media query em rem não enxerga a fonte da raiz: mede sempre pelos 16px do
-     navegador. Com a fonte a 150% numa tela de 1366px, a página continuaria
-     no arranjo de tela larga com tudo maior, e as colunas estourariam. Aqui
-     cada limite de largura cresce na mesma proporção da fonte, como faz o
-     zoom do navegador: a tela passa ao arranjo que já foi desenhado para a
-     largura equivalente, em vez de um arranjo novo e não testado. */
+  /* Media query em rem mede pelos 16px do navegador, e não pela fonte da raiz. Cada
+     limite de largura cresce na proporção da fonte, como no zoom do navegador, para a
+     tela passar ao arranjo já desenhado para a largura equivalente. */
   var LIMITE = /((?:min|max)-width\s*:\s*)([\d.]+)(rem|em|px)/g;
   var originais = typeof WeakMap === "function" ? new WeakMap() : null;
 
@@ -430,16 +420,9 @@ var ACESSIBILIDADE = (function () {
     niveis: ["Reforçado", "Máximo"]
   });
 
-  /* Modo daltônico em duas camadas.
-     1. A página inteira passa por um filtro de correção do tipo escolhido
-        (daltonização: a diferença de cor que aquele olho perde é deslocada
-        para os canais que ele enxerga). Vale para texto, gráfico e 3D.
-     2. As rampas dos mapas térmicos trocam por paletas seguras para os três
-        tipos (js/visual/fogao.js), que é o que garante a leitura da temperatura.
-     As matrizes de simulação são as de Machado, Oliveira e Fernandes (2009),
-     severidade total; a correção é I + E·(I − S), com E deslocando o erro
-     vermelho-verde para o azul (deuteranopia e protanopia) e o erro azul
-     para o vermelho e o verde (tritanopia). */
+  /* Modo daltônico em duas camadas: um filtro de correção do tipo escolhido na página
+     inteira (matrizes de Machado, Oliveira e Fernandes, 2009; correção I + E·(I − S)) e
+     rampas térmicas seguras para os três tipos (visual/fogao.js). */
   var FILTROS = {
     deuteranopia: "1 0 0 0 0  0.163 0.725 0.112 0 0  0.455 -0.645 1.191 0 0  0 0 0 1 0",
     protanopia:   "1 0 0 0 0  0.479 0.477 0.044 0 0  0.597 -0.689 1.091 0 0  0 0 0 1 0",
@@ -556,12 +539,10 @@ var ACESSIBILIDADE = (function () {
     aoAplicar: aplicarCamadas
   });
 
-  /* ----- Tradutor de Libras -----
-     VLibras, o tradutor gratuito do governo federal (vlibras.gov.br). É o
-     único recurso que usa a rede, e por isso só carrega quando alguém pede:
-     o painel continua abrindo sem internet (exceção registrada no RNF-02).
-     O botão próprio do VLibras fica escondido, porque disputaria a borda
-     direita com a aba dos recursos; o cartão daqui o substitui. */
+  /* ----- Tradutor de Libras (VLibras) -----
+     Único recurso que usa a rede, e por isso só carrega quando pedido (exceção do
+     RNF-02). O botão próprio do VLibras fica escondido para não disputar a borda com
+     esta aba. */
   var VLIBRAS = "https://vlibras.gov.br/app/vlibras-plugin.js";
   var librasEstado = "parado"; // parado → carregando → pronto | erro
 

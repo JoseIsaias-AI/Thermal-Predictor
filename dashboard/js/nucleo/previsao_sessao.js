@@ -1,36 +1,12 @@
-/* A previsão do modelo que todas as telas exibem.
+/* Previsão do modelo para a configuração da URL, em DADOS_TRIAGEM, antes de qualquer tela.
  *
- * Rodar os testes:
- *   node --test dashboard/testes/previsao_sessao.test.js
+ * Vem da sessão, guardada pela consulta, ou é pedida à API quando a tela abre com uma
+ * configuração nova; nesse caso a tela recarrega com ela. Não há valor de reserva: sem
+ * previsão, as telas não montam e estado_servico.js mostra o porquê. Com a previsão em
+ * mãos, a tela só aparece depois que a API confirma que está no ar.
  *
- * Carrega antes de qualquer tela e define `DADOS_TRIAGEM` com a resposta de
- * `POST /predicao` para a configuração da URL. As telas e módulos que leem esse
- * objeto não precisam saber de onde ele veio: a resposta tem a forma que elas
- * consomem, campo por campo (`dashboard/api/dominio/contratos.py`). Nenhum valor
- * é convertido, arredondado ou reordenado aqui — o que a API devolveu é o que a
- * tela mostra.
- *
- * Não existe valor de reserva. A previsão vem da sessão, guardada pela consulta
- * (`js/telas/consulta.js`), ou é pedida à API aqui mesmo, quando a tela abre com uma
- * configuração que a sessão ainda não tem — um link do menu, o botão "Ver na
- * triagem" da comparação, um endereço colado. Enquanto a previsão não existe,
- * `DADOS_TRIAGEM` fica indefinido, as telas não montam nada e o estado da tela
- * fica com `js/nucleo/estado_servico.js`:
- *
- *   1. A configuração da previsão guardada tem de ser a da URL. Um link antigo,
- *      ou o botão voltar depois de outra consulta, traria a previsão errada para
- *      a configuração que a tela diz estar exibindo; nesse caso a tela pede a
- *      previsão certa e recarrega com ela.
- *   2. O formato tem de estar completo. Resposta truncada no armazenamento é
- *      tratada como ausente, não vira tela meio preenchida.
- *   3. Com a previsão em mãos, a tela ainda espera a API confirmar que está no
- *      ar: sem o serviço, todas as telas mostram o estado indisponível.
- *
- * Um campo da resposta merece nota: `modelos`, a lista de qual modelo previu
- * cada subsistema. O modelo final é uma mescla — um algoritmo escolhido por área,
- * e dentro de cinco delas a média de dois —, e as áreas não têm todas a mesma
- * qualidade: `AC Blower Inlet` não teve modelo validado. `modeloDoPonto` e
- * `pontoAferido` dão às telas esse recorte por ponto.
+ * Nada da resposta é convertido ou reordenado. `modeloDoPonto` e `pontoAferido` casam
+ * cada ponto com o modelo que o previu pelo `subsistema_modelo`, nunca pela área.
  */
 
 var PREVISAO_SESSAO = (function () {
@@ -186,14 +162,10 @@ var PREVISAO_SESSAO = (function () {
     }
   }
 
-  /* Resolve o que a tela deve exibir. Devolve sempre um objeto com `origem`,
-     para quem quiser registrar ou depurar a escolha:
+  /* O que a tela deve exibir, com `origem`:
        modelo            previsão guardada, conferida contra a configuração da URL
-       guardada          a URL não traz configuração, e vale a da última
-                         previsão da sessão (`configuracao` diz qual)
-       a_prever          a URL traz uma configuração sem previsão válida na
-                         sessão; `motivo` diz por quê (nada guardado, outra
-                         configuração, previsão incompleta, sem armazenamento)
+       guardada          a URL não traz configuração; vale a da última previsão
+       a_prever          a URL traz configuração sem previsão válida (`motivo` diz por quê)
        sem_configuracao  nem a URL nem a sessão têm configuração */
   function resolver(opcoes) {
     opcoes = opcoes || {};
@@ -222,15 +194,9 @@ var PREVISAO_SESSAO = (function () {
     return { dados: null, origem: "a_prever", motivo: motivo, configuracao: daUrl };
   }
 
-  /* Qual modelo previu este ponto. A busca é por `subsistema_modelo`, que a API
-     grava em cada ponto, e nunca por `Key_Area`: as duas coisas não coincidem.
-     A área `Main Vent Sys` é atendida por dois modelos — o dela e o de
-     `AC Blower Inlet` —, e o modelo de `HMI / Knobs / Console` cobre as áreas
-     `Oven HMI` e `CT Knobs`. Casar por área atribuiria os dois pontos do único
-     modelo não validado a um modelo validado, sem erro nenhum à vista.
-
-     Devolve `null` quando não há como saber: resposta sem bloco `modelos`, ou
-     ponto cujo subsistema não esteja na lista. */
+  /* Modelo que previu o ponto, por `subsistema_modelo` e nunca por `Key_Area`: Main Vent
+     Sys tem pontos de dois modelos, e o de HMI / Knobs / Console cobre duas áreas. `null`
+     quando a resposta não informa. */
   function modeloDoPonto(dados, ponto) {
     if (!dados || !ponto || !Array.isArray(dados.modelos)) return null;
 
@@ -243,14 +209,8 @@ var PREVISAO_SESSAO = (function () {
     return achado;
   }
 
-  /* Se o modelo que previu o ponto passou pela validação do grupo.
-
-     Falso só com evidência: `validado === false` nos metadados do artefato. Sem
-     bloco `modelos`, sem o ponto ou com `validado` ausente, devolve verdadeiro,
-     porque a marca na tela é uma afirmação sobre o modelo e não deve aparecer
-     por falta de informação. Hoje o único caso falso é `AC Blower Inlet`, que
-     não teve modelo aprovado e cujos dois pontos a RN-03 já acompanha sem
-     aprovar nem reprovar. */
+  /* Falso só com evidência (`validado === false`, hoje só AC Blower Inlet): sem
+     informação, a marca de "não validado" não aparece. */
   function pontoAferido(dados, ponto) {
     var modelo = modeloDoPonto(dados, ponto);
     return !modelo || modelo.validado !== false;
@@ -318,12 +278,8 @@ var PREVISAO_SESSAO = (function () {
     return true;
   }
 
-  /* A tela monta com a previsão guardada, mas só aparece depois que a API
-     confirma que está no ar: sem o serviço, o painel mostra o estado
-     indisponível e nenhum número, mesmo com uma previsão na sessão. Na mesma
-     ida, `GET /modelos` traz as métricas de teste de cada subsistema, que a
-     confiança da previsão usa (`js/leitura/confianca.js`); elas ficam em `MODELOS_API`
-     antes de a tela aparecer. */
+  /* A tela monta com a previsão guardada, mas só aparece depois que a API confirma que está
+     no ar. Na mesma ida, GET /modelos guarda em MODELOS_API as métricas que a confiança usa. */
   function verificarServico(w) {
     if (typeof ESTADO_SERVICO === "undefined" || typeof API_PREDICAO === "undefined") return null;
 

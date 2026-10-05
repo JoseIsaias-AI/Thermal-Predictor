@@ -1,8 +1,7 @@
-/* Tela de entrada do Thermal Predictor. Monta o formulário dos sete fatores
- * a partir de js/nucleo/schema.js e, ao submeter, leva para a triagem.
+/* Tela de consulta: formulário dos sete fatores, previsão em POST /predicao e passagem
+ * para a triagem.
  *
- * Não pede ponto de medição de propósito: escolher um termopar pressupõe já
- * saber qual componente é o problema, e é isso que a triagem responde.
+ * Não pede ponto de medição: qual componente é o problema é o que a triagem responde.
  */
 
 (function () {
@@ -105,15 +104,9 @@
     });
   }
 
-  /* `Pyro` e "sem perda declarada" são a mesma condição na base: nas rodadas da base, as de
-     Pyro são exatamente as rodadas sem perda, e a codificação descartou `losses_present_none`
-     por ser idêntica a `Run_Case_Pyro` (Seção 4.2.2d). A API recusa a combinação que não
-     existe, dos dois lados, e oferecer na tela um caminho que termina em erro é pior que
-     não oferecer: aqui o formulário fica impedido de expressá-la.
-
-     O que se desabilita é a *opção*, nunca o `select`: `collectInput` deixa de fora todo
-     campo desabilitado, e um `losses.present` ausente bloquearia o envio em vez de
-     corrigi-lo. */
+  /* Pyro e "sem perda declarada" são a mesma condição na base (Seção 4.2.2d), e a API recusa
+     a combinação nos dois sentidos. Desabilita a opção, e nunca o select: campo desabilitado
+     fica fora do envio. */
   function applyPyroEquivalence() {
     var runCase = form.elements.run_case;
     var present = form.elements["losses.present"];
@@ -151,13 +144,9 @@
     sync();
   }
 
-  /* "Alterar configuração" volta para cá com a configuração na URL: o formulário
-     abre preenchido com ela, e a pessoa muda só o que quer. Os campos seguem a
-     ordem do formulário, que é a das dependências — `run_case` antes de
-     `losses.present`, e este antes de `config` e `order` —, e cada um dispara
-     `change` para as regras de `requires` e de Pyro valerem como no clique. O
-     evento não sobe ao formulário: o selo de peça é para a escolha feita à mão,
-     e o desenho final sai do `redesenhar` da carga. */
+  /* Preenche o formulário com a configuração da URL ("Alterar configuração"), na ordem das
+     dependências, disparando `change` em cada campo para as regras de `requires` e de Pyro
+     valerem. */
   function preencherDaUrl(busca) {
     var texto = (busca || "").replace(/^\?/, "");
 

@@ -1,14 +1,5 @@
-/* Primitivas dos desenhos em SVG, comuns à triagem e à comparação.
- *
- * Nenhuma biblioteca de gráficos entra no painel: o desenho é feito à mão,
- * como em js/visual/fogao.js, e por isso a página continua rodando sem rede e sem
- * ferramenta de build.
- *
- * O que mora aqui é o que as duas telas precisam ver igual. O eixo de folga
- * é o caso central: a fronteira do limite no zero e a banda de incerteza
- * sombreada têm de ter a mesma aparência nas duas, ou quem aprende a ler uma
- * não lê a outra. Duplicar esse desenho seria duplicar a chance de as duas
- * saírem de sincronia.
+/* Primitivas de SVG comuns à triagem e à comparação, para o eixo de folga, a fronteira
+ * do limite e a banda de incerteza terem a mesma aparência nas duas telas.
  */
 
 var GRAFICO = (function () {
@@ -50,11 +41,8 @@ var GRAFICO = (function () {
     return 1;
   }
 
-  /* Eixo de folga relativa ao limite. Devolve a função de escala, para que o
-     chamador só se preocupe com as marcas.
-
-     A banda de incerteza é desenhada como região, e não anotada como rótulo:
-     a fronteira de decisão fica visível sem custar uma legenda. */
+  /* Eixo de folga relativa ao limite; devolve a função de escala. A banda de incerteza é
+     desenhada como região. */
   function eixoDeFolga(svg, o) {
     var lo = o.lo, hi = o.hi;
 

@@ -1,8 +1,5 @@
-/* Tour guiado pelos pontos críticos da triagem.
- *
- * Não calcula estado nem folga: lê `estado` e `margem_percentual` como vieram
- * em DADOS_TRIAGEM e só escolhe e ordena as paradas. O desenho (câmera,
- * painéis) fica com quem cria o tour, pelos callbacks.
+/* Tour guiado pelos pontos críticos da triagem: escolhe e ordena as paradas; câmera e
+ * painéis ficam com quem cria o tour, pelos callbacks.
  */
 
 var TOUR = (function () {

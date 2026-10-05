@@ -1,17 +1,9 @@
-/* Viewport 3D do fogão, em WebGL (three.js).
+/* Viewport 3D do fogão em WebGL (three.js).
  *
- * A geometria vem de FOGAO.pecas: cada peça é um grupo com volume real, então
- * girar a câmera não muda a posição relativa de nada. Os termopares são filhos
- * da peça em que moram e a acompanham no explodido.
- *
- * Eixos da cena: X para a direita, Y para cima, Z para quem olha de frente.
- * Uma unidade do modelo vale 0,01 na cena.
- *
- * Explodido e raio-X combinam. O explodido mexe só na posição de cada peça
- * (`explode` de 0 a 1, contínuo) e o raio-X só na opacidade das peças
- * `externa`; como tocam propriedades diferentes, qualquer par de valores é um
- * estado válido, e a opacidade final é o menor dos dois esmaecimentos. Com
- * uma peça em foco os dois ficam travados, como os presets de câmera.
+ * Cada peça de FOGAO.pecas é um grupo, e os termopares são filhos da peça em que moram.
+ * Eixos da cena: X para a direita, Y para cima, Z para quem olha de frente; uma unidade
+ * do modelo vale 0,01. Explodido mexe na posição e raio-X na opacidade das peças
+ * externas, por isso os dois combinam livremente.
  */
 
 var FOGAO3D = (function () {
@@ -534,10 +526,8 @@ var FOGAO3D = (function () {
   };
 
   /* ----- Marcadores -----
-     A forma repete a do painel 2D em volume: esfera para dentro do limite,
-     pirâmide para acima, octaedro para a banda de incerteza e cubo para os
-     monitorados. O preenchimento é plano e sem tone mapping, para a cor bater
-     com a legenda; o contorno escuro sai de uma casca invertida. */
+     Esfera dentro do limite, pirâmide acima, octaedro na banda de incerteza e cubo nos
+     monitorados; preenchimento plano para a cor bater com a legenda. */
 
   var GEO_MARCA = null;
   function geometriasDeMarca() {
@@ -741,24 +731,10 @@ var FOGAO3D = (function () {
     }
 
     /* ----- Campo térmico -----
-
-       O campo é interpolado por distância inversa nos 78 termopares e
-       amostrado uma vez numa grade regular da caixa do produto, que sobe para
-       a GPU como textura de volume. Daí saem três camadas, todas lendo a mesma
-       grade e por isso sempre coerentes entre si:
-
-       - a pele, que pinta cada peça pela temperatura do lugar que ela ocupa
-         montada — no explodido cada componente leva a sua consigo, e o campo
-         abre por peça em vez de fechar numa caixa;
-       - o volume, fatias horizontais transparentes que ondulam e deixam ver as
-         plumas de ar quente entre as peças e acima do cooktop;
-       - o fluxo, linhas de corrente integradas num campo de velocidade feito
-         do jato do soprador, do empuxo e do giro em volta das bobinas,
-         coloridas pela temperatura por onde passam.
-
-       A animação não inventa dado: o tempo desloca a leitura dentro do volume
-       e faz as isotermas andarem, como um pós-processamento de CFD anima um
-       campo estacionário. O dado continua sendo a interpolação dos termopares. */
+       Interpolação por distância inversa nos termopares, amostrada numa grade que vira textura
+       de volume. Três camadas leem a mesma grade: a pele das peças, as fatias de volume e as
+       linhas de fluxo. A animação só desloca a leitura no volume; o dado continua sendo a
+       interpolação. */
 
     var DOM = FOGAO.CAIXA;
     /* Resolução da grade. Custa ~160 ms para montar, uma vez por troca de
@@ -900,10 +876,7 @@ var FOGAO3D = (function () {
     }
 
     /* ----- Camada de volume -----
-       Vinte fatias horizontais empilhadas da base do produto até acima do
-       cooktop. A fatia ondula na própria geometria e a leitura acompanha o
-       relevo: é o que dá campo mexido em vez de textura deslizando por cima.
-       Só o quente aparece — no frio a fatia some, e o que sobra são as plumas. */
+       Vinte fatias horizontais que ondulam; só o quente aparece. */
     var grupoVolume = new T.Group();
     (function () {
       var geo = new T.PlaneGeometry(DOM.x * U * 1.02, DOM.y * U * 1.02, 48, 36);
@@ -965,10 +938,8 @@ var FOGAO3D = (function () {
     })();
 
     /* ----- Camada de fluxo -----
-       Campo de velocidade sintético, sem pretensão de resolver Navier-Stokes:
-       o jato do soprador, o empuxo proporcional à temperatura local, o giro em
-       torno de cada bobina e a sucção pelas venezianas do fundo. As linhas
-       saem da integração desse campo, e a cor delas vem do campo térmico. */
+       Campo de velocidade aproximado, para visualização, sem resolver Navier-Stokes: jato do
+       soprador, empuxo pela temperatura, giro nas bobinas e sucção pelo fundo. */
     function velocidadeNo(x, y, z, amostras, eq, sentido, v) {
       // Jato do soprador, espalhando ao se afastar da boca.
       var dx = (x - 88) / 72, dz = (z - 19) / 44;
@@ -1284,11 +1255,8 @@ var FOGAO3D = (function () {
     })();
 
     /* ----- Halo de incerteza -----
-       Disco translúcido atrás do ponto selecionado e do ponto sob o cursor.
-       O raio vem de `op.haloDoPonto(ponto)`, em unidades de marcador; sem a
-       função, ou com 0, não há halo. O viewport não sabe de onde o número
-       sai — na triagem é a confiança calculada de CONFIANCA — nem o mistura à cor ou à
-       forma do marcador, que continuam sendo só o estado de risco. */
+       Disco atrás do ponto selecionado e do ponto sob o cursor, com raio de
+       `op.haloDoPonto(ponto)`; 0 ou ausente, sem halo. Não muda cor nem forma do marcador. */
     function criarHalo() {
       var g = new T.Group();
       var disco = new T.Mesh(new T.CircleGeometry(1, 48), new T.MeshBasicMaterial({ color: corDoTema("--color-3d-halo", 0x5d6675), transparent: true, opacity: 0.16, depthTest: false, depthWrite: false, toneMapped: false }));
@@ -1313,17 +1281,9 @@ var FOGAO3D = (function () {
     }
 
     /* ----- Realce de peça -----
-       Casca desenhada sobre a própria geometria da peça, sem trocar o
-       material dela — o modo argila, a cor real e a pele térmica seguem
-       intactos por baixo. Três passes: a superfície visível acende pela borda
-       (fresnel), a parte oculta atrás de outras peças aparece em raio-X tênue,
-       e as arestas vivas viram contorno. Zona por posição recorta os três pelo
-       círculo em planta, então a bobina FL acende sozinha no conjunto.
-
-       `sel` fica enquanto a peça estiver escolhida, e entra com um pulso que
-       decai em pouco mais de um segundo: é o aviso de que o clique pegou.
-       `pairar` é só a sugestão sob o cursor. `nega` pisca uma vez em cinza na
-       peça sem dado, e some. */
+       Casca sobre a geometria, sem trocar o material: borda acesa (fresnel), parte oculta em
+       raio-X tênue e arestas em contorno. `sel` entra com um pulso, `pairar` é a sugestão sob
+       o cursor e `nega` pisca em cinza na peça sem dado. */
     /* `campo` troca os pesos no campo térmico: ali a pele da peça é o dado, e
        preenchê-la de branco apagaria a temperatura que se quer ler. Sobra a
        borda e o contorno. */
@@ -1736,11 +1696,8 @@ var FOGAO3D = (function () {
       return raioVista.intersectObjects(alvos, true).length;
     }
 
-    /* Aproxima do marcador de um ponto, pela mesma transição dos presets.
-       Testa ângulos em volta do ponto e fica com o de vista livre mais perto
-       da câmera atual: o lado da peça não basta, porque o termopar pode estar
-       na face interna dela, como os da traseira. Mira a posição de destino do
-       explodido, não a do quadro corrente. */
+    /* Aproxima do marcador de um ponto: testa ângulos em volta dele e fica com o de vista
+       livre mais perto da câmera atual, mirando a posição de destino do explodido. */
     function enquadrarPonto(id, duracao) {
       if (estado.foco) return false;
       var m = estado.marcadores.filter(function (x) { return x.ponto.measurement_id === id; })[0];
@@ -1785,11 +1742,8 @@ var FOGAO3D = (function () {
       return new T.Vector2((cx - r.left) / r.width * 2 - 1, -((cy - r.top) / r.height) * 2 + 1);
     }
 
-    /* Peça atingida sob o cursor. Só conta peça montada e opaca: a casca
-       esmaecida do explodido e o resto recuado pelo foco deixam o raio passar
-       até o miolo, que é o que o usuário está vendo. O ponto volta para
-       coordenadas do modelo montado, descontando o explodido, e é por ele que
-       a zona se resolve. */
+    /* Peça montada e opaca sob o cursor; o ponto volta a coordenadas do modelo montado para
+       resolver a zona. */
     function pecaSob(cx, cy) {
       raycaster.setFromCamera(ndc(cx, cy), camera);
       var alvos = [];
@@ -2309,10 +2263,8 @@ var FOGAO3D = (function () {
     }
 
     /* ----- Tema -----
-       O palco é transparente e herda o fundo do CSS; o que o 3D pinta por
-       conta própria relê o tema aqui. FOGAO já trocou as paradas das rampas
-       (assina antes), então basta repreencher as texturas e refazer os focos
-       com a leitura guardada. Modelo, luz e marcadores de folga não mudam. */
+       O palco herda o fundo do CSS; aqui só se repreenchem as texturas e os focos com as
+       rampas do tema. */
     function aplicarTema() {
       preencherRampa(RAMPAS.absoluto.image.data, FOGAO.RAMPA_CAMPO);
       preencherRampa(RAMPAS.diferenca.image.data, FOGAO.RAMPA_DIFF);

@@ -1,22 +1,11 @@
-/* Passagem da consulta para a triagem.
+/* Animação da passagem da consulta para a triagem, que ocupa o tempo da chamada a
+ * POST /predicao.
  *
- * O painel leva o mesmo modelo 3D que o formulário monta para o centro da
- * tela, abre o produto, varre os pontos de medição e devolve o resultado. Não
- * é enfeite: é o intervalo em que a previsão é calculada — `js/telas/consulta.js` dispara a
- * chamada a `POST /predicao` junto com a coreografia —, e é o que dá ao usuário a
- * noção de que os pontos do produto foram olhados, um a um, na configuração que
- * ele acabou de escolher.
+ * `destino` aceita texto ou função; com função, a navegação espera a promessa, e `null`
+ * cancela e devolve o palco ao formulário.
  *
- * `destino` aceita texto ou função. Com função, a navegação espera o que ela
- * resolver, e é assim que a chamada de previsão ocupa o intervalo: a coreografia
- * deixa de ser só espera e passa a ser tempo de cálculo. Resolver `null` cancela
- * a navegação e devolve o palco ao formulário — o caminho de quem recebeu erro
- * da API e precisa corrigir a configuração sem perder o que preencheu.
- *
- * Uso, a partir de js/telas/consulta.js:
- *   ANALISE.executar({ palco, destino, aoExplodir, aoMudarCamera });
- *   ANALISE.executar({ palco, destino: function () { return promessaDeUrl; },
- *                      totalDePontos: function () { return totalDaResposta; }, ... });
+ * Uso:
+ *   ANALISE.executar({ palco, destino, totalDePontos, aoExplodir, aoMudarCamera });
  */
 
 var ANALISE = (function () {

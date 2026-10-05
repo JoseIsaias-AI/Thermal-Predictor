@@ -1,24 +1,13 @@
-/* Os sete fatores de configuração e seus níveis canônicos.
- *
- * Níveis lidos de notebooks/dataset_preprocessado.csv, já com a fusão de
- * sinônimos confirmada pelo parceiro. Não alterar sem conferir a Seção 4.2.2
- * da documentação.
+/* Os sete fatores de configuração e seus níveis canônicos (Seção 4.2.2 da documentação),
+ * o mesmo vocabulário de api/dominio/esquema_features.json.
  */
 
 var SCHEMA = {
   schema_version: "1.0",
   measurement_point_key: "measurement_point",
 
-  /* Os 77 pontos com leitura registrada em notebooks/dataset_preprocessado.csv
-   * (measurement_id, TC_Name e Key_Area), agrupados por subsistema. O 78º
-   * ponto do catálogo, IPC Cooling P05, nunca foi medido em nenhuma
-   * rodada (Seção 4.2.1c e 4.2.3c da documentação) e por isso não aparece
-   * aqui. Fecha a entrada em vocabulário conhecido, no mesmo padrão dos
-   * demais fatores (RN-04).
-   *
-   * Sem consumidor hoje: a consulta deixou de pedir ponto de medição. Fica
-   * como catálogo canônico e para o filtro por subsistema de RF-10.
-   */
+  /* Os 77 pontos com leitura registrada, por subsistema. O 78º do catálogo, 
+   * IPC Cooling P05, nunca foi medido (Seções 4.2.1c e 4.2.3c). */
   measurement_point_groups: [
     {
       area: "CT Knobs",

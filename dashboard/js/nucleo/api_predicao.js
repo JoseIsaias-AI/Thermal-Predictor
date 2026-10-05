@@ -1,19 +1,9 @@
-/* Cliente do endpoint POST /predicao do backend de inferência.
+/* Cliente da API de predição: POST /predicao e GET /saude, /modelos, /desempenho e
+ * /catalogo.
  *
- * Rodar os testes:
- *   node --test dashboard/testes/api_predicao.test.js
- *
- * Sem DOM: `app.js` chama, os testes também. O módulo não decide o que mostrar
- * ao usuário — devolve um resultado e quem chama escolhe a tela. Essa divisão
- * existe porque o painel precisa continuar abrindo por `file://` com a API
- * fora do ar: uma falha de rede aqui vira um resultado comum, nunca uma
- * exceção que derrube a página.
- *
- * O corpo da requisição é o mesmo objeto que `collectInput()` monta no
- * formulário, porque `js/nucleo/schema.js` e `dashboard/api/dominio/esquema_features.json`
- * saem do mesmo vocabulário (Seção 4.2.2 da documentação). A única diferença é
- * que os subcampos vazios de `losses` não viajam: a API recusa campo
- * desconhecido (`extra="forbid"`) e trata ausente como nulo.
+ * Toda chamada resolve com {ok, dados} ou {ok: false, erro} e nunca rejeita: quem chama
+ * decide o que mostrar. Os subcampos vazios de `losses` não são enviados, porque a API
+ * recusa campo nulo explícito.
  */
 
 var API_PREDICAO = (function () {
@@ -30,15 +20,9 @@ var API_PREDICAO = (function () {
 
   var TEMPO_LIMITE_MS = 15000;
 
-  /* Porta 8001, que é a da API de predição no README. Não é a 8000 de
-     `js/assistente/chat.js`: essa é a do Robertão, e o próprio README separa as duas para os
-     dois serviços rodarem juntos. Apontar para 8000 levaria a predição ao serviço
-     do chat, que não tem `POST /predicao`.
-
-     Por isso a chave da query também é outra, `?predicao=8010`: `?api=` move o
-     chat, e uma chave só moveria os dois para a mesma porta — o que não pode estar
-     certo para os dois ao mesmo tempo. O host é sempre 127.0.0.1, para um link
-     recebido de fora não conseguir apontar o painel a outro servidor. */
+  /* A API de predição responde na porta 8001; a 8000 é a do Robertão (assistente/chat.js).
+     `?predicao=` muda só esta porta, e o host fica fixo em 127.0.0.1 para um link de fora
+     não apontar o painel a outro servidor. */
   var PORTA_PADRAO = "8001";
 
   function baseDaApi(janela) {
@@ -171,11 +155,8 @@ var API_PREDICAO = (function () {
         encerrar();
 
         if (!resposta.ok) {
-          /* O corpo de erro da API tem a forma {"detail": {"erro", "mensagem"}}
-             (dashboard/api/controladores/predicao.py). A mensagem de lá explica o
-             caso ao usuário — por exemplo, que "sem perda declarada" só existe em
-             rodadas Pyro — e é melhor que o texto genérico daqui. Se vier vazia ou
-             ilegível, a mensagem padrão do tipo cobre. */
+          /* Erro da API vem como {"detail": {"erro", "mensagem"}}; a mensagem de lá explica o caso
+             melhor que a genérica daqui, que só entra se ela vier vazia. */
           return resposta
             .json()
             .catch(function () { return {}; })

@@ -1,8 +1,7 @@
-/* Alternância entre leitura técnica e executiva.
+/* Alternância entre leitura técnica e executiva, em `body[data-modo]`.
  *
- * O modo mora em `body[data-modo]` e o CSS esconde o que não pertence a ele:
- * nenhuma tela redesenha nada ao trocar. A escolha vale para todas as telas
- * (localStorage) e pode vir no link com #executivo ou #tecnico.
+ * A escolha vale para todas as telas (localStorage) e pode vir no link com #executivo
+ * ou #tecnico.
  */
 
 var MODO_LEITURA = (function () {

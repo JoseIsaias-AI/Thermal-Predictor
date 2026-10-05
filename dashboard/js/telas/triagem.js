@@ -1,5 +1,5 @@
-/* Tela de triagem térmica. Estado, folga e ordem das linhas já vêm prontos
- * no dado (LEITURA_PUBLICOS.fonte); aqui só há formatação e montagem de DOM.
+/* Tela de triagem térmica: tabela por risco, mapa 3D, confiança e resumo executivo.
+ * Estado, folga e ordem já vêm na previsão; aqui há formatação e montagem do DOM.
  */
 
 (function () {
@@ -56,14 +56,8 @@
     return td;
   }
 
-  /* Marca o ponto previsto por modelo que o grupo não validou.
-
-     O modelo final é uma mescla por área, e as áreas não têm a mesma qualidade:
-     `AC Blower Inlet` não teve modelo aprovado, e os seus dois pontos cairiam na
-     tabela com o mesmo peso visual dos validados. Quem casa ponto e modelo é
-     `PREVISAO_SESSAO`, por `subsistema_modelo` e nunca por `Key_Area` — a área
-     `Main Vent Sys` sai de dois modelos. Numa resposta sem o bloco `modelos`,
-     nada é marcado. */
+  /* Marca o ponto previsto por modelo não validado (AC Blower Inlet), pela regra de
+     PREVISAO_SESSAO; sem o bloco `modelos`, nada é marcado. */
   function marcaDeModelo(ponto) {
     if (typeof PREVISAO_SESSAO === "undefined") return null;
 
@@ -208,25 +202,11 @@
 
 
   /* ----- Leitura visual da triagem -----
-
-     Quatro figuras abaixo da tabela, que respondem, nesta ordem, as perguntas
-     que a tabela não responde:
-
-       cartões        o veredito em dois segundos
-       ranking        onde estou apertado, do pior para o menos pior
-       previsto×limite  o conjunto passa no critério
-       por subsistema onde o risco se concentra
-
-     Todas leem o mesmo recorte da tabela e apontam para a mesma seleção: o
-     ponto sob o ponteiro acende nas quatro ao mesmo tempo, e o clique abre o
-     mesmo painel de detalhe que a linha e o modelo abrem. São quatro vistas
-     de um instrumento, e não quatro figuras soltas.
-
-     Duas ausências são deliberadas. Não há barra de erro do modelo: ela
-     depende de um erro por ponto que só existe depois do treino, e desenhar
-     uma faixa sem esse número seria inventar precisão. E não há pizza,
-     rosca nem velocímetro: onde a informação é um número, o número comunica
-     melhor do que o desenho dele. */
+     Quatro figuras sobre o mesmo recorte da tabela, ligadas à mesma seleção:
+       cartões          o veredito
+       ranking          onde a folga é menor
+       previsto×limite  o conjunto contra o critério
+       por subsistema   onde o risco se concentra */
 
   var svgRanking = document.getElementById("viz-ranking");
   var svgCritério = document.getElementById("viz-criterio");
@@ -340,10 +320,8 @@
 
 
   /* ----- Ranking de folga -----
-     Folga, e não temperatura absoluta: saber que a bobina fica muito quente não diz
-     nada sozinho; saber que ela fica acima do próprio limite, e por quanto, diz
-     tudo. A folga já traz o limite embutido, e é o que permite pôr numa
-     escala só pontos cujos limites são muito diferentes entre si. */
+     Folga, e não temperatura: ela já traz o limite e põe numa escala só pontos com limites
+     muito diferentes entre si. */
 
   function desenharRanking() {
     GRAFICO.limpar(svgRanking);
@@ -423,11 +401,8 @@
 
 
   /* ----- Previsto contra limite -----
-     Mesma figura da Seção 4.2.1 da documentação, que o parceiro já leu com
-     dados medidos: a reta onde a previsão iguala o limite, e todo ponto
-     acima dela ultrapassa o próprio limite. Aqui ela volta com a previsão no
-     lugar da medição, o que mantém a mesma linguagem visual entre a
-     exploração e o painel. */
+     A mesma figura da Seção 4.2.1, com a previsão no lugar da medição: acima da reta, o
+     ponto passa do próprio limite. */
 
   function desenharCriterio() {
     GRAFICO.limpar(svgCritério);
@@ -490,10 +465,7 @@
 
 
   /* ----- Dispersão por subsistema -----
-     Onde o risco se concentra. A caixa de quartis dá a leitura de grupo que
-     um diagrama de caixa daria; os pontos por cima ficam porque com 68
-     observações esconder cada uma atrás de um resumo custa mais do que
-     ganha. */
+     Caixa de quartis com os pontos por cima, porque são poucas observações. */
 
   function desenharSubsistema() {
     GRAFICO.limpar(svgSubsistema);
@@ -734,11 +706,8 @@
     });
   }
 
-  /* Traduz a configuração consultada nos parâmetros que mexem na geometria.
-     Dois dos sete fatores movem termopares de lugar: `Board_Position` desloca
-     a PCB, e com ela os 37 pontos do IPC Comp; `Housing` levanta a tampa, e
-     com ela os 5 do IPC Cooling. Ignorar isso fazia o mapa desenhar sempre a
-     mesma máquina, qualquer que fosse a configuração avaliada. */
+  /* Fatores que movem termopares: Board_Position desloca a placa da IPC (37 pontos) e
+     Housing levanta a tampa (pontos do IPC Cooling). */
   function geometriaDaConfig(config) {
     config = config || {};
     return {
@@ -863,11 +832,8 @@
     caixa.innerHTML = html;
   }
 
-  /* Seleção de ponto e de peça andam amarradas por uma regra só: havendo
-     ponto selecionado, a peça selecionada é a dele. Escolher um ponto — no
-     modelo, na tabela, nos gráficos ou na lista da peça — leva a peça junto;
-     trocar ou soltar a peça solta o ponto que não mora nela. Assim os dois
-     painéis nunca descrevem coisas diferentes. */
+  /* Havendo ponto selecionado, a peça selecionada é a dele: escolher um ponto leva a peça
+     junto, e trocar a peça solta o ponto que não mora nela. */
   function selecionar(p) {
     mapa.sel = p ? p.measurement_id : null;
     if (p) {

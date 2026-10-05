@@ -1,22 +1,8 @@
-/* O estado da tela quando ela não tem previsão do modelo para mostrar.
+/* Estado da tela sem previsão do modelo para mostrar.
  *
- * Rodar os testes:
- *   node --test dashboard/testes/estado_servico.test.js
- *
- * O painel só exibe número calculado pelo modelo. Sem o serviço de predição,
- * nenhuma tela cai num valor de reserva: todas mostram o mesmo aviso, com a
- * instrução para subir a API e o botão de tentar de novo, e nada mais. O estado
- * mora em `body[data-servico]`, e o CSS (`css/base/app.css`) esconde o resto do
- * conteúdo e o chip do modelo — nenhuma tela precisa saber esconder o que é seu.
- *
- * Estados:
- *   verificando           a tela já montou com a previsão guardada e espera a
- *                         API confirmar que está no ar; o conteúdo fica
- *                         invisível, sem sair do lugar (o 3D mede o palco)
- *   carregando            a tela pede a previsão da configuração da URL
- *   indisponivel          a API não respondeu ou não tem modelo carregado
- *   configuracao_invalida a configuração da URL está fora do vocabulário
- *   sem_configuracao      nenhuma configuração foi consultada nesta sessão
+ * O estado fica em `body[data-servico]` e css/base/app.css esconde o conteúdo e o chip do
+ * modelo. Estados: verificando (conteúdo montado, invisível, à espera da API), carregando,
+ * indisponivel, configuracao_invalida e sem_configuracao.
  */
 
 var ESTADO_SERVICO = (function () {

@@ -1,12 +1,8 @@
-/* Catálogo das configurações históricas com a previsão do modelo para cada uma.
+/* Catálogo das configurações históricas com a previsão do modelo (GET /catalogo).
  *
- * Rodar os testes:
- *   node --test dashboard/testes/catalogo_modelo.test.js
- *
- * Vem de `GET /catalogo` e fica na sessão, como a previsão: a consulta o busca ao abrir, e a tela
- * que abre sem ele busca e recarrega. Define `CATALOGO_MODELO` antes das telas, que o leem de
- * forma síncrona (comparação, alternativas de design, RN-05). Sem o catálogo, o global fica
- * indefinido e cada tela diz que ele está indisponível, sem outra fonte no lugar.
+ * Fica na sessão e vira CATALOGO_MODELO antes das telas. A consulta o busca ao abrir;
+ * uma tela que abre sem ele busca, guarda e recarrega. Sem a API, o global fica
+ * indefinido e cada tela informa que o catálogo está indisponível.
  */
 
 var CATALOGO_MODELO_SESSAO = (function () {

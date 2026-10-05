@@ -1,20 +1,8 @@
-/* Histórico da sessão: cada configuração analisada desde que o painel abriu.
+/* Histórico das configurações analisadas na sessão (sessionStorage da aba).
  *
- * Fica no sessionStorage da aba, e não num arquivo ou banco: o painel tem uma
- * página por tela, e a memória do script morre a cada navegação entre elas.
- * O sessionStorage é o menor escopo que atravessa essa navegação; o navegador
- * o descarta ao fechar a aba, e recarregar a página o apaga aqui mesmo. Nada
- * vai para disco pelo painel nem sai da máquina.
- *
- * Cada entrada guarda a configuração, o horário, a contagem por estado e a
- * resposta do modelo para ela: para revisitar ou exportar uma análise antiga,
- * a leitura é refeita sobre essa resposta pelas mesmas funções das telas, e é
- * isso que garante que o arquivo conta o mesmo que a tela contou. Sem a
- * resposta guardada, a entrada fica fora da exportação — nenhuma outra fonte
- * entra no lugar.
- *
- * Telas que recebem configuração pela URL registram sozinhas ao carregar. A
- * tela de consulta só lista, porque não carrega as leituras.
+ * Cada entrada guarda configuração, horário, contagem por estado e a resposta do modelo,
+ * para que exportar uma análise antiga refaça a leitura sobre a mesma resposta. Entrada
+ * sem resposta guardada fica fora da exportação. Recarregar a página limpa o histórico.
  */
 
 var HISTORICO_SESSAO = (function () {

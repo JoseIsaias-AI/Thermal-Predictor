@@ -1,11 +1,7 @@
-/* Gerador de documento PDF, sem biblioteca externa.
+/* Gerador de PDF sem biblioteca externa.
  *
- * Mesma premissa de js/exportacao/planilha.js: o painel não usa gerenciador de pacotes e
- * a licença aberta vale também para a exportação, então o arquivo é montado
- * aqui. Usa as fontes padrão do PDF (Helvetica e Helvetica-Bold), que todo
- * leitor já tem, com a codificação WinAnsi, que cobre os acentos do português.
- * Os fluxos saem sem compressão: o arquivo continua pequeno e o teste consegue
- * ler o texto de volta para conferir os números.
+ * Usa as fontes padrão do PDF (Helvetica) com codificação WinAnsi, que cobre os acentos
+ * do português, e fluxos sem compressão, o que permite aos testes ler o texto de volta.
  *
  * Uso:
  *   var doc = DOCUMENTO_PDF.criar({ cabecalho: "…", rodape: "…" });
@@ -325,11 +321,9 @@ var DOCUMENTO_PDF = (function () {
         return doc;
       },
 
-      /* Tabela com cabeçalho repetido a cada página, como a tabela da tela.
-         Coluna: `{ titulo, tipo: "texto" | "numero", valor(linha) }`. O valor
-         sai já formatado, como a tela o exibe; pode ser `{ texto, sub, cor,
-         negrito }` para a segunda linha da célula (o subsistema, na triagem).
-         `estado(linha)` marca a linha acima do limite com a barra lateral. */
+      /* Tabela com cabeçalho repetido a cada página. Coluna: `{ titulo, tipo, valor(linha) }`;
+         o valor pode ser `{ texto, sub, cor, negrito }`, e `estado(linha)` marca a linha acima
+         do limite. */
       tabela: function (definicao) {
         var colunas = definicao.colunas;
         var linhas = definicao.linhas;

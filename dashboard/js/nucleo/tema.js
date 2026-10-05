@@ -1,12 +1,7 @@
-/* Tema claro ou escuro do painel.
+/* Tema claro ou escuro, em `html[data-tema]`; css/base/tokens.css remapeia as cores.
  *
- * O tema mora em `html[data-tema]` e tokens.css remapeia os papéis de cor:
- * nenhum componente conhece o tema. Carregado no <head>, antes do CSS pintar,
- * para a página não abrir clara e escurecer. A escolha vale para a sessão
- * (sessionStorage), como o histórico: uma sessão nova abre no tema claro.
- *
- * O que é pintado por script, e não por CSS (o 3D, as rampas de campo e de
- * diferença), escuta `tema:mudou` e se redesenha.
+ * Carrega no <head> para a página não piscar. A escolha vale para a sessão, e o que é
+ * pintado por script (3D, rampas) escuta `tema:mudou`.
  */
 
 var TEMA = (function () {

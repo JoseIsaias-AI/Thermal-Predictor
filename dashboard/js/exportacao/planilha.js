@@ -1,13 +1,6 @@
-/* Gerador de planilha .xlsx, sem biblioteca externa.
- *
- * O painel não usa gerenciador de pacotes e a premissa de licença aberta vale
- * também para a exportação, então o arquivo é montado aqui: um pacote ZIP com
- * entradas sem compressão e as partes XML mínimas que o Excel exige.
- *
- * O que a planilha entrega, e que um arquivo separado por ponto e vírgula não
- * entrega: cabeçalho em negrito, largura de coluna pelo conteúdo, número
- * alinhado à direita com casas decimais fixas, linha de título congelada e
- * filtro por coluna.
+/* Gerador de planilha .xlsx sem biblioteca externa: um ZIP sem compressão com as partes
+ * XML mínimas do Excel, com cabeçalho em negrito, largura de coluna pelo conteúdo, número
+ * com casas fixas, linha de título congelada e filtro.
  *
  * Uso:
  *   PLANILHA.baixar("registro.xlsx", PLANILHA.gerar({

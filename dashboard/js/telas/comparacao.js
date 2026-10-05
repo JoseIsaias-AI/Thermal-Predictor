@@ -1,12 +1,7 @@
-/* Comparação lado a lado de configurações candidatas (RF-11).
+/* Tela de comparação de configurações do catálogo (RF-11).
  *
- * A tela não calcula estado de risco: `estado`, folga e severidade já vêm
- * prontos no catálogo do modelo (`GET /catalogo`, em CATALOGO_MODELO), pela
- * mesma inferência que dá à triagem a previsão dela. RN-01 e RN-02 moram no
- * dado, e por isso as duas telas não divergem.
- *
- * O que existe aqui é leitura: escolher configurações, justapor colunas,
- * medir a distância entre elas e ordenar por essa distância.
+ * Estado, folga e severidade vêm prontos do catálogo do modelo, pela mesma inferência da
+ * triagem; a tela escolhe, justapõe e ordena configurações.
  */
 
 (function () {
@@ -702,8 +697,7 @@
       colunas.appendChild(th("Estado"));
     });
 
-    /* O que a coluna quer dizer, dito na própria coluna. Antes isso eram dois
-       parágrafos abaixo da tabela, longe de onde a dúvida aparece. */
+    // O significado da coluna fica na própria coluna.
     var div = th(ehAssinada() ? "Divergência (°C)" : "Amplitude (°C)",
       "num cmp-edge", { rowspan: 2 });
     div.appendChild(el("span", "cmp-hint", ehAssinada()
@@ -788,24 +782,9 @@
 
 
   /* ----- Coordenadas paralelas -----
-
-     O gráfico que o patrocinador descreveu no workshop de alinhamento: os
-     fatores de projeto e as respostas em eixos paralelos, com um filtro por
-     eixo que apaga o que fica fora da restrição e deixa só o que sobrevive.
-
-     Ele veio com a ressalva junto: "se você tem muitos dados, ele se torna um
-     gráfico extremamente poluído". A poluição tem sempre a mesma causa, que é
-     linha demais, e aqui ela é resolvida na raiz — cada linha é uma
-     configuração, não um ponto de medição. São 32 linhas, e não 32 × 68, que
-     seriam duas mil e virariam um borrão. Os eixos de resposta são agregados
-     da configuração inteira pelo mesmo motivo.
-
-     As outras duas correções são de ênfase: quem não está selecionado vira
-     contexto em cinza, e o filtro por eixo é aplicado antes de qualquer
-     leitura, não depois.
-
-     Os sete fatores são categóricos, e não contínuos. Cada nível ocupa uma
-     parada fixa do eixo, na ordem do vocabulário de js/nucleo/schema.js. */
+     Uma linha por configuração, e não por ponto de medição, com eixos de resposta
+     agregados: assim o gráfico não vira um borrão. Quem não está selecionado fica em
+     cinza, e os níveis de cada fator ocupam paradas fixas, na ordem de nucleo/schema.js. */
 
   var svgPc = document.getElementById("pc-svg");
   var dicaPc = null;
@@ -882,8 +861,7 @@
     var ML = 58, MR = 58, MT = 56, MB = 30;
     var LARG = 1040, ALTU = 420;
     var PH = ALTU - MT - MB;
-    // Os níveis não encostam nas pontas do eixo: o rótulo do primeiro batia
-    // no cabeçalho, e o do último saía do quadro.
+    // Folga nas pontas do eixo para os rótulos não saírem do quadro.
     var RESPIRO = 14;
     var passo = (LARG - ML - MR) / (EIXOS.length - 1);
 
@@ -1050,15 +1028,9 @@
   }
 
   /* ----- Vistas gráficas -----
-
-     Desenhadas à mão em SVG, no mesmo espírito de js/visual/fogao.js: o painel roda
-     sem rede e sem dependência, e uma biblioteca de gráficos custaria mais em
-     peso e em ferramenta do que estes dois desenhos valem.
-
-     As duas respondem o que a tabela não responde. O deslocamento mostra o
-     sentido: se as linhas correm todas para o mesmo lado, uma configuração é
-     melhor em toda parte; se cruzam, há troca. A malha mostra o lugar: onde,
-     no produto, a mudança se concentra. */
+     O deslocamento mostra o sentido (linhas para o mesmo lado: uma configuração é melhor em
+     toda parte; cruzadas: há troca) e a malha mostra onde, no produto, a mudança se
+     concentra. */
 
   var svgVista = document.getElementById("cmp-svg");
   var quadroVista = document.querySelector(".chart__frame");
@@ -1649,10 +1621,8 @@
 
 
   /* ----- 4 · No modelo 3D -----
-     A mesma bandeja de cima escolhe o par: A é a referência e B uma das
-     outras configurações selecionadas. Temperaturas, diferença e escala saem
-     de DIFF_TERMICO sobre os vetores `t` do dado; o viewport e o painel de
-     peça são os da triagem. */
+     A é a referência e B outra configuração selecionada; temperaturas e diferença saem de
+     DIFF_TERMICO, e o viewport e o painel de peça são os da triagem. */
 
   var vista3d = { modo: "diferenca", qual: "a", b: null, zona: null, semDado: null, cache: null };
   var modelo3d = null;

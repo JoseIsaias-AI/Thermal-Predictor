@@ -1,21 +1,8 @@
-/* A configuração consultada segue o usuário de tela em tela.
+/* Leva a configuração consultada da URL para os links do menu e para os marcados com
+ * `data-leva-configuracao`.
  *
- * Rodar os testes:
- *   node --test dashboard/testes/navegacao.test.js
- *
- * Toda tela lê a configuração da query string, e é ela que diz para qual
- * configuração a previsão guardada vale (`js/nucleo/previsao_sessao.js`). Um link do
- * menu sem a query leva a tela seguinte a perder a configuração, e por isso a
- * regra mora aqui, num módulo só, carregado por todas as telas: antes ela
- * ficava em `js/nucleo/modo_leitura.js`, que só três telas carregam.
- *
- * Só viajam os fatores da configuração e a porta da API (`?predicao=`). O
- * resto da query é de cada tela — a seleção da comparação (`?cfg=`), por
- * exemplo — e não vale para as vizinhas.
- *
- * Recebem a configuração os links do menu (`.nav__link`) e os marcados com
- * `data-leva-configuracao`, como o "Alterar configuração", que volta à consulta
- * com o formulário preenchido.
+ * Só viajam os fatores e a porta da API (`?predicao=`); o resto da query, como a seleção
+ * da comparação (`?cfg=`), é de cada tela.
  */
 
 var NAVEGACAO = (function () {

@@ -1,15 +1,11 @@
-/* Resumo executivo em linguagem natural.
+/* Resumo executivo em linguagem natural, gerado por template e regra fixa.
  *
- * Gerado por template e regra fixa, sem modelo de linguagem: o texto só pode
- * dizer o que a contagem de estados já diz, e cada número citado sai da mesma
- * contagem que a tela técnica exibe. Estado vem pronto em cada ponto (RN-01);
- * aqui só se conta, escolhe o template e preenche.
+ * O texto só cita números que saem da mesma contagem de estados que a tela técnica exibe.
  *
  * Sintaxe dos templates:
  *   {var}           valor já formatado
  *   {var|um|vários} escolhe pela quantidade em `var`; `#` vira o número
- * O subsistema entra com artigo e contração prontos: {sub} "o conjunto…",
- * {ao_sub} "ao conjunto…", {pelo_sub} "pelo conjunto…".
+ * O subsistema entra com artigo pronto: {sub}, {ao_sub}, {pelo_sub}.
  */
 
 var RESUMO_EXECUTIVO = (function () {

@@ -1,12 +1,8 @@
-/* Registro em PDF de uma análise da sessão, ou do histórico inteiro.
+/* Registro em PDF de uma análise da sessão ou do histórico inteiro.
  *
- * Não tem leitura própria: o resumo é o de js/leitura/resumo_executivo.js e as tabelas
- * são as das telas de triagem, conformidade e marketing, com os mesmos
- * recortes de js/leitura/leitura_publicos.js e a mesma formatação de número de cada
- * tela. Um número que diverge da tela seria pior que não exportar.
- *
- * `analise` é o que HISTORICO_SESSAO.analise() devolve: a entrada do
- * histórico e o payload recalculado a partir da configuração.
+ * O resumo é o de resumo_executivo.js e as tabelas são as de triagem, conformidade e
+ * marketing, com os mesmos recortes de leitura_publicos.js e a mesma formatação de cada
+ * tela, para o arquivo nunca divergir do que a tela mostrou.
  */
 
 var REGISTRO_PDF = (function () {

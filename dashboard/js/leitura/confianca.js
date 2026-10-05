@@ -1,32 +1,14 @@
-/* Confiança da previsão por ponto de medição, a partir do erro medido do modelo.
+/* Confiança da previsão por ponto, a partir do MAE de teste do modelo da área
+ * (GET /modelos, guardado em MODELOS_API).
  *
- * Rodar os testes:
- *   node --test dashboard/testes/confianca.test.js
+ *   faixa provável  previsto ± MAE
+ *   nível           alto se |folga| ≥ 2 × MAE, médio se ≥ 1 × MAE, baixo abaixo disso
  *
- * A medida é o MAE de teste do modelo que previu o ponto, publicado por
- * subsistema em `GET /modelos` (`js/nucleo/previsao_sessao.js` guarda a resposta em
- * `MODELOS_API`). Com ele:
+ * AC Blower Inlet sai como "sem modelo validado"; ponto sem limite (RN-03) tem faixa e
+ * não tem nível. A confiança não altera o estado de risco da RN-01. Não mede
+ * extrapolação para configuração fora do histórico (RN-08).
  *
- *   faixa provável   previsto ± MAE
- *   nível            alto se |folga| ≥ 2 × MAE, médio se ≥ 1 × MAE, baixo abaixo
- *                    disso — quantos erros típicos cabem entre a previsão e o
- *                    limite do componente
- *
- * O subsistema sem modelo validado (`AC Blower Inlet`) sai como "sem modelo
- * validado", sem faixa nem nível. Ponto sem limite declarado (RN-03) tem faixa,
- * mas não tem folga, e por isso não tem nível.
- *
- * A confiança não altera o estado de risco: RN-01 continua decidindo pela folga
- * contra a tolerância, e o cartão diz isso. A casa por `subsistema_modelo`, e não
- * por `Key_Area`, pelo mesmo motivo de `PREVISAO_SESSAO.modeloDoPonto`.
- *
- * Contrato (objeto congelado):
- *   nivel        "alta" | "media" | "baixa" | "sem_modelo" | "sem_limite" | "desconhecida"
- *   rotulo       texto do nível para a interface
- *   mae_c        MAE de teste do modelo do ponto, ou null
- *   faixa_c      [mínimo, máximo] da faixa provável, ou null
- *   folga_em_mae |folga| / MAE, ou null
- *   incerteza    em [0, 1], o que o halo desenha; 0 sem halo
+ * Contrato (objeto congelado): nivel, rotulo, mae_c, faixa_c, folga_em_mae, incerteza.
  */
 
 var CONFIANCA = (function () {

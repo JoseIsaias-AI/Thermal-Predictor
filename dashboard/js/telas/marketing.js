@@ -1,12 +1,6 @@
-/* Tela de marketing.
+/* Tela de marketing: quais temas técnicos já se sustentam e quais ainda podem mudar.
  *
- * Público que decide calendário de campanha sem ler dado de engenharia: o que
- * trava a decisão é saber quais temas técnicos já se sustentam e quais ainda
- * podem mudar antes da divulgação.
- *
- * A tela fala de temas, e não de frases de campanha prontas: a ferramenta não
- * autoriza promessa, e um texto publicitário redigido aqui seria lido como
- * autorização. Recorte e tradução vêm de js/leitura/leitura_publicos.js.
+ * Fala de temas, e não de frases de campanha: a ferramenta não autoriza promessa.
  */
 
 (function () {

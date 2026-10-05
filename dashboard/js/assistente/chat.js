@@ -1,11 +1,7 @@
-/* Robertão — assistente do Thermal Predictor no canto das quatro telas.
+/* Robertão, o assistente do painel, servido pelo backend local em llm/ (POST /api/chat).
  *
- * Fala com o backend local (llm/) por POST /api/chat. Todo texto entra por
- * textContent: a resposta vem de um modelo de linguagem e de documentos
- * recuperados, então tratá-la como HTML deixaria a página injetável.
- *
- * O painel monta a si mesmo aqui em vez de repetir marcação nas quatro
- * páginas — cada tela só precisa incluir este arquivo e o css/componentes/chat.css.
+ * Todo texto da resposta entra por textContent: ele vem de um modelo de linguagem e de
+ * documentos recuperados, e não pode ser interpretado como HTML.
  */
 
 (function () {
@@ -186,16 +182,9 @@
     aquecer();
   }
 
-  /* Pede o aquecimento do prompt enquanto a pessoa ainda está escrevendo.
-     Medido em CPU, avaliar o prompt de sistema custa ~120 s na primeira vez e
-     quase nada depois.
-
-     Só pede se a saúde disser que ainda não está aquecido. O Ollama atende um
-     pedido por vez em cada modelo, então um aquecimento desnecessário poria a
-     pergunta na fila atrás dele — o contrário do que se quer aqui.
-
-     Nada disso aparece no painel nem conta como interação: o assistente
-     continua calado até a primeira mensagem. */
+  /* Pede o aquecimento do prompt enquanto a pessoa escreve: a primeira avaliação do
+     prompt de sistema leva cerca de 120 s em CPU. Só pede se /health disser que não está
+     aquecido, porque o Ollama atende um pedido por vez. */
   function aquecer() {
     if (aquecido || aguardando) return;
     aquecido = true;
@@ -319,13 +308,8 @@
     return balao;
   }
 
-  /* O modelo escreve em Markdown mesmo quando o prompt não pede, e "**assim**"
-     na tela é pior que sem formatação nenhuma. Então um subconjunto — negrito,
-     itálico, código e lista — é convertido em elementos.
-
-     A conversão monta nós e usa textContent em cada pedaço de texto; nunca
-     innerHTML. O conteúdo vem de um modelo de linguagem e de documentos
-     recuperados, e interpretar isso como HTML deixaria a página injetável. */
+  /* Converte o subconjunto de Markdown que o modelo usa (negrito, itálico, código e
+     lista) em elementos, sempre com textContent e nunca innerHTML. */
   function escreverTexto(destino, texto) {
     var lista = null;
 

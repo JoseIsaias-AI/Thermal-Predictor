@@ -1,16 +1,7 @@
-/* Desempenho do modelo final na tela de engenharia, lido da API.
+/* Desempenho do modelo final na tela de engenharia.
  *
- * Rodar os testes:
- *   node --test dashboard/testes/desempenho_modelo.test.js
- *
- * Os números vêm de `GET /desempenho`, que serve as métricas agregadas gravadas
- * pelo notebook `5.1_modelo_final.ipynb` (Tabelas 59, 63 e 66 da documentação),
- * e o algoritmo de cada área, de `GET /modelos`. Nada é calculado aqui além de
- * comparar cada valor com o seu alvo: o módulo lê, formata e desenha. Sem a API,
- * a tela fica no estado indisponível, sem nenhum número no lugar.
- *
- * `avaliar` e os formatadores não tocam no DOM e são o que os testes prendem;
- * `montar` e `iniciar` desenham.
+ * Lê GET /desempenho (métricas agregadas gravadas pelo notebook 5.1) e GET /modelos, e só
+ * compara cada valor com o seu alvo. Sem a API, a tela fica no estado indisponível.
  */
 
 var DESEMPENHO_MODELO = (function () {
@@ -293,7 +284,7 @@ var DESEMPENHO_MODELO = (function () {
     // Piso do parceiro: linha cheia, porque é limiar contratado.
     svg.appendChild(svgEl("line", { x1: X0, y1: py(piso), x2: X1, y2: py(piso),
       stroke: "var(--color-text)", "stroke-width": 1.5, "stroke-dasharray": "5 3" }));
-    // Rótulo à esquerda, sobre a primeira faixa: à direita ele batia no valor de 100%.
+    // Rótulo à esquerda, para não cruzar o valor da última faixa.
     svg.appendChild(svgTexto(X0 + 4, py(piso) - 4, "piso de " + fmt(piso, 0) + "%", "chart__label chart__label--forte"));
   }
 
