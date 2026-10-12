@@ -6,8 +6,9 @@ conectadas: documentação (RAG), dataset de ensaios e preditor térmico. O
 assistente não produz número: temperatura só entra na resposta se tiver vindo
 de uma consulta ao dataset ou da execução dos modelos.
 
-Tudo roda na máquina do time: geração, embeddings e base vetorial. O material
-do parceiro é confidencial e não é enviado a nenhum serviço externo.
+Tudo roda na máquina de quem usa: geração, embeddings e base vetorial. No projeto
+original, os dados da Whirlpool eram confidenciais e nunca saíam da máquina; nesta
+versão pública, o dataset e os modelos vêm da base sintética (`sintetico/`).
 
 ## Comportamento
 
@@ -87,8 +88,8 @@ declarado (RN-03).
 }
 ```
 
-A codificação das 13 colunas é a mesma do notebook de exportação, conferida
-contra as colunas já codificadas do dataset nas rodadas. Duas recusas são
+A codificação das 13 colunas é a mesma da API do painel e do treino, conferida
+contra as colunas já codificadas do dataset. Duas recusas são
 deliberadas:
 
 - nível fora do vocabulário, que devolve a lista de níveis aceitos;
@@ -97,7 +98,7 @@ deliberadas:
   na base.
 
 O conjunto **AC Blower Inlet** foi treinado sem validação cruzada (poucas
-leituras reais). Suas previsões saem marcadas, sem MAE, e o prompt manda
+leituras na base). Suas previsões saem marcadas, sem MAE, e o prompt manda
 declarar isso ao citar um ponto dele.
 
 Para evitar interpretação pelo LLM, o frontend também pode enviar a comparação
@@ -196,14 +197,14 @@ llm/
 - modelo `embeddinggemma` baixado, ou outro definido em `OLLAMA_EMBEDDING_MODEL`
   (precisa expor a capacidade `embedding`; o `qwen3:4b` não expõe);
 - Docker, para a base vetorial local;
-- `dataset_completo_com_flags_de_auditoria.csv`, gerado pelo notebook `2.1` e não
-  versionado, e o modelo final em `modelos/modelo_final/`, versionado. Os caminhos
-  ficam em `DATASET_PATH` e `MODELS_DIR`, relativos a `g02/llm`.
+- `dataset_completo_com_flags_de_auditoria.csv` e o modelo final em
+  `modelos/modelo_final/`, os dois gerados pelos scripts de `sintetico/` e não
+  versionados. Os caminhos ficam em `DATASET_PATH` e `MODELS_DIR`, relativos a `llm`.
 
 Os `.joblib` foram serializados com **scikit-learn 1.7.2**. Versões seguintes
 mudaram os módulos internos e falham ao carregar (`No module named '_loss'`),
-por isso a dependência está presa em `>=1.7,<1.8`. Reexportar os modelos com
-outra versão exige atualizar esse limite.
+por isso a dependência está presa em `>=1.7,<1.8`. Treinar os modelos com
+outra versão (`sintetico/treinar_modelos.py`) exige atualizar esse limite.
 
 O Ollama deve permanecer em `127.0.0.1:11434`. Não exponha sua API diretamente
 ao frontend ou à rede, pois a API local não possui autenticação por padrão.
@@ -240,10 +241,11 @@ específico, passe o caminho: `python -m thermal_chatbot.rag.ingest docs/x.md`.
 
 ### O corpus
 
-`docs/` **não é versionado**: o conteúdo vem de material do parceiro,
-classificado como confidencial. Depois de clonar o repositório, crie o
-diretório e coloque nele os Markdown autorizados antes de indexar — sem isso a
-ingestão não encontra nada e `documentation_search` fica indisponível.
+`docs/` **não é versionado**: no projeto original, o corpus era material
+confidencial do parceiro, que não faz parte deste repositório. Para usar a
+busca, crie o diretório e coloque nele os documentos Markdown que quiser
+indexar. Sem isso, a ingestão não encontra nada e `documentation_search` fica
+indisponível.
 
 Os arquivos são Markdown com front matter. Estes campos viram metadados dos
 trechos e aparecem no contexto entregue ao modelo:
@@ -253,7 +255,7 @@ trechos e aparecem no contexto entregue ao modelo:
 titulo: "Glossário do projeto"
 fonte_primaria: "glossario.pdf"
 fonte_url: "https://..."
-confidencialidade: "Confidencial"
+confidencialidade: "interno"
 ---
 ```
 
