@@ -1,30 +1,22 @@
-# Bibliotecas usadas pelos notebooks (pasta notebooks/).
+# Bibliotecas dos scripts de sintetico/ (base sintética, treino dos modelos e fixtures dos
+# testes) e dos módulos de notebooks/utils/.
 # Instale com:  pip install -r requirements.txt
 #
-# As versões são fixas para que qualquer máquina reproduza os números da documentação. O
-# scikit-learn, em especial, sorteia as árvores de forma diferente a cada versão: com outra versão,
-# Random Forest, Extra Trees e Gradient Boosting mudam na segunda casa decimal, e os modelos de
-# `modelos/` precisam da 1.7.x para serem abertos pelo chatbot.
-#
-# O chatbot (pasta llm/) e a API do painel (pasta dashboard/api/) têm ambientes e
-# dependências próprios; veja a seção "Como executar o projeto" do README.md.
+# A API do painel (dashboard/api/) e o chatbot (llm/) têm dependências próprias; veja o README.
+# O scikit-learn fica na 1.7.x porque é a versão que a API e o chatbot usam para abrir os modelos.
 
-# Leitura e tratamento dos dados
-pandas==3.0.6
-numpy==2.5.3
-openpyxl==3.1.5
-tabulate==0.10.0         # usado por DataFrame.to_markdown() nos notebooks 2.2 e 2.3
-
-# Gráficos
-matplotlib==3.11.2
-seaborn==0.13.2
-
-# Estatística e modelagem
-scipy==1.18.1
+numpy>=2.0
+pandas>=2.2
+scipy>=1.13
 scikit-learn==1.7.2
-joblib==1.6.0
-torch==2.14.1
-shap==0.52.0
+joblib>=1.4
+matplotlib>=3.8
 
-# Execução dos notebooks no VS Code / Jupyter
-ipykernel==7.4.0
+# O gerador de fixtures sobe a API em memória.
+fastapi>=0.115
+pydantic>=2.10
+httpx>=0.27
+
+# Opcionais, só para as partes de notebooks/utils/ que treinam a rede neural e calculam SHAP:
+# torch>=2.4
+# shap>=0.46
