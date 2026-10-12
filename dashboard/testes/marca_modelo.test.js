@@ -79,8 +79,8 @@ function resposta() {
     total_classificados: 2,
     total_monitoramento: 1,
     pontos: [
-      ponto("Mainback P09", "Mainback", "Mainback", "acima_do_limite", -12.5),
-      ponto("Top Duct Outlet", "Main Vent Sys", "Main Vent Sys", "dentro_do_limite", 40.0)
+      ponto("Mainback P02", "Mainback", "Mainback", "acima_do_limite", -9.5),
+      ponto("Duto P01", "Main Vent Sys", "Main Vent Sys", "dentro_do_limite", 40.0)
     ],
     monitoramento: [
       Object.assign(

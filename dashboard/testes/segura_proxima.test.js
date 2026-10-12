@@ -3,10 +3,10 @@
  * Rodar da raiz do repositório:
  *   node --test dashboard/testes/segura_proxima.test.js
  *
- * Duas frentes. Na base real, a conta de distância e o caso sem segura — hoje
- * nenhuma das configurações conhecidas é segura. Numa cópia da base com
- * algumas configurações tornadas seguras à mão, a busca com duas referências
- * (poucos e muitos pontos fora), conferida contra força bruta.
+ * Duas frentes. No catálogo da fixture, a conta de distância; numa cópia sem
+ * nenhuma configuração segura, o caso sem sugestão. Numa cópia com algumas
+ * configurações tornadas seguras à mão, a busca com duas referências (poucos e
+ * muitos pontos fora), conferida contra força bruta.
  */
 
 "use strict";
@@ -54,11 +54,14 @@ function forcaBruta(fatoresRef, dados, idRef) {
 }
 
 
-/* ----- Base real ----- */
+/* ----- Catálogo da fixture ----- */
 
-test("codificação tem as 13 colunas dos modelos, na mesma ordem", function () {
-  var meta = JSON.parse(fs.readFileSync(
-    path.join(__dirname, "..", "..", "modelos", "gradient_boosting", "mainback.json"), "utf8"));
+var META_DO_MODELO = path.join(__dirname, "..", "..", "modelos", "gradient_boosting", "mainback.json");
+
+test("codificação tem as 13 colunas dos modelos, na mesma ordem", {
+  skip: !fs.existsSync(META_DO_MODELO) && "modelos não treinados: rode sintetico/treinar_modelos.py"
+}, function () {
+  var meta = JSON.parse(fs.readFileSync(META_DO_MODELO, "utf8"));
   var esperadas = meta.colunas_entrada.filter(function (c) { return c !== "codigo_termopar"; });
   assert.deepEqual(Array.from(SP.COLUNAS, function (c) { return c.coluna; }), esperadas);
 });
@@ -119,11 +122,13 @@ test("classificação do módulo bate com a contagem da triagem", function () {
 });
 
 test("sem configuração segura na base, a busca devolve null e não uma sugestão vazia", function () {
-  assert.ok(D.configuracoes.every(function (c) { return !seguraPelaTriagem(c); }),
-    "a base real passou a ter configuração segura: rever este teste");
+  // Cópia do catálogo em que toda configuração tem ao menos um ponto acima do limite.
+  var dados = JSON.parse(JSON.stringify(D));
+  dados.configuracoes.forEach(function (c) { c.e[COM_LIMITE[0]] = ACIMA; });
+  assert.ok(dados.configuracoes.every(function (c) { return !seguraPelaTriagem(c); }));
 
-  var ref = porId(D, D.config_referencia_triagem);
-  var res = SP.buscar(ref.fatores, D, ref.id);
+  var ref = porId(dados, dados.config_referencia_triagem);
+  var res = SP.buscar(ref.fatores, dados, ref.id);
   assert.equal(res.sugestao, null);
   assert.equal(res.seguras.length, 0);
 });
@@ -160,14 +165,21 @@ test("referência com poucos pontos fora: sugere a segura mais próxima", functi
   assert.ok(res.sugestao, "sem sugestão com seguras na base");
   assert.equal(res.sugestao.id, esperada.id);
   assert.ok(seguraPelaTriagem(porId(dados, res.sugestao.id)), "sugestão não é segura na triagem");
-  assert.deepEqual(res.seguras.map(function (x) { return x.id; }).sort(), SEGURAS.slice().sort());
+  // As fabricadas e as que já são seguras no catálogo, menos a própria referência.
+  var esperadas = dados.configuracoes.filter(function (c) {
+    return c.id !== ref.id && seguraPelaTriagem(c);
+  }).map(function (c) { return c.id; });
+  assert.deepEqual(res.seguras.map(function (x) { return x.id; }).sort(), esperadas.sort());
 });
 
 test("referência com muitos pontos fora: sugere a segura mais próxima", function () {
   var dados = comSeguras(SEGURAS);
-  var ref = porId(dados, "CFG-01");
+  // A configuração com mais pontos fora do catálogo.
+  var ref = dados.configuracoes.reduce(function (a, b) {
+    return SP.pontosFora(b, dados) > SP.pontosFora(a, dados) ? b : a;
+  });
   var fora = SP.pontosFora(ref, dados);
-  assert.ok(fora >= 20, "CFG-01 deveria ter muitos pontos fora, tem " + fora);
+  assert.ok(fora >= 10, ref.id + " deveria ter muitos pontos fora, tem " + fora);
 
   var res = SP.buscar(ref.fatores, dados, ref.id);
   var esperada = forcaBruta(ref.fatores, dados, ref.id);

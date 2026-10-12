@@ -279,8 +279,8 @@ def test_pyro_com_perda_declarada_e_recusada_do_outro_lado_da_equivalencia(
 ):
     """A recíproca da regra acima, que por um tempo passou calada.
 
-    A equivalência vale nos dois sentidos: nas rodadas da base, as de `Pyro` são exatamente as
-    rodadas sem perda declarada (Seção 4.2.2d). Recusar só "sem perda fora de Pyro" deixava passar
+    A equivalência vale nos dois sentidos: as rodadas `Pyro` são exatamente as rodadas sem
+    perda declarada (Seção 4.2.2d). Recusar só "sem perda fora de Pyro" deixava passar
     `Pyro` com perda declarada — combinação que as colunas conseguem representar, mas que
     nenhuma rodada mediu. A previsão saía 200, extrapolando, sem nada na tela que avisasse.
     """

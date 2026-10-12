@@ -46,7 +46,7 @@ var TODOS = M.DADOS.pontos.concat(M.DADOS.monitoramento);
 
 function ponto(folga, extra) {
   return Object.assign({
-    measurement_id: "Mainback P09 | Mainback",
+    measurement_id: "Mainback P02 | Mainback",
     Key_Area: "Mainback",
     subsistema_modelo: "Mainback",
     temperatura_prevista_c: 100,

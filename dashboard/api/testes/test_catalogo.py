@@ -12,9 +12,8 @@ from pathlib import Path
 import pytest
 
 from api.main import criar_app
-from api.predicao.catalogo_configuracoes import carregar_catalogo_configuracoes
 
-from .apoio import PASTA_MODELO_FINAL, RAIZ_REPOSITORIO, area_do_termopar, montar_configuracao
+from .apoio import PASTA_MODELO_FINAL, area_do_termopar, montar_configuracao
 
 CODIFICADAS = [
     "losses_present_declared", "losses_present_missing", "losses_present_none",
@@ -145,13 +144,3 @@ def test_documentado_no_openapi(cliente_catalogo):
     assert "503" in operacao["responses"]
     assert "RNF-05" in operacao["description"]
 
-
-REAL = RAIZ_REPOSITORIO / "notebooks" / "dataset_completo_com_flags_de_auditoria.csv"
-
-
-@pytest.mark.skipif(not REAL.is_file(), reason="dataset do parceiro não versionado")
-def test_contagens_do_dataset_real_batem_com_a_documentacao():
-    catalogo = carregar_catalogo_configuracoes(REAL)
-
-    assert catalogo.total_rodadas == 56
-    assert len(catalogo.configuracoes) == 32

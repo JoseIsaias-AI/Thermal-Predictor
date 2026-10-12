@@ -106,7 +106,7 @@ def escrever_modelo(tmp_path: Path, *, validado: bool = True) -> Path:
                 "Soprador P03": 1,
                 "Duto P01": 2,
             },
-            "metricas_validacao": {"MAE (C)": 3.93} if validado else {"MAE (C)": None},
+            "metricas_validacao": {"MAE (C)": 4.2} if validado else {"MAE (C)": None},
             "validado": validado,
         }),
         encoding="utf-8",

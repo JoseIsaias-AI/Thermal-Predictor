@@ -249,9 +249,9 @@ test("RF-23: o cabeçalho de rastreabilidade lista os fatores na ordem do esquem
   assert.ok(rotulos.indexOf("Material do suporte da bobina") > 0);
 
   // Rótulo legível, não o valor cru da coluna de origem.
-  var direcao = linhas[0][1];
-  assert.notEqual(direcao, "To Front");
-  assert.ok(direcao.indexOf("To Front") === 0, direcao);
+  var direcao = linhas[0][1], valor = M.DADOS.configuracao.blower_direction;
+  assert.notEqual(direcao, valor);
+  assert.ok(direcao.indexOf(valor) === 0, direcao);
 });
 
 test("RN-04: valor fora do vocabulário aparece cru e marcado, não por aproximação", function () {

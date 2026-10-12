@@ -27,15 +27,15 @@ var TODOS = DADOS.pontos.concat(DADOS.monitoramento);
 
 function zona(id) { return FOGAO.ZONA_POR_ID[id]; }
 
-test("os 78 pontos caem cada um em exatamente uma zona", function () {
-  assert.equal(TODOS.length, 78);
+test("todos os pontos caem cada um em exatamente uma zona", function () {
+  assert.equal(TODOS.length, DADOS.total_pontos);
   TODOS.forEach(function (p) {
     var donas = FOGAO.ZONAS.filter(function (z) { return FOGAO.pontosDaZona(z, [p]).length === 1; });
     assert.equal(donas.length, 1, p.measurement_id + " em " + donas.length + " zonas");
     assert.equal(FOGAO.zonaDoPonto(p), donas[0]);
   });
   var soma = FOGAO.ZONAS.reduce(function (s, z) { return s + FOGAO.pontosDaZona(z, TODOS).length; }, 0);
-  assert.equal(soma, 78);
+  assert.equal(soma, TODOS.length);
 });
 
 test("cada zona tem id único, aponta para uma peça existente e não é vazia", function () {
@@ -79,7 +79,7 @@ test("o marcador de cada ponto mora na mesma peça que a zona dele", function ()
   [["center", "closed"], ["right", "open"]].forEach(function (cfg) {
     var lista = FOGAO.pecas({ placa: cfg[0], alojamento: cfg[1] });
     var colocados = FOGAO.posicionarPontos(TODOS, lista);
-    assert.equal(colocados.length, 78);
+    assert.equal(colocados.length, TODOS.length);
     colocados.forEach(function (c) {
       assert.equal(c.peca, FOGAO.zonaDoPonto(c.ponto).peca, c.ponto.measurement_id + " (" + cfg + ")");
     });
@@ -90,22 +90,25 @@ test("o marcador de cada ponto mora na mesma peça que a zona dele", function ()
    tem de devolver os mesmos objetos do dado — valor igual não basta, é o
    próprio registro, o que prova que nada foi recalculado. */
 
-test("Bobina FL: ponto único acima do limite", function () {
+test("Bobina FL: ponto único, com o estado do próprio dado", function () {
   var r = PAINEL.resumir(zona("coil-FL"), DADOS);
   var fonte = DADOS.pontos.filter(function (p) { return p.TC_Name === "Bobina FL"; })[0];
   assert.equal(r.total, 1);
   assert.equal(r.referencia, fonte);
-  assert.equal(r.referencia.estado, "acima_do_limite");
+  assert.equal(r.contagem[fonte.estado], 1);
   assert.equal(r.soMonitoramento, "nenhum");
 });
 
-test("Painel de manípulos: seis pontos, todos dentro do limite", function () {
+test("Painel de manípulos: seis pontos, contados por estado como no dado", function () {
   var r = PAINEL.resumir(zona("knobBar"), DADOS);
   var fonte = DADOS.pontos.filter(function (p) { return p.Key_Area === "CT Knobs"; });
   assert.equal(r.total, 6);
   assert.equal(r.referencia, fonte[0], "referência é o primeiro na ordem da triagem");
   assert.deepEqual(r.classificados, fonte);
-  assert.equal(r.contagem.dentro_do_limite, 6);
+  ["acima_do_limite", "banda_de_incerteza", "dentro_do_limite"].forEach(function (estado) {
+    var n = fonte.filter(function (p) { return p.estado === estado; }).length;
+    assert.equal(r.contagem[estado] || 0, n, estado);
+  });
   assert.equal(r.soMonitoramento, "nenhum");
 });
 
@@ -182,7 +185,7 @@ test("cada termopar tem lugar fixo: a ordem da lista não muda a posição", fun
   var invertida = posicoes(TODOS.slice().reverse());
   var porNome = posicoes(TODOS.slice().sort(function (a, b) { return a.TC_Name < b.TC_Name ? -1 : 1; }));
 
-  assert.equal(Object.keys(ordemA).length, 78);
+  assert.equal(Object.keys(ordemA).length, TODOS.length);
   Object.keys(ordemA).forEach(function (id) {
     assert.equal(invertida[id], ordemA[id], id);
     assert.equal(porNome[id], ordemA[id], id);

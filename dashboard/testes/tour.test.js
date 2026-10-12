@@ -86,10 +86,20 @@ test("configuração da triagem: todas as paradas e só elas, na ordem de severi
 
 test("ordena pelo % sobre o limite, não pela folga em °C nem pela ordem de chegada", function () {
   var lista = TOUR.paradas(DADOS);
-  // Na tabela IPC P03 (−28%) vem depois de Suporte FL (−24%), que tem folga em °C pior.
-  var i = nomes(lista);
-  assert.ok(i.indexOf("IPC P03") < i.indexOf("Suporte FL"));
-  assert.equal(lista[0].TC_Name, "Mainback P09");
+  checarOrdem(lista);
+  // A API entrega a lista ordenada pela folga em °C; o tour reordena pelo %. Prova disso é
+  // haver, no mesmo estado, um ponto que vem antes no tour com folga em °C maior.
+  var discordantes = 0;
+  lista.forEach(function (p, k) {
+    lista.slice(k + 1).forEach(function (q) {
+      if (p.estado === q.estado && p.margem_c > q.margem_c) discordantes += 1;
+    });
+  });
+  assert.ok(discordantes > 0, "fixture sem par em que a folga em °C e o % discordam");
+  // A primeira parada é a de pior % entre os pontos acima do limite.
+  var acima = DADOS.pontos.filter(function (p) { return p.estado === "acima_do_limite"; });
+  var pior = acima.reduce(function (a, b) { return b.margem_percentual < a.margem_percentual ? b : a; });
+  assert.equal(lista[0], pior);
 });
 
 test("configuração com poucos críticos: acima antes de banda, dentro fica de fora", function () {

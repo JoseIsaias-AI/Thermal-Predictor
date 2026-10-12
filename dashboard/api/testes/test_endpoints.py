@@ -37,7 +37,8 @@ def test_saude_sobe_com_o_modelo_final_do_catalogo(cliente):
 
     assert corpo["status"] == "ok"
     assert corpo["modelos"]["familia_ativa"] == "modelo_final"
-    assert all(s["versao"] == "final-1.0" for s in corpo["subsistemas"])
+    versoes = {s["versao"] for s in corpo["subsistemas"]}
+    assert len(versoes) == 1 and None not in versoes
 
 
 def test_saude_com_familia_plugada_carrega_todos_os_subsistemas(cliente_com_modelo):

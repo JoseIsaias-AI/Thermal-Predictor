@@ -7,6 +7,10 @@
  * em dashboard/testes/fixtures, e este teste confere as duas pontas: nenhuma
  * página os carrega, e nenhum texto que chega à tela (HTML sem comentários e
  * literais de texto dos scripts) usa os termos do antigo modo de demonstração.
+ *
+ * A única exceção é o aviso da versão pública, marcado com `data-aviso-publico`,
+ * que declara que a base por trás da API é sintética: ele não exibe valor, só
+ * diz de onde os valores vêm.
  */
 
 "use strict";
@@ -23,7 +27,9 @@ var TELAS = ["index.html", "triagem.html", "comparacao.html", "conformidade.html
 var PROIBIDOS = /sintétic|demonstraç|\bstub\b|ilustrativ|preliminar|valores sintéticos/i;
 
 function semComentariosHtml(texto) {
-  return texto.replace(/<!--[\s\S]*?-->/g, "");
+  return texto
+    .replace(/<!--[\s\S]*?-->/g, "")
+    .replace(/<div[^>]*data-aviso-publico[^>]*>[\s\S]*?<\/div>/g, "");
 }
 
 /* Os literais de texto de um script, sem os comentários. O nome de campo da API

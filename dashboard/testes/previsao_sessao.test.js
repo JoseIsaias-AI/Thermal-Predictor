@@ -74,12 +74,12 @@ function resposta(extra) {
       total_pontos: 2,
       total_classificados: 1,
       total_monitoramento: 1,
-      pontos: [ponto("Mainback P09", 211.39, 220)],
+      pontos: [ponto("Mainback P02", 187.5, 175)],
       /* O caso real: este ponto fica na área `Main Vent Sys`, mas quem o prevê é o
          modelo de `AC Blower Inlet`, o único sem validação. Casar por área o daria
          como aferido. */
       monitoramento: [
-        ponto("Entrada do soprador P01", 48.2, null, "AC Blower Inlet", "Main Vent Sys")
+        ponto("Entrada do soprador P01", 51.0, null, "AC Blower Inlet", "Main Vent Sys")
       ],
       modelos: [
         { subsistema: "Mainback", algoritmo: "Média RF e GB adotada", validado: true, termopares: 11 },
@@ -123,7 +123,7 @@ test("exibe exatamente o que o backend devolveu, sem alterar valor", function ()
   var escolha = PS.resolver({ armazenamento: guardar(CONFIG, r), busca: BUSCA });
 
   assert.deepEqual(escolha.dados, r);
-  assert.equal(escolha.dados.pontos[0].temperatura_prevista_c, 211.39);
+  assert.equal(escolha.dados.pontos[0].temperatura_prevista_c, 187.5);
   assert.equal(escolha.dados.pontos[0].estado, "dentro_do_limite");
 });
 
@@ -501,7 +501,7 @@ test("pontoAferido não se deixa enganar pela área do ponto", function () {
   var r = resposta();
 
   // Mesma área do ponto não aferido, mas previsto pelo modelo validado dela.
-  var daArea = ponto("Duto P01", 92.5, 150, "Main Vent Sys", "Main Vent Sys");
+  var daArea = ponto("Duto P01", 88.0, 140, "Main Vent Sys", "Main Vent Sys");
 
   assert.equal(PS.pontoAferido(r, daArea), true);
   assert.equal(PS.modeloDoPonto(r, daArea).subsistema, "Main Vent Sys");
@@ -509,7 +509,7 @@ test("pontoAferido não se deixa enganar pela área do ponto", function () {
 
 test("sem bloco modelos nada é dado como não aferido", function () {
   // Ausência de informação não vira marca.
-  var p = ponto("Mainback P09", 211.39, 220);
+  var p = ponto("Mainback P02", 187.5, 175);
 
   assert.equal(PS.modeloDoPonto({ pontos: [p] }, p), null);
   assert.equal(PS.pontoAferido({ pontos: [p] }, p), true);

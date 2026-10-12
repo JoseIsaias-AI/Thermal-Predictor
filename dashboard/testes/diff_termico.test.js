@@ -17,6 +17,7 @@ var path = require("node:path");
 var vm = require("node:vm");
 
 var caminho = require("./apoio/fonte_painel.js").caminho;
+var desempatar = require("./apoio/ordem_de_risco.js");
 var ctx = vm.createContext({ window: {} });
 ["dados_triagem.js", "dados_comparacao.js", "fogao.js", "painel_peca.js", "diff_termico.js"].forEach(function (f) {
   vm.runInContext(fs.readFileSync(caminho(f), "utf8"), ctx, { filename: f });
@@ -42,14 +43,21 @@ D.configuracoes.forEach(function (a, i) {
   D.configuracoes.slice(i + 1).forEach(function (b) { PARES.push({ a: a, b: b, max: maiorModulo(a, b) }); });
 });
 PARES.sort(function (x, y) { return x.max - y.max; });
-var PEQUENO = PARES.filter(function (p) { return p.max > DIFF.LIMIAR_C; })[0];
+/* Par de diferença pequena construído a partir de uma configuração do catálogo, com desvio
+   conhecido (até 2,5 °C), para exercitar o piso da escala em qualquer base. */
+var BASE = D.configuracoes[0];
+var VIZINHA = JSON.parse(JSON.stringify(BASE));
+VIZINHA.id = "CFG-VIZINHA";
+VIZINHA.t = BASE.t.map(function (v, i) { return v === null ? null : v + (i % 5 === 0 ? 2.5 : 0.2); });
+var PEQUENO = { a: BASE, b: VIZINHA, max: maiorModulo(BASE, VIZINHA) };
 var GRANDE = PARES[PARES.length - 1];
 
 test("CFG-19 lido pela camada do diff reproduz a triagem ponto a ponto", function () {
   var dados = DIFF.dadosDaConfig(D, POR_ID[D.config_referencia_triagem]);
   assert.equal(dados.pontos.length, TRIAGEM.pontos.length);
-  dados.pontos.forEach(function (p, k) {
-    var t = TRIAGEM.pontos[k];
+  var esperados = desempatar(TRIAGEM.pontos);
+  desempatar(dados.pontos).forEach(function (p, k) {
+    var t = esperados[k];
     assert.equal(p.measurement_id, t.measurement_id, "ordem diverge na posição " + k);
     assert.equal(p.temperatura_prevista_c, t.temperatura_prevista_c);
     assert.equal(p.estado, t.estado);
@@ -58,10 +66,10 @@ test("CFG-19 lido pela camada do diff reproduz a triagem ponto a ponto", functio
   assert.equal(dados.monitoramento.length, TRIAGEM.monitoramento.length);
 });
 
-test("a diferença é B − A sobre as temperaturas do dado, nos 78 pontos", function () {
+test("a diferença é B − A sobre as temperaturas do dado, em todos os pontos", function () {
   [PEQUENO, GRANDE].forEach(function (par) {
     var linhas = DIFF.diferenca(D, par.a, par.b);
-    assert.equal(linhas.length, 78);
+    assert.equal(linhas.length, D.pontos.length);
     linhas.forEach(function (l) {
       var i = IDX[l.measurement_id];
       assert.equal(l.a, par.a.t[i]);

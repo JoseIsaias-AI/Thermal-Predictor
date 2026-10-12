@@ -3,8 +3,8 @@
  * Rodar da raiz do repositório:
  *   node --test dashboard/testes/formulario_pyro.test.js
  *
- * `Pyro` e "sem perda declarada" são a mesma condição na base: nas rodadas da
- * base, as de Pyro são exatamente as rodadas sem perda, e a codificação descartou
+ * `Pyro` e "sem perda declarada" são a mesma condição na base: as rodadas
+ * Pyro são exatamente as rodadas sem perda, e a codificação descartou
  * `losses_present_none` por ser idêntica a `Run_Case_Pyro` (Seção 4.2.2d). A API
  * recusa a combinação nos dois sentidos; aqui se verifica que o formulário não
  * consegue montá-la, para o usuário não topar com um erro que a tela poderia ter

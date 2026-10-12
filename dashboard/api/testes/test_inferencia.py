@@ -1,20 +1,17 @@
 """Função de inferência: mesmo pré-processamento do treino, modelo final e payload do painel.
 
-A paridade com o treino é conferida contra o que os próprios notebooks de exportação imprimiram
-para a configuração de exemplo, e o modelo servido, contra a decisão gravada pelos notebooks de
-comparação da Seção 4.4. Os números são lidos dos notebooks na hora do teste, e não copiados para
-cá: são temperaturas derivadas do dado do parceiro, que o repositório não replica.
+Os modelos servidos são os que `sintetico/treinar_modelos.py` treina sobre a base sintética. A
+paridade com o treino é conferida pelas colunas de entrada e pela composição declaradas pelo
+script de treino.
 """
 
-import ast
 import json
-import re
+import sys
 
 import pytest
 
-from api.configuracao import catalogo_pontos_padrao
 from api.predicao.catalogo_pontos import CatalogoPontos, PontoDeMedicao, carregar_catalogo_pontos
-from api.predicao.inferencia import ORDEM_ESTADOS, classificar, inferir, prever_temperaturas
+from api.predicao.inferencia import ORDEM_ESTADOS, classificar, inferir
 from api.predicao.protocolo import CatalogoIndisponivel, ConfiguracaoInvalida, ModeloIndisponivel
 from api.predicao.registro import construir_registro
 
@@ -26,24 +23,6 @@ from .apoio import (
     montar_configuracao,
 )
 
-PASTA_EXPORTACAO = RAIZ_REPOSITORIO / "notebooks" / "5_implantacao" / "familias_alternativas"
-NOTEBOOK_DE_EXPORTACAO = {
-    "random_forest": "1_exportacao_random_forest.ipynb",
-    "gradient_boosting": "2_exportacao_gradient_boosting.ipynb",
-}
-PASTA_RESULTADOS = RAIZ_REPOSITORIO / "notebooks" / "4_avaliacao" / "4.1_comparacao_de_modelos" / "resultados"
-CAMINHO_PONTOS_REAL = catalogo_pontos_padrao()
-
-exige_catalogo_real = pytest.mark.skipif(
-    not CAMINHO_PONTOS_REAL.is_file(),
-    reason="dataset auditado do parceiro ausente nesta máquina (não é versionado)",
-)
-
-# Os pesos versionados do Gradient Boosting reproduzem todos os valores que o notebook de
-# exportação imprimiu. Os do Random Forest de Mainback e IPC Cooling diferem deles em até 0,2 °C,
-# o que é assunto dos pesos, não do pré-processamento: a codificação é a mesma nas duas famílias.
-FAMILIA_DE_REFERENCIA = "gradient_boosting"
-
 CONFIGURACAO = {
     "blower_direction": "To Back",
     "housing": "Open",
@@ -54,90 +33,25 @@ CONFIGURACAO = {
     "losses": {"present": "declared", "config": "Config M", "order": "Back Order"},
 }
 
-
-def referencia_do_notebook(familia):
-    """Configuração de exemplo e resultados impressos pelo notebook de exportação da família."""
-    caderno = json.loads(
-        (PASTA_EXPORTACAO / NOTEBOOK_DE_EXPORTACAO[familia]).read_text(encoding="utf-8")
-    )
-    celulas = [c for c in caderno["cells"] if c["cell_type"] == "code"]
-    codigo = "\n".join("".join(c["source"]) for c in celulas)
-    # `print` sai como texto; a tabela, última expressão da célula, sai como `text/plain`.
-    impresso = "\n".join(
-        "".join(saida.get("text") or saida.get("data", {}).get("text/plain") or [])
-        for c in celulas
-        for saida in c.get("outputs", [])
-    )
-
-    def extremo(rotulo):
-        valor, termopar = re.search(rf"{rotulo} previsão: ([\d.]+) °C em (.+)", impresso).groups()
-        return termopar.strip(), valor
-
-    def total(rotulo):
-        return int(re.search(rf"{rotulo}: (\d+)", impresso).group(1))
-
-    # O repositório guarda os notebooks sem saídas (critérios de publicação e NDA): a referência só
-    # existe depois de o notebook ser executado com a base real.
-    if "Maior previsão:" not in impresso:
-        pytest.skip("notebook de exportação salvo sem saídas; execute-o com a base real para comparar")
-
-    estados = re.findall(
-        r"^(acima_do_limite|banda_de_incerteza|dentro_do_limite)\s+(\d+)$", impresso, re.MULTILINE
-    )
-
-    return {
-        "configuracao": ast.literal_eval(
-            re.search(r"configuracao_exemplo = (\{.*?\n\})", codigo, re.DOTALL).group(1)
-        ),
-        "maior": extremo("Maior"),
-        "menor": extremo("Menor"),
-        "tabela": _tabela_impressa(impresso),
-        "totais": (
-            total("Termopares previstos"),
-            total("Com estado de risco"),
-            total("Em monitoramento"),
-        ),
-        "estados": {estado: int(n) for estado, n in estados},
-    }
+MEDIA = "Média de Random Forest e Gradient Boosting"
+ALGORITMO_POR_SUBSISTEMA = {
+    "Mainback": MEDIA, "Coil Temps": MEDIA, "Main Vent Sys": MEDIA,
+    "HMI / Knobs / Console": MEDIA, "AC Blower Inlet": MEDIA,
+    "IPC Comp": "SVR", "IPC Cooling": "Extra Trees",
+}
 
 
-def _tabela_impressa(impresso):
-    """Linhas visíveis da tabela da Seção 12.3 do notebook: {termopar: °C com duas casas}.
+def modulo_de_treino():
+    sys.path.insert(0, str(RAIZ_REPOSITORIO / "sintetico"))
+    import treinar_modelos
 
-    O pandas quebra a tabela em dois blocos com o mesmo índice: o dos nomes e o dos números.
-    """
-    linhas = impresso.splitlines()
-    inicio = next(i for i, linha in enumerate(linhas) if "Termopar Subsistema" in linha)
-    nomes, valores, bloco_dos_numeros = {}, {}, False
-
-    for linha in linhas[inicio + 1 :]:
-        if re.match(r"\[\d+ rows x \d+ columns\]", linha):
-            break
-
-        if "Prevista (C)" in linha:
-            bloco_dos_numeros = True
-            continue
-
-        partes = re.split(r"\s{2,}", linha.strip())
-
-        if partes[0].isdigit():
-            (valores if bloco_dos_numeros else nomes)[partes[0]] = partes[1]
-
-    return {nomes[indice]: float(valores[indice]) for indice in nomes}
+    return treinar_modelos
 
 
 @pytest.fixture(scope="module")
 def registro_final():
     """Registro como o serviço monta hoje: a família padrão do catálogo."""
     return construir_registro(montar_configuracao())
-
-
-@pytest.fixture(scope="module")
-def registros_por_familia():
-    return {
-        familia: construir_registro(montar_configuracao(familia))
-        for familia in ("random_forest", "gradient_boosting")
-    }
 
 
 @pytest.fixture(scope="module")
@@ -174,7 +88,8 @@ def test_inferencia_preve_todos_os_termopares_com_o_modelo_final(registro_final,
     assert payload["total_monitoramento"] == len(payload["monitoramento"]) == 2
     assert all(isinstance(p["temperatura_prevista_c"], float) for p in todos)
     assert payload["preditor_e_stub"] is False
-    assert payload["versao_modelo"] == "final-1.0"
+    assert {p.metadados.versao for p in registro_final.preditores.values()} == {
+        payload["versao_modelo"]}
     assert payload["configuracao"] == CONFIGURACAO
     assert {m["familia"] for m in payload["modelos"]} == {"modelo_final"}
     assert len(payload["modelos"]) == 7
@@ -203,66 +118,25 @@ def test_lista_principal_vem_ordenada_por_estado_e_folga(registro_final, catalog
     assert chaves == sorted(chaves)
 
 
-def test_cada_subsistema_usa_o_modelo_final_decidido_na_secao_4_4(registro_final):
-    decididos = {}
-
-    # Os registros 01 a 06 são os seis datasets validados; o 07, de AC Blower Inlet, não tem decisão.
-    for caminho in PASTA_RESULTADOS.glob("0[1-6]_*.json"):
-        registro = json.loads(caminho.read_text(encoding="utf-8"))
-        decididos[registro["area"]] = registro["final"]
-
+def test_cada_subsistema_usa_o_algoritmo_do_modelo_final(registro_final):
     servidos = {nome: p.metadados.algoritmo for nome, p in registro_final.preditores.items()}
 
-    assert len(decididos) == 6
-    assert {nome: servidos[nome] for nome in decididos} == decididos
-    assert (servidos["IPC Comp"], servidos["IPC Cooling"]) == ("SVR", "Extra Trees")
-    # Seção 4.4(e): nenhum modelo validado para os pontos de entrada do soprador.
+    assert servidos == ALGORITMO_POR_SUBSISTEMA
+    # Nenhum modelo validado para os pontos de entrada do soprador: poucas rodadas com leitura.
     assert registro_final.preditor("AC Blower Inlet").metadados.validado is False
+    assert all(p.metadados.validado for n, p in registro_final.preditores.items()
+               if n != "AC Blower Inlet")
 
 
-def test_artefatos_do_modelo_final_reproduzem_o_erro_registrado_na_comparacao():
+def test_metadados_do_modelo_final_batem_com_o_treino():
+    treino = modulo_de_treino()
     metadados = [json.loads(c.read_text(encoding="utf-8")) for c in PASTA_MODELO_FINAL.glob("*.json")]
 
     assert len(metadados) == 7
-
     for meta in metadados:
-        registrado, reproduzido = meta["reproducao"].values()
-        assert reproduzido == pytest.approx(registrado, abs=0.005), meta["conjunto"]
-
-
-def test_inferencia_reproduz_a_previsao_do_notebook_de_exportacao(registros_por_familia):
-    referencia = referencia_do_notebook(FAMILIA_DE_REFERENCIA)
-    temperaturas = prever_temperaturas(
-        referencia["configuracao"], registros_por_familia[FAMILIA_DE_REFERENCIA]
-    )
-    duas_casas = {termopar: round(c, 2) for termopar, (_, c) in temperaturas.items()}
-    maior = max(duas_casas, key=duas_casas.get)
-    menor = min(duas_casas, key=duas_casas.get)
-
-    assert len(referencia["tabela"]) == 10
-    assert {t: duas_casas[t] for t in referencia["tabela"]} == referencia["tabela"]
-    # Os extremos saem impressos com uma casa, a partir do valor já arredondado para duas.
-    assert (maior, "%.1f" % duas_casas[maior]) == referencia["maior"]
-    assert (menor, "%.1f" % duas_casas[menor]) == referencia["menor"]
-
-
-@exige_catalogo_real
-def test_estados_batem_com_o_notebook_de_exportacao(registros_por_familia):
-    referencia = referencia_do_notebook(FAMILIA_DE_REFERENCIA)
-    payload = inferir(
-        referencia["configuracao"],
-        registros_por_familia[FAMILIA_DE_REFERENCIA],
-        carregar_catalogo_pontos(CAMINHO_PONTOS_REAL),
-    )
-    contagem = {}
-
-    for ponto in payload["pontos"]:
-        contagem[ponto["estado"]] = contagem.get(ponto["estado"], 0) + 1
-
-    totais = (payload["total_pontos"], payload["total_classificados"], payload["total_monitoramento"])
-
-    assert totais == referencia["totais"]
-    assert contagem == referencia["estados"]
+        assert meta["colunas_entrada"] == treino.COLUNAS_CONFIGURACAO + ["codigo_termopar"]
+        codigos = sorted(meta["codigo_por_termopar"].values())
+        assert codigos == list(range(len(codigos))), meta["conjunto"]
 
 
 @pytest.mark.parametrize(

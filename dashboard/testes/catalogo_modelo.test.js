@@ -44,8 +44,9 @@ function montar(opcoes) {
 function depois() { return new Promise(function (r) { setTimeout(r, 0); }); }
 
 test("catálogo guardado e completo vira o global na carga", function () {
-  var t = montar({ guardado: catalogo() });
-  assert.equal(t.janela.CATALOGO_MODELO.configuracoes.length, 32);
+  var guardado = catalogo();
+  var t = montar({ guardado: guardado });
+  assert.equal(t.janela.CATALOGO_MODELO.configuracoes.length, guardado.configuracoes.length);
   assert.equal(t.recargas.n, 0);
 });
 
