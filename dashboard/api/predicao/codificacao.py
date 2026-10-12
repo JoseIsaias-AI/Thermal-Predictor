@@ -46,8 +46,8 @@ def _codificar_perdas(configuracao, vetor):
     if presenca == "missing" and "losses_present_missing" in vetor:
         vetor["losses_present_missing"] = 1.0
 
-    # As duas condições são equivalentes na base, e a equivalência vale nos dois sentidos: na
-    # base, todas as rodadas `Pyro` são exatamente as rodadas sem perda declarada, e `losses_present_none`
+    # As duas condições são equivalentes na base, e a equivalência vale nos dois sentidos: as
+    # rodadas `Pyro` são exatamente as rodadas sem perda declarada, e `losses_present_none`
     # foi descartada na codificação por ser idêntica a `Run_Case_Pyro` (Seção 4.2.2d). Recusar
     # só um dos lados deixava passar `Pyro` com perda declarada: combinação representável nas
     # colunas, mas que nenhuma rodada mediu, e o modelo responderia extrapolando sem aviso.

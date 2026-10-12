@@ -14,8 +14,9 @@ from .protocolo import CatalogoIndisponivel
 
 # O motivo chega ao cliente da API: diz como resolver sem citar arquivo nem caminho do parceiro.
 MOTIVO_SEM_ARQUIVO = (
-    "Catálogo de pontos não encontrado nesta máquina. Gere o dataset auditado pelo notebook "
-    "02_pre_processamento ou aponte a variável THERMAL_API_CATALOGO_PONTOS para ele."
+    "Catálogo de pontos não encontrado nesta máquina. Gere a base com "
+    "`python sintetico/gerar_base_sintetica.py` ou aponte a variável THERMAL_API_CATALOGO_PONTOS "
+    "para o dataset auditado."
 )
 
 

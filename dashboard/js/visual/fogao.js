@@ -265,7 +265,7 @@ var FOGAO = (function () {
     if (pt.Key_Area === "Coil Temps") {
       var m = /\b(FL|FR|RL|RR)\s*$/.exec(pt.TC_Name || "");
       if (!m) return null;
-      return /^Coil\b/.test(pt.TC_Name) ? slots.bobinas[m[1]] : slots.placas[m[1]];
+      return /^Bobina\b/.test(pt.TC_Name) ? slots.bobinas[m[1]] : slots.placas[m[1]];
     }
 
     var fixo = POSICAO_DO_TERMOPAR[pt.measurement_id];
@@ -302,7 +302,7 @@ var FOGAO = (function () {
    * Cada zona liga uma peça a um recorte dos pontos (Key_Area e, quando a peça divide a área,
    * o nome do termopar), e as zonas particionam os 78 pontos. Bobinas e suporte têm uma zona
    * por posição, escolhida pelo ponto mais próximo do clique. */
-  var EH_DUTO = /\bDuct\b/;
+  var EH_DUTO = /\bDuto\b/;
 
   var ZONAS = [
     { id: "ipcBoard", peca: "ipcBoard", area: "IPC Comp", nome: "Placa de potência (IPC)" },
@@ -321,12 +321,12 @@ var FOGAO = (function () {
     ZONAS.push({
       id: "coil-" + c[0], peca: "coils", area: "Coil Temps", pos: c[0],
       nome: "Bobina " + c[0], sub: "posição " + NOME_POSICAO[c[0]],
-      nomeTC: new RegExp("^Coil " + c[0] + "$"), regiao: { x: c[1], y: c[2], r: raio + 4 }
+      nomeTC: new RegExp("^Bobina " + c[0] + "$"), regiao: { x: c[1], y: c[2], r: raio + 4 }
     });
     ZONAS.push({
       id: "placa-" + c[0], peca: "coilSupport", area: "Coil Temps", pos: c[0],
       nome: "Placa de alumínio " + c[0], sub: "posição " + NOME_POSICAO[c[0]],
-      nomeTC: new RegExp("^Aluminium Plate " + c[0] + "$"), regiao: { x: c[1], y: c[2], r: raio + 16 }
+      nomeTC: new RegExp("^Suporte " + c[0] + "$"), regiao: { x: c[1], y: c[2], r: raio + 16 }
     });
   });
 
@@ -431,8 +431,8 @@ var FOGAO = (function () {
     return { dados: dados, nx: nx, ny: ny, nz: nz };
   }
 
-  /* Equaliza por quantil: a base é assimétrica (a mediana fica bem abaixo
-     do máximo), e numa rampa linear três quartos dos pontos cairiam no primeiro
+  /* Equaliza por quantil: a base é assimétrica (mediana bem abaixo do
+     máximo), e numa rampa linear três quartos dos pontos cairiam no primeiro
      quarto da escala. A legenda rotula os quartis em graus. */
   function equalizador(valores) {
     var ord = valores.slice().sort(function (a, b) { return a - b; });

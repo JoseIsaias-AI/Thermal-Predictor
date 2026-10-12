@@ -998,9 +998,9 @@
   }
 
   /* Um ponto passa quando atende a todos os filtros ativos ao mesmo tempo.
-     Estado e faixa só valem para os 68 com limite declarado: sem limite não
-     há folga a comparar (RN-03), então o nome e a caixa de inclusão são os
-     únicos filtros que alcançam os 10 monitorados. */
+     Estado e faixa só valem para os pontos com limite declarado: sem limite
+     não há folga a comparar (RN-03), então o nome e a caixa de inclusão são os
+     únicos filtros que alcançam os monitorados. */
   function passaNoFiltro(p) {
     if (mapa.nome && p.TC_Name.toLowerCase().indexOf(mapa.nome) < 0) return false;
     if (p.is_monitor_only) return mapa.mono;
@@ -1015,7 +1015,7 @@
   }
 
   /* A contagem anda nos dois universos separados, e não num total de 78: os
-     68 com limite e os 10 monitorados respondem a filtros diferentes, e somar
+     pontos com limite e os monitorados respondem a filtros diferentes, e somar
      os dois apagaria justamente a separação que RN-03 mantém. */
   function aplicarFiltros() {
     var comLimite = 0, monitorados = 0;

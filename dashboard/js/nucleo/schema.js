@@ -6,8 +6,8 @@ var SCHEMA = {
   schema_version: "1.0",
   measurement_point_key: "measurement_point",
 
-  /* Os 77 pontos com leitura registrada, por subsistema. O 78º do catálogo, 
-   * IPC Cooling P05, nunca foi medido (Seções 4.2.1c e 4.2.3c). */
+  /* Os 77 pontos com leitura registrada, por subsistema. O 78º do catálogo,
+   * IPC Cooling P05, não tem leitura na base. */
   measurement_point_groups: [
     {
       area: "CT Knobs",
@@ -189,7 +189,7 @@ var SCHEMA = {
           ]
         },
         {
-          // Config S / Config M substituem os rótulos originais (RF-20).
+          // Config S / Config M: os dois arranjos de montagem das bobinas (RF-20).
           key: "config",
           label: "Configuração de montagem das bobinas",
           source_column: "losses_config",

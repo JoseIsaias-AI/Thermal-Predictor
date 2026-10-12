@@ -81,8 +81,7 @@ def raiz_do_projeto():
     """Pasta do projeto: a mais próxima, subindo a partir do diretório de trabalho, com `notebooks/utils/`.
 
     Vale para a execução a partir de qualquer subpasta de `notebooks/`, da própria `notebooks/` ou
-    da raiz, e também para a cópia `ambiente_sintetico/`, que tem a sua própria `notebooks/utils/` e
-    por isso é encontrada antes do repositório. Fora do projeto, como no Colab, devolve `None`.
+    da raiz. Fora do projeto, como no Colab, devolve `None`.
     """
     for pasta in (Path.cwd(), *Path.cwd().parents):
         if (pasta / "notebooks" / "utils").is_dir():

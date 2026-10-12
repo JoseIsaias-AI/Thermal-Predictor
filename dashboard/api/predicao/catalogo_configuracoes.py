@@ -5,9 +5,8 @@ comparação precisa: os níveis dos sete fatores no vocabulário de /schema e q
 cada configuração. `Run_ID` e `Run_Reason` ficam de fora (RNF-05): eles nomeiam cada rodada pela
 alteração de projeto testada, e lado a lado exporiam essa alteração por diferença.
 
-As configurações são contadas de três formas: nos sete fatores, nas colunas codificadas que
-o modelo recebe (lá `Open - Updated` equivale a `Open`) e nos seis fatores categóricos sem as
-perdas.
+As configurações são contadas de três formas: nos sete fatores, nas colunas codificadas que o
+modelo recebe (lá `Open - Updated` equivale a `Open`) e nos seis fatores categóricos sem as perdas.
 """
 
 import csv

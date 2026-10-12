@@ -440,9 +440,9 @@
   margin-left: auto;
 }
 
-/* Uma linha por fato. A severidade de RN-02 é a mesma nas configurações da
-   base: dizer isso entre parênteses, ao lado dela, poupa o parágrafo que
-   explicava por que ela não distingue nada. */
+/* Uma linha por fato. Quando a severidade de RN-02 é a mesma em todas as
+   configurações da base, dizer isso entre parênteses, ao lado dela, poupa o
+   parágrafo que explicaria por que ela não distingue nada. */
 .cmp-head__line {
   display: flex;
   align-items: baseline;
