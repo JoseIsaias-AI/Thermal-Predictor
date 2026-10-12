@@ -215,6 +215,152 @@ class DesempenhoFaixa(BaseModel):
     mae_medio_c: float | None = None
 
 
+class ReferenciaDaBase(BaseModel):
+    """A média histórica do ponto como previsão, sem modelo, deixando de fora a rodada avaliada."""
+
+    estrategia: str
+    mae_c: float
+    mae_na_amostra_c: float = Field(
+        description="A mesma média calculada sobre as linhas em que é avaliada, que enxerga a rodada."
+    )
+    pontos_cobertos: int
+    pontos_com_limite: int
+    cobertura_pct: float | None = None
+    cobertura_wilson_pct: list[float] = Field(description="Intervalo de Wilson a 95%.")
+    cobertura_exigida_pct: float
+
+
+class RodadasPorConfiguracao(BaseModel):
+    rodadas_por_configuracao: int
+    configuracoes: int
+    rodadas: int
+
+
+class ValidacaoDaBase(BaseModel):
+    """Rodadas e configurações: o argumento da validação agrupada por configuração."""
+
+    rodadas: int
+    configuracoes: int
+    configuracoes_possiveis: int
+    rodadas_em_configuracao_compartilhada: int
+    rodadas_em_configuracao_compartilhada_pct: float
+    distribuicao: list[RodadasPorConfiguracao]
+
+
+class AusenciaPorClasse(BaseModel):
+    classe: str
+    mecanismo: str
+    ocorrencias: int
+
+
+class ProcedenciaDaBase(BaseModel):
+    """Combinações de ponto e rodada sem leitura, que ficam fora sem imputação."""
+
+    pontos: int
+    rodadas: int
+    combinacoes: int
+    sem_leitura: int
+    sem_leitura_pct: float
+    estruturais: int
+    aleatorias: int
+    observacoes: int
+    por_classe: list[AusenciaPorClasse]
+
+
+class HipoteseConcentracao(BaseModel):
+    """HD1: qui-quadrado de homogeneidade das violações entre os pontos."""
+
+    teste: str
+    pontos: int
+    leituras: int
+    violacoes: int
+    pontos_com_violacao: int
+    violacoes_dos_pontos_de_maior_risco: int
+    pontos_de_maior_risco: int
+    reamostragens: int
+    estatistica: float | None = None
+    gl: int | None = None
+    p: float | None = None
+    celulas: int
+    celulas_esperadas_abaixo_de_5: int | None = None
+    reamostragens_que_alcancaram: int | None = None
+    p_reamostragem: float | None = None
+    rejeita_h0: bool
+
+
+class HipoteseModo(BaseModel):
+    """HD2: risco por modo de teste, com a rodada como unidade de análise."""
+
+    teste: str
+    modo: str
+    rodadas: int
+    rodadas_no_modo: int
+    leituras: int
+    proporcao_no_modo_pct: float
+    proporcao_nos_demais_pct: float
+    proporcao_p_permutacao: float
+    proporcao_u: float
+    proporcao_p_mann_whitney: float
+    proporcao_rejeita_h0: bool
+    margem_no_modo_c: float
+    margem_nos_demais_c: float
+    margem_p_permutacao: float
+    margem_u: float
+    margem_p_mann_whitney: float
+    margem_rejeita_h0: bool
+    leituras_z: float
+    leituras_p: float
+    pontos_que_esquentam_no_modo: int
+    pontos_que_esfriam_no_modo: int
+
+
+class HipoteseLimite(BaseModel):
+    """HD3: correlação entre o limite do ponto e a variabilidade da sua temperatura."""
+
+    teste: str
+    n: int
+    r: float
+    p: float
+    rho: float
+    p_spearman: float
+    rejeita_h0: bool
+    limite_min_c: float
+    limite_max_c: float
+
+
+class NormalidadeDaVariavel(BaseModel):
+    variavel: str
+    n: int
+    w: float
+    p: float
+    rejeita_h0: bool
+
+
+class HipotesesDaBase(BaseModel):
+    alfa: float
+    hd1: HipoteseConcentracao
+    hd2: HipoteseModo
+    hd3: HipoteseLimite
+    hn: list[NormalidadeDaVariavel]
+
+
+class EscalonamentoDaVariavel(BaseModel):
+    variavel: str
+    n: int
+    media_c: float
+    desvio_c: float = Field(description="Desvio padrão populacional.")
+
+
+class EstatisticasDaBase(BaseModel):
+    """Estatísticas sem modelo: só agregados do conjunto, nenhuma leitura por ponto."""
+
+    referencia: ReferenciaDaBase
+    validacao: ValidacaoDaBase
+    procedencia: ProcedenciaDaBase
+    hipoteses: HipotesesDaBase
+    escalonamento: list[EscalonamentoDaVariavel]
+
+
 class RespostaDesempenho(BaseModel):
     """Desempenho agregado do modelo final, sem nenhuma medição nem previsão por ponto."""
 
@@ -226,6 +372,13 @@ class RespostaDesempenho(BaseModel):
     global_: DesempenhoGlobal = Field(alias="global")
     por_dataset: list[DesempenhoDataset]
     por_faixa_de_limite: list[DesempenhoFaixa]
+    base: EstatisticasDaBase | None = Field(
+        None,
+        description=(
+            "Estatísticas da base sem modelo: a referência a superar, o desenho da validação, a "
+            "procedência do dado, as hipóteses HD1, HD2, HD3 e HN e o escalonamento em z."
+        ),
+    )
 
     model_config = ConfigDict(populate_by_name=True)
 

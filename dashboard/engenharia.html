@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Engenharia — Thermal Predictor</title>
+  <link rel="icon" type="image/png" sizes="48x48" href="../assets/dashboard/favicon-whirlpool.png">
+  <link rel="apple-touch-icon" href="../assets/dashboard/favicon-whirlpool.png">
+
+  <link rel="stylesheet" href="css/base/tokens.css?v=5">
+  <link rel="stylesheet" href="css/base/app.css?v=8">
+  <link rel="stylesheet" href="css/telas/triagem.css?v=6">
+  <link rel="stylesheet" href="css/telas/engenharia.css?v=6">
+  <link rel="stylesheet" href="css/componentes/executivo.css?v=4">
+  <link rel="stylesheet" href="css/componentes/historico.css?v=3">
+  <link rel="stylesheet" href="css/componentes/chat.css?v=5">
+  <script src="js/nucleo/tema.js?v=1"></script>
+  <link rel="stylesheet" href="css/base/acessibilidade.css?v=2">
+  <script src="js/acessibilidade/acessibilidade.js?v=2"></script>
+</head>
+<body data-previsao="opcional">
+
+<a class="pular-conteudo" href="#conteudo">Pular para o conteúdo</a>
+
+<header class="masthead">
+  <div class="masthead__inner">
+    <img class="masthead__logo" src="../assets/dashboard/logo-whirlpool.png"
+         alt="Whirlpool Corporation" width="1259" height="419">
+
+    <div class="masthead__identity">
+      <p class="masthead__kicker">Triagem térmica</p>
+      <h1 class="masthead__system-name">Thermal Predictor</h1>
+    </div>
+
+    <nav class="nav" aria-label="Telas do painel">
+    <a class="nav__link" href="index.html">Consulta</a>
+    <a class="nav__link" href="triagem.html">Triagem</a>
+    <a class="nav__link" href="comparacao.html">Comparação</a>
+    <a class="nav__link" href="conformidade.html">Conformidade</a>
+    <a class="nav__link" href="design.html">Design</a>
+    <a class="nav__link" href="marketing.html">Marketing</a>
+    <a class="nav__link" href="engenharia.html" aria-current="page">Engenharia</a>
+    </nav>
+
+    <span class="masthead__push"></span>
+
+    <p class="model-chip termo" title="Versão do modelo final que gerou as previsões desta tela." id="model-chip" hidden>
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.3" aria-hidden="true"><circle cx="7" cy="7" r="5.6"></circle><path d="M7 4.2v3.4"></path><circle cx="7" cy="9.9" r="0.6" fill="currentColor" stroke="none"></circle></svg>
+      <span><strong>Modelo <span id="model-version">—</span></strong></span>
+    </p>
+    <button class="tema-toggle" type="button" data-tema-alternar aria-pressed="false"
+            aria-label="Tema escuro" title="Usar tema escuro">
+      <svg class="tema-toggle__lua" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round" aria-hidden="true"><path d="M13.6 10.1A6 6 0 0 1 5.9 2.4a6 6 0 1 0 7.7 7.7z"></path></svg>
+      <svg class="tema-toggle__sol" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" aria-hidden="true"><circle cx="8" cy="8" r="3"></circle><path d="M8 1.2v1.6M8 13.2v1.6M1.2 8h1.6M13.2 8h1.6M3.2 3.2l1.1 1.1M11.7 11.7l1.1 1.1M3.2 12.8l1.1-1.1M11.7 4.3l1.1-1.1"></path></svg>
+    </button>
+  </div>
+</header>
+
+<main class="page" id="conteudo" tabindex="-1">
+
+  <div class="page-head">
+    <div class="page-head__text">
+      <p class="page-head__kicker">Desempenho do modelo</p>
+      <h2 class="page-head__title" id="page-title">Desempenho do modelo final</h2>
+      <p class="page-head__sub">
+        O que o modelo final mostrou em configurações que não viu, contra a
+        média histórica e contra o critério do parceiro.
+      </p>
+    </div>
+    <div class="page-head__actions">
+      <span class="status-chip">
+        <svg width="12" height="12" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><circle cx="7" cy="7" r="5.6"></circle><path d="M7 4v3.3l2.2 1.3"></path></svg>
+        Ferramenta de triagem
+      </span>
+      <div class="leitura">
+        <span class="leitura__rotulo" id="modo-leitura-rotulo">Leitura</span>
+        <span class="leitura-toggle" id="modo-leitura" role="group" aria-labelledby="modo-leitura-rotulo">
+          <button type="button" data-modo="tecnico" aria-pressed="true">Técnica</button>
+          <button type="button" data-modo="executivo" aria-pressed="false">Executiva</button>
+        </span>
+      </div>
+    </div>
+  </div>
+
+  <section id="resumo-exec" data-leitura="executiva" hidden></section>
+
+  <section class="panel" data-leitura="executiva">
+    <h2 class="panel__title">Serve para ordenar a fila de simulação, não para aprovar componente</h2>
+    <p class="ressalva" id="exec-ressalva">O modelo final é ferramenta de triagem: ordena o que simular primeiro e não substitui o CFD.</p>
+    <details class="more">
+      <summary>Por quê, e onde confiar menos</summary>
+      <p id="exec-porque"></p>
+      <p id="exec-onde"></p>
+    </details>
+  </section>
+
+  <details class="scope-notice" data-leitura="tecnica">
+    <summary>O que esta tela é</summary>
+    <div class="scope-notice__body" data-aviso-publico>
+      <p>
+        Esta é a memória de cálculo da triagem. Ela reúne, num lugar só, o que
+        sustenta ou não sustenta um número exibido nas outras telas: o critério
+        que o modelo precisa cumprir, a referência que ele precisa superar, o
+        desenho da validação, a procedência do dado, as hipóteses verificadas e
+        o desempenho medido em configurações que o modelo não viu no treino.
+      </p>
+      <p>
+        <strong>Nesta versão pública, todos os números vêm da base
+        sintética</strong>, gerada por <code>sintetico/gerar_base_sintetica.py</code>
+        e avaliada por <code>sintetico/treinar_modelos.py</code>. A base de ensaios
+        da Whirlpool é confidencial e não faz parte do repositório; as métricas
+        exibidas demonstram o protocolo de avaliação, e não o resultado do projeto.
+      </p>
+      <p>
+        O desempenho e as estatísticas da base são lidos da API de predição em
+        <code>GET /desempenho</code>. Sem a API, a tela não mostra número nenhum.
+        Nenhuma temperatura por ponto de medição é embarcada nesta tela: os
+        valores são estatísticas agregadas do conjunto.
+      </p>
+    </div>
+  </details>
+
+  <!-- ----- Critério de aceitação ----- -->
+
+  <section class="panel" data-leitura="tecnica">
+    <p class="panel__kicker">Critério de aceitação</p>
+    <h2 class="panel__title" id="criterios-titulo">Duas exigências independentes</h2>
+
+    <div class="criteria">
+      <article class="criterion">
+        <h3 class="criterion__title">Exigência de engenharia</h3>
+        <p class="criterion__statement">
+          O erro absoluto da temperatura prevista não excede <strong>10% do
+          limite declarado</strong> do ponto, em pelo menos <strong>90% dos
+          pontos</strong> com limite.
+        </p>
+        <dl class="criterion__meta">
+          <dt>Verificação</dt>
+          <dd>Contagem direta, com intervalo de Wilson</dd>
+          <dt>Situação</dt>
+          <dd class="is-pending" id="criterio-engenharia">—</dd>
+        </dl>
+      </article>
+
+      <article class="criterion">
+        <h3 class="criterion__title">Contraparte estatística</h3>
+        <p class="criterion__statement">
+          O erro absoluto médio do modelo é <strong>menor que o da
+          referência</strong>, medido na mesma amostra.
+        </p>
+        <dl class="criterion__meta">
+          <dt>Hipótese nula</dt>
+          <dd>MAE(modelo) ≥ MAE(referência)</dd>
+          <dt>Teste</dt>
+          <dd>Wilcoxon pareado, α = 0,05</dd>
+          <dt>Situação</dt>
+          <dd class="is-pending" id="criterio-estatistica">—</dd>
+        </dl>
+      </article>
+    </div>
+
+    <details class="more">
+      <summary>Por que duas exigências</summary>
+      <p id="criterios-porque">
+        Duas exigências independentes: cumprir uma não implica cumprir a outra.
+      </p>
+      <p>
+        Rejeitar H₀ no Wilcoxon é condição necessária e não suficiente: um modelo
+        pode reduzir o erro médio e ainda ficar abaixo dos 90% exigidos, bastando
+        concentrar os erros grandes em poucos pontos. Por isso a cobertura é
+        apurada por contagem, e não deduzida do erro médio.
+      </p>
+    </details>
+  </section>
+
+  <!-- ----- Referência ----- -->
+
+  <section class="panel" id="base-referencia" data-leitura="tecnica" data-base hidden>
+    <p class="panel__kicker">Referência a superar</p>
+    <h2 class="panel__title" id="referencia-titulo">A média histórica do ponto, sem modelo</h2>
+
+    <p class="panel__note">
+      Estatísticas da base inteira, sem modelo: a referência deixa de fora a rodada avaliada. A
+      comparação do modelo final com a mesma referência, na mesma amostra, está no painel de
+      desempenho abaixo.
+    </p>
+
+    <dl class="stat-grid" id="referencia-numeros"></dl>
+
+    <figure class="chart-figure">
+      <div id="chart-cobertura"></div>
+      <figcaption>
+        <details class="more">
+          <summary>Como ler este gráfico</summary>
+          <p>
+            A referência contra o alvo. A barra cheia é a estimativa pontual, a faixa clara é o
+            intervalo de Wilson e a linha vertical é o limiar contratado.
+          </p>
+        </details>
+        <details class="more">
+          <summary>Ver como tabela</summary>
+          <div class="table-scroll">
+            <table class="data-table">
+              <thead><tr><th scope="col">Medida</th><th scope="col" class="num">Cobertura</th></tr></thead>
+              <tbody id="referencia-tabela"></tbody>
+            </table>
+          </div>
+        </details>
+      </figcaption>
+    </figure>
+
+    <details class="more">
+      <summary>O que é a referência</summary>
+      <p>
+        A referência é a média histórica de cada ponto de medição. É o resultado que se obtém sem
+        modelo nenhum, e é contra ela que o ganho do modelo é medido.
+      </p>
+      <p id="referencia-suficiencia"></p>
+    </details>
+
+    <details class="more">
+      <summary id="referencia-barra-titulo">Por que a barra deixa a rodada de fora</summary>
+      <p id="referencia-barra-amostra"></p>
+      <p id="referencia-barra-fora"></p>
+    </details>
+  </section>
+
+  <!-- ----- Validação ----- -->
+
+  <section class="panel" id="base-validacao" data-leitura="tecnica" data-base hidden>
+    <p class="panel__kicker">Desenho da validação</p>
+    <h2 class="panel__title" id="validacao-titulo">Rodadas e configurações</h2>
+
+    <dl class="stat-grid" id="validacao-numeros"></dl>
+
+    <figure class="chart-figure">
+      <div id="chart-configuracoes"></div>
+      <figcaption>
+        <details class="more">
+          <summary>Como ler este gráfico</summary>
+          <p>
+            Configurações por número de rodadas. As barras cheias são as configurações com mais de
+            uma rodada: é nelas que separar por rodada deixaria, em treino, uma execução quase
+            idêntica à de teste.
+          </p>
+        </details>
+      </figcaption>
+    </figure>
+
+    <details class="more">
+      <summary>Ver como tabela</summary>
+      <div class="table-scroll">
+        <table class="data-table">
+          <caption id="validacao-legenda"></caption>
+          <thead>
+            <tr>
+              <th scope="col" class="num">Rodadas por configuração</th>
+              <th scope="col" class="num">Configurações</th>
+              <th scope="col" class="num">Rodadas</th>
+            </tr>
+          </thead>
+          <tbody id="validacao-tabela"></tbody>
+        </table>
+      </div>
+    </details>
+
+    <details class="more">
+      <summary>Por que agrupar por configuração</summary>
+      <p>
+        A partição de treino e teste é agrupada por <strong>configuração</strong>, e não por
+        rodada. Rodada é o identificador de execução; configuração é a combinação dos fatores de
+        projeto, na codificação que o modelo recebe. Duas rodadas de mesma configuração têm a
+        mesma entrada e diferem apenas em ruído de execução, de modo que separá-las entre treino e
+        teste não impede o modelo de ver, em treino, uma rodada quase idêntica à de teste.
+      </p>
+      <p>
+        A rodada segue sendo o nível correto da verificação estatística. O agrupamento por
+        configuração é a exigência mais rigorosa, e vale para a organização de treino, validação e
+        teste.
+      </p>
+    </details>
+  </section>
+
+  <!-- ----- Procedência ----- -->
+
+  <section class="panel" id="base-procedencia" data-leitura="tecnica" data-base hidden>
+    <p class="panel__kicker">Procedência do dado</p>
+    <h2 class="panel__title" id="procedencia-titulo">Combinações sem leitura ficam fora, sem imputação</h2>
+
+    <dl class="stat-grid" id="procedencia-numeros"></dl>
+
+    <figure class="chart-figure">
+      <div id="chart-procedencia"></div>
+      <figcaption>
+        <details class="more">
+          <summary>Como ler este gráfico</summary>
+          <p>
+            As três etapas na mesma escala. A faixa do meio é a perda, dividida entre o que nunca
+            pôde ser medido e o que falhou na leitura.
+          </p>
+        </details>
+      </figcaption>
+    </figure>
+
+    <details class="more">
+      <summary>Ver como tabela, por classe de ausência</summary>
+      <div class="table-scroll">
+        <table class="data-table">
+          <caption>
+            Classes de ausência. A separação entre mecanismo estrutural e aleatório é o que
+            justifica descartar em vez de imputar.
+          </caption>
+          <thead>
+            <tr>
+              <th scope="col">Classe</th>
+              <th scope="col">Mecanismo</th>
+              <th scope="col" class="num">Ocorrências</th>
+            </tr>
+          </thead>
+          <tbody id="procedencia-tabela"></tbody>
+        </table>
+      </div>
+    </details>
+
+    <details class="more">
+      <summary>Por que descartar em vez de imputar</summary>
+      <p>
+        A tabela de modelagem não é a base inteira. Das combinações possíveis entre ponto de
+        medição e rodada, parte não tem leitura registrada, e nenhuma dessas ausências recebe
+        valor imputado no alvo.
+      </p>
+      <p id="procedencia-porque"></p>
+    </details>
+  </section>
+
+  <!-- ----- Hipóteses ----- -->
+
+  <section class="panel" id="base-hipoteses" data-leitura="tecnica" data-base hidden>
+    <p class="panel__kicker">Hipóteses verificadas</p>
+    <h2 class="panel__title" id="hipoteses-titulo">Quatro hipóteses sobre o dado</h2>
+
+    <details class="more hyp__intro">
+      <summary>O que estas hipóteses avaliam</summary>
+      <p>
+        Estas hipóteses não avaliam o modelo: elas descrevem propriedades do dado que o modelo
+        precisa respeitar, e cada uma tem uma consequência direta sobre a modelagem. Com o modelo
+        final, HD3 reaparece na aprovação por faixa de limite do painel de desempenho, e HM no
+        teste de Wilcoxon.
+      </p>
+    </details>
+
+    <article class="hyp">
+      <h3 class="hyp__code">HD1 <span>concentração do risco</span></h3>
+      <p class="hyp__claim">
+        O risco de violação de limite não se distribui por igual entre os pontos, e sim se
+        concentra em um subconjunto pequeno.
+      </p>
+      <dl class="hyp__stats" id="hd1-numeros"></dl>
+      <p class="hyp__impact" id="hd1-impacto"></p>
+      <details class="more">
+        <summary>Ressalva do teste e tamanho de efeito</summary>
+        <p class="hyp__note" id="hd1-nota"></p>
+      </details>
+    </article>
+
+    <article class="hyp">
+      <h3 class="hyp__code">HD2 <span>risco por modo de teste</span></h3>
+      <p class="hyp__claim">
+        O modo de maior temperatura de pico, Pyro, não é o mais arriscado para os componentes com
+        limite declarado.
+      </p>
+      <dl class="hyp__stats" id="hd2-numeros"></dl>
+      <p class="hyp__impact" id="hd2-impacto"></p>
+      <details class="more">
+        <summary>Por que a unidade de análise decide o resultado</summary>
+        <p class="hyp__note" id="hd2-nota"></p>
+      </details>
+    </article>
+
+    <article class="hyp">
+      <h3 class="hyp__code">HD3 <span>limite e variabilidade</span></h3>
+      <p class="hyp__claim">
+        O limite declarado covaria com a variabilidade da própria temperatura, o que faz o
+        critério de 10% exigir precisão absoluta muito diferente conforme o ponto.
+      </p>
+      <dl class="hyp__stats" id="hd3-numeros"></dl>
+      <figure class="chart-figure">
+        <div id="chart-tolerancia"></div>
+        <figcaption>
+          <details class="more">
+            <summary>Como ler este gráfico</summary>
+            <p id="hd3-leitura"></p>
+          </details>
+          <details class="more">
+            <summary>Ver como tabela</summary>
+            <div class="table-scroll">
+              <table class="data-table">
+                <thead><tr><th scope="col" class="num">Limite declarado (°C)</th><th scope="col" class="num">Tolerância de 10% (°C)</th></tr></thead>
+                <tbody id="hd3-tabela"></tbody>
+              </table>
+            </div>
+          </details>
+        </figcaption>
+      </figure>
+
+      <p class="hyp__impact">
+        <strong>Para o modelo:</strong> um erro médio global esconde dificuldade desigual, porque
+        fica dominado pelos pontos de limite mais alto. O erro precisa ser reportado por faixa de
+        limite.
+      </p>
+    </article>
+
+    <article class="hyp">
+      <h3 class="hyp__code">HN <span>normalidade</span></h3>
+      <p class="hyp__claim">
+        As variáveis quantitativas seguem distribuição normal.
+      </p>
+      <div class="table-scroll">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th scope="col">Variável</th>
+              <th scope="col" class="num"><em>n</em></th>
+              <th scope="col" class="num">W</th>
+              <th scope="col">Valor de <em>p</em></th>
+              <th scope="col">Conclusão</th>
+            </tr>
+          </thead>
+          <tbody id="hn-tabela"></tbody>
+        </table>
+      </div>
+      <p class="hyp__impact" id="hn-impacto"></p>
+    </article>
+  </section>
+
+  <!-- ----- Escalonamento ----- -->
+
+  <section class="panel" id="base-escalonamento" data-leitura="tecnica" data-base hidden>
+    <p class="panel__kicker">Escalonamento aplicado</p>
+    <h2 class="panel__title">Três variáveis padronizadas em z, reprodutíveis à mão</h2>
+
+    <div class="table-scroll">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th scope="col">Variável</th>
+            <th scope="col" class="num"><em>n</em></th>
+            <th scope="col" class="num">μ (°C)</th>
+            <th scope="col" class="num">σ (°C)</th>
+            <th scope="col">Equação</th>
+          </tr>
+        </thead>
+        <tbody id="escalonamento-tabela"></tbody>
+      </table>
+    </div>
+
+    <details class="more">
+      <summary>O que a padronização faz e não faz</summary>
+      <p>
+        As três variáveis quantitativas são padronizadas, com desvio padrão populacional. Os
+        parâmetros da tabela são os do conjunto completo, e permitem reproduzir a transformação de
+        qualquer valor à mão.
+      </p>
+      <p>
+        A padronização preserva a forma da distribuição: ela muda origem e unidade, não
+        assimetria. Por isso ela não corrige a rejeição de HN, e não é para isso que serve.
+      </p>
+    </details>
+  </section>
+
+  <!-- ----- Desempenho do modelo final ----- -->
+
+  <section class="panel" id="desempenho-panel" data-leitura="tecnica" aria-busy="true" hidden>
+    <p class="panel__kicker">Desempenho do modelo</p>
+    <h2 class="panel__title" id="desempenho-titulo">Desempenho do modelo final em configurações que ele não viu</h2>
+
+    <div class="metric-grid" id="desempenho-metricas"></div>
+
+    <div class="chart-pair">
+      <figure class="chart-figure">
+        <div id="chart-desempenho-dataset"></div>
+        <figcaption>
+          <details class="more">
+            <summary>Como ler este gráfico</summary>
+            <p>
+              Erro absoluto médio no teste isolado, por dataset e nas seis áreas
+              juntas. A barra cheia é o modelo final; a clara, logo abaixo, é a
+              média histórica do ponto, a previsão sem modelo. Barra cheia mais
+              curta é área em que o modelo ganha da referência.
+            </p>
+          </details>
+        </figcaption>
+      </figure>
+
+      <figure class="chart-figure">
+        <div id="chart-desempenho-faixa"></div>
+        <figcaption>
+          <details class="more">
+            <summary>Como ler este gráfico</summary>
+            <p>
+              Proporção dos pontos com limite que o modelo aprova no critério do
+              parceiro, no teste isolado, por faixa de limite declarado (HD3). A
+              linha tracejada é o piso exigido; barra vermelha é faixa abaixo
+              dele. Sob cada barra, quantos pontos a faixa tem e o erro médio
+              deles.
+            </p>
+          </details>
+          <details class="more">
+            <summary>Ver como tabela</summary>
+            <div class="table-scroll">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th scope="col">Faixa de limite</th>
+                    <th scope="col" class="num">Aprovados</th>
+                    <th scope="col" class="num">Aprovação</th>
+                    <th scope="col" class="num">MAE médio (°C)</th>
+                  </tr>
+                </thead>
+                <tbody id="desempenho-faixas-corpo"></tbody>
+              </table>
+            </div>
+          </details>
+        </figcaption>
+      </figure>
+    </div>
+
+    <div class="table-scroll">
+      <table class="data-table">
+        <caption>Por dataset: teste isolado (configurações deixadas inteiramente fora do treino) e média das 40 divisões sorteadas por configuração. A média do ponto é a previsão sem modelo.</caption>
+        <thead>
+          <tr>
+            <th scope="col">Dataset</th>
+            <th scope="col">Modelo final</th>
+            <th scope="col" class="num">MAE teste (°C)</th>
+            <th scope="col" class="num">Média do ponto, teste (°C)</th>
+            <th scope="col" class="num">MAE 40 div. (°C)</th>
+            <th scope="col" class="num">Aprovação mediana (%)</th>
+            <th scope="col" class="num">Pontos aprovados</th>
+            <th scope="col" class="num">Sensibilidade (%)</th>
+            <th scope="col" class="num">FN / FP</th>
+          </tr>
+        </thead>
+        <tbody id="desempenho-datasets-corpo"></tbody>
+      </table>
+    </div>
+
+    <p class="panel__note" id="desempenho-origem"></p>
+
+    <details class="more">
+      <summary>O que cada métrica mede</summary>
+      <dl class="pending-defs">
+        <dt>MAE</dt>
+        <dd>
+          Erro absoluto médio, em graus Celsius. Interpretação direta do
+          tamanho típico do erro.
+        </dd>
+        <dt>RMSE</dt>
+        <dd>
+          Raiz do erro quadrático médio. Pesa mais os erros grandes, e por isso
+          revela previsões muito erradas que o MAE dilui.
+        </dd>
+        <dt>R²</dt>
+        <dd>
+          Fração da variação da temperatura que o modelo explica.
+        </dd>
+        <dt>Cobertura do critério</dt>
+        <dd>
+          Proporção dos pontos com limite cujo erro fica dentro de 10% do
+          limite, com intervalo de Wilson.
+        </dd>
+        <dt>Wilcoxon pareado</dt>
+        <dd>
+          Teste de HM contra a referência, sobre o MAE de cada uma das 40
+          divisões, pareado divisão a divisão.
+        </dd>
+        <dt>Erro por faixa de limite</dt>
+        <dd>
+          Aprovação e erro separados por faixa de limite declarado, exigidos por
+          HD3: um erro global esconderia dificuldade desigual entre pontos.
+        </dd>
+        <dt>Sensibilidade da RN-01</dt>
+        <dd>
+          Das excedências reais do teste isolado, quantas a regra de alarme
+          sinaliza. Falso negativo é excedência não sinalizada.
+        </dd>
+      </dl>
+    </details>
+  </section>
+
+</main>
+
+<script src="js/nucleo/schema.js?v=3"></script>
+<script src="js/nucleo/navegacao.js?v=1"></script>
+<script src="js/nucleo/api_predicao.js?v=5"></script>
+<script src="js/nucleo/estado_servico.js?v=1"></script>
+<script src="js/nucleo/previsao_sessao.js?v=5"></script>
+<script src="js/nucleo/catalogo_modelo.js?v=1"></script>
+<script src="js/leitura/leitura_publicos.js?v=8"></script>
+<script src="js/leitura/resumo_executivo.js?v=3"></script>
+<script src="js/nucleo/modo_leitura.js?v=1"></script>
+<script src="js/exportacao/planilha.js?v=2"></script>
+<script src="js/exportacao/documento_pdf.js?v=1"></script>
+<script src="js/exportacao/registro_pdf.js?v=1"></script>
+<script src="js/leitura/historico_sessao.js?v=2"></script>
+<script src="js/leitura/desempenho_modelo.js?v=2"></script>
+<script src="js/leitura/estatisticas_base.js?v=1"></script>
+<script src="js/telas/engenharia.js?v=8"></script>
+<script src="js/assistente/chat.js?v=5"></script>
+</body>
+</html>

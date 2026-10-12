@@ -1,7 +1,8 @@
 /* Desempenho do modelo final na tela de engenharia.
  *
- * Lê GET /desempenho (métricas agregadas gravadas pelo notebook 5.1) e GET /modelos, e só
- * compara cada valor com o seu alvo. Sem a API, a tela fica no estado indisponível.
+ * Lê GET /desempenho (métricas agregadas gravadas por sintetico/treinar_modelos.py) e
+ * GET /modelos, e só compara cada valor com o seu alvo. Sem a API, a tela fica no estado
+ * indisponível.
  */
 
 var DESEMPENHO_MODELO = (function () {
@@ -331,6 +332,37 @@ var DESEMPENHO_MODELO = (function () {
     if (typeof opcoes.aoMontar === "function") opcoes.aoMontar(d, modelos);
   }
 
+  /* Onde confiar menos, por área: sem modelo validado, sem ganho sobre a média
+     do ponto e, entre as demais, a de menor aprovação abaixo do piso. */
+  function ondeConfiarMenos(d) {
+    var piso = d.piso_aprovacao_pct;
+    var validados = d.por_dataset.filter(function (ds) { return ds.validado; });
+    var semModelo = d.por_dataset.filter(function (ds) { return !ds.validado; });
+    var semGanho = validados.filter(function (ds) { return ds.mae_teste_c >= ds.referencia_mae_teste_c; });
+    var fraco = validados.filter(function (ds) {
+      return semGanho.indexOf(ds) < 0 && ds.aprovacao_mediana_40_divisoes_pct < piso;
+    }).sort(function (a, b) { return a.aprovacao_mediana_40_divisoes_pct - b.aprovacao_mediana_40_divisoes_pct; })[0];
+
+    function nomes(lista) {
+      var n = lista.map(function (ds) { return ds.dataset; });
+      return n.length > 1 ? n.slice(0, -1).join(", ") + " e " + n[n.length - 1] : n[0];
+    }
+
+    var partes = [];
+    if (fraco) {
+      partes.push("em " + fraco.dataset + " ela é indicativa, com aprovação mediana de " +
+        fmt(fraco.aprovacao_mediana_40_divisoes_pct, 1) + "% nas divisões, e as configurações com pontos de " +
+        "pouca folga seguem para o CFD");
+    }
+    if (semGanho.length) partes.push("em " + nomes(semGanho) + " a média histórica do ponto é a melhor referência");
+    if (semModelo.length) partes.push("em " + nomes(semModelo) + " nenhuma previsão apoia decisão");
+    if (!partes.length) {
+      return "Todas as áreas batem a média histórica do ponto e ficam no piso de " + fmt(piso, 0) +
+        "% nas divisões.";
+    }
+    return "Onde a previsão é mais fraca: " + partes.join("; ") + ".";
+  }
+
   /* Os textos da tela que dependem do resultado: título, situação de cada
      critério e o porquê da leitura executiva. Escritos daqui, com os números da
      API, para nenhum deles ficar fixo no HTML e divergir do modelo. */
@@ -350,6 +382,10 @@ var DESEMPENHO_MODELO = (function () {
       criterios: "Duas exigências independentes: " +
         (bate ? "a estatística é cumprida" : "a estatística não é cumprida") + ", " +
         (cobre ? "a de engenharia também" : "a de engenharia não"),
+      porqueDuas: "Duas exigências independentes: cumprir uma não implica cumprir a outra" +
+        (bate && !cobre ? ", e é exatamente o que acontece com o modelo final, que bate a referência em erro " +
+          "e não chega à cobertura exigida." : "."),
+      onde: ondeConfiarMenos(d),
       engenharia: (cobre ? "Atingida: " : "Não atingida: ") + cobertura,
       estatistica: (bate ? "Atingida: " : "Não atingida: ") + "p = " + fmtP(g.wilcoxon.p) + ", erro menor em " +
         g.wilcoxon.divisoes_em_que_o_modelo_erra_menos + " de " + g.wilcoxon.pares + " divisões",
@@ -365,7 +401,8 @@ var DESEMPENHO_MODELO = (function () {
   function preencherTextos(d) {
     var t = textosDaTela(d);
     [["page-title", t.titulo], ["criterios-titulo", t.criterios], ["criterio-engenharia", t.engenharia],
-      ["criterio-estatistica", t.estatistica], ["exec-porque", t.porque]].forEach(function (par) {
+      ["criterio-estatistica", t.estatistica], ["exec-porque", t.porque], ["exec-onde", t.onde],
+      ["criterios-porque", t.porqueDuas]].forEach(function (par) {
       var alvo = document.getElementById(par[0]);
       if (alvo) alvo.textContent = par[1];
     });

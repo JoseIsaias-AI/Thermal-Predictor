@@ -1,7 +1,8 @@
 """GET /desempenho: métricas agregadas do modelo final.
 
-Serve o arquivo que o notebook `5.1_modelo_final.ipynb` grava a partir das somas e contagens da
-comparação de modelos (Seção 4.4 da documentação) e do teste isolado agregado por faixa de limite.
+Serve o arquivo que `sintetico/treinar_modelos.py` grava a partir do teste isolado, das divisões
+sorteadas por configuração e do teste isolado agregado por faixa de limite, com as estatísticas
+da base sem modelo no campo `base`.
 Nenhuma medição, previsão por ponto ou limite de componente passa por aqui.
 """
 
@@ -20,7 +21,7 @@ roteador = APIRouter(tags=["modelos"])
 
 
 def carregar_desempenho(configuracao, familia):
-    """O desempenho da família ativa, ou `None` sem família ou sem o arquivo do notebook."""
+    """O desempenho da família ativa, ou `None` sem família ou sem o arquivo de métricas."""
     if not familia:
         return None
 
@@ -46,8 +47,10 @@ def carregar_desempenho(configuracao, familia):
         "MAE, RMSE e R² do teste isolado, MAE médio e aprovação mediana nas 40 divisões, pontos "
         "aprovados no critério do parceiro, sensibilidade, falsos negativos e falsos positivos da "
         "RN-01, por dataset e nas seis áreas juntas, o teste de Wilcoxon pareado contra a média "
-        "histórica do ponto e a aprovação e o erro por faixa de limite. Gravado pelo notebook "
-        "`5.1_modelo_final.ipynb` só com agregados: nenhuma medição nem previsão por ponto."
+        "histórica do ponto e a aprovação e o erro por faixa de limite. No campo `base`, as "
+        "estatísticas sem modelo da tela de engenharia: referência, validação, procedência, "
+        "hipóteses e escalonamento. Gravado por `sintetico/treinar_modelos.py` só com agregados: "
+        "nenhuma medição nem previsão por ponto."
     ),
     responses={
         503: {
@@ -63,8 +66,9 @@ def desempenho(dados=Depends(obter_desempenho)):
             {
                 "erro": "desempenho_indisponivel",
                 "mensagem": (
-                    "As métricas agregadas do modelo ativo não estão disponíveis. Rode o notebook "
-                    "5.1_modelo_final.ipynb, que grava modelos/desempenho_modelo_final.json."
+                    "As métricas agregadas do modelo ativo não estão disponíveis. Rode "
+                    "`python sintetico/treinar_modelos.py`, que grava "
+                    "modelos/desempenho_modelo_final.json."
                 ),
                 "campos": [],
             },
